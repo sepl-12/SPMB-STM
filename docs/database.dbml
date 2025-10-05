@@ -1,0 +1,220 @@
+///////////////////////////////////////////////////////////////
+// PPDB SMK — Skema Hybrid Pragmatis (nama kolom deskriptif)
+// Catatan: komentar di tiap kolom menjelaskan fungsi praktiknya
+///////////////////////////////////////////////////////////////
+
+Table users {
+  id                      bigint [pk, increment] // ID akun admin/panitia
+  full_name               varchar(150)           // Nama lengkap admin/panitia
+  email_address           varchar(150)           // Email login
+  password_hash           varchar(255)           // Password terenkripsi
+  role_name               varchar(30)            // "admin" atau "panitia"
+  created_at              timestamp               // Dibuat kapan
+  updated_at              timestamp               // Diubah kapan
+}
+
+Table waves { // Gelombang pendaftaran
+  id                      bigint [pk, increment]
+  wave_name               varchar(50)            // Nama gelombang: "Gelombang 1"
+  wave_code               varchar(30)            // Kode internal: "GEL1_2026"
+  start_datetime          datetime               // Tanggal mulai gelombang
+  end_datetime            datetime               // Tanggal akhir gelombang
+  quota_limit             int                    // Kuota pendaftar (opsional)
+  registration_fee_amount decimal(12,2)          // Biaya formulir/pendaftaran
+  is_active               boolean                // Gelombang ini lagi aktif?
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table applicants { // Calon siswa (data utama)
+  id                      bigint [pk, increment]
+  registration_number     varchar(30)            // Nomor pendaftaran: "PPDB-2026-00123"
+  applicant_full_name     varchar(150)           // Nama calon siswa
+  applicant_nisn          varchar(20)            // NISN calon siswa
+  applicant_phone_number  varchar(30)            // No. HP calon siswa
+  applicant_email_address varchar(150)           // Email calon siswa
+  chosen_major_name       varchar(50)            // Jurusan pilihan (mis: "TKJ")
+  wave_id                 bigint                  // Relasi ke gelombang
+  payment_status          varchar(20)            // Ringkasan: "unpaid"|"paid"|"failed"|"refunded"
+  registered_datetime     datetime               // Waktu daftar
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table forms { // Satu "keluarga" formulir (lintas tahun/versi)
+  id                      bigint [pk, increment]
+  form_name               varchar(100)           // Nama: "Formulir PPDB SMK"
+  form_code               varchar(50)            // Kode stabil: "PPDB_SMK"
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table form_versions { // Versi struktur pertanyaan (setiap perubahan bikin versi baru)
+  id                      bigint [pk, increment]
+  form_id                 bigint                  // Milik form mana
+  version_number          int                     // 1,2,3,...
+  is_active               boolean                 // Versi mana yang dipakai pendaftar
+  published_datetime      timestamp               // Tanggal versi dipublikasikan
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table form_steps { // Langkah wizard (Biodata, Orang Tua, Berkas, dst.)
+  id                      bigint [pk, increment]
+  form_version_id         bigint                  // Milik versi mana
+  step_key                varchar(50)            // Kunci: "biodata", "ortu", "berkas"
+  step_title              varchar(120)           // Judul langkah untuk UI
+  step_description        text                   // Penjelasan langkah (opsional)
+  step_order_number       int                    // Urutan tampilnya langkah
+  is_visible_for_public   boolean                // Tampil untuk pendaftar (true) atau internal (false)
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table form_fields { // Pertanyaan di tiap langkah
+  id                      bigint [pk, increment]
+  form_version_id         bigint                  // Versi form pemilik pertanyaan
+  form_step_id            bigint                  // Langkah/wizard pemilik pertanyaan
+  field_key               varchar(100)            // Kunci stabil: "asal_sekolah", "tinggi_badan"
+  field_label             varchar(255)            // Label yang dilihat pengguna
+  field_type              varchar(30)             // "text"|"textarea"|"number"|"select"|"multiselect"|"date"|"file"|"image"|"boolean"
+  field_options_json      json                    // Opsi untuk select/multi (jika perlu)
+  is_required             boolean                 // Wajib diisi?
+  is_filterable           boolean                 // Perlu bisa difilter di admin?
+  is_exportable           boolean                 // Muncul default di ekspor?
+  is_archived             boolean                 // Diarsipkan (bukan dihapus) saat versi baru
+  field_placeholder_text  varchar(255)           // Placeholder (opsional)
+  field_help_text         varchar(255)           // Bantuan singkat (opsional)
+  field_order_number      int                    // Urutan pertanyaan dalam langkah
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table submissions { // Satu kali pengiriman formulir oleh calon siswa
+  id                      bigint [pk, increment]
+  applicant_id            bigint                  // Siapa yang submit
+  form_id                 bigint                  // Form apa
+  form_version_id         bigint                  // Versi berapa saat submit
+  answers_json            json                    // Snapshot semua jawaban {key:value}
+  submitted_datetime      datetime                // Kapan tombol "Kirim" ditekan
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table submission_answers { // Jawaban yang dipecah per-pertanyaan untuk filter/statistik
+  id                      bigint [pk, increment]
+  submission_id           bigint                  // Milik submission mana
+  form_field_id           bigint                  // Milik pertanyaan mana
+  field_key               varchar(100)            // Salinan kunci pertanyaan (jaga-jaga)
+  answer_value_text       text                    // Nilai jawaban teks (untuk text/textarea/select)
+  answer_value_number     decimal(18,4)           // Nilai angka (untuk number)
+  answer_value_boolean    boolean                 // Nilai ya/tidak
+  answer_value_date       date                    // Nilai tanggal
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table submission_drafts { // Draft "lanjutkan nanti" (opsional, UX)
+  id                      bigint [pk, increment]
+  form_id                 bigint
+  form_version_id         bigint
+  applicant_email_address varchar(150)            // Email untuk kirim link lanjutkan
+  current_step_key        varchar(50)             // Berhenti di langkah apa
+  answers_json            json                    // Jawaban sementara sejauh ini
+  resume_token_uuid       char(36)                // Token resume unik (UUID)
+  expires_datetime        datetime                // Draft kadaluarsa kapan
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table submission_files { // File yang diunggah (ijazah, foto, dll.)
+  id                      bigint [pk, increment]
+  submission_id           bigint                  // Milik submission mana
+  form_field_id           bigint                  // Terkait pertanyaan mana
+  stored_disk_name        varchar(50)             // Disk penyimpanan: "public"|"s3"
+  stored_file_path        varchar(255)            // Path file di storage
+  original_file_name      varchar(255)            // Nama file asli saat upload
+  mime_type_name          varchar(100)            // Jenis file: "image/jpeg","application/pdf"
+  file_size_bytes         bigint                  // Ukuran file dalam byte
+  uploaded_datetime       timestamp               // Kapan di-upload
+}
+
+Table payments { // Catatan pembayaran biaya pendaftaran
+  id                      bigint [pk, increment]
+  applicant_id            bigint                  // Calon siswa yang membayar
+  payment_gateway_name    varchar(30)             // "midtrans"|"tripay"|"xendit"
+  merchant_order_code     varchar(100)            // Kode pesanan di gateway
+  paid_amount_total       decimal(12,2)           // Nominal transaksi
+  currency_code           varchar(10)             // "IDR"
+  payment_method_name     varchar(50)             // "bca_va"|"qris"|"ewallet_x"
+  payment_status_name     varchar(20)             // Status transaksi saat ini
+  status_updated_datetime datetime                // Kapan status terakhir diperbarui
+  gateway_payload_json    json                    // Payload log/callback (jejak audit)
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table export_templates { // Template ekspor (memilih kolom & urutan)
+  id                      bigint [pk, increment]
+  form_id                 bigint                  // Template ini untuk form apa
+  template_name           varchar(100)            // "Rekap Panitia" / "Rekap Dapodik"
+  template_description    text                    // Catatan kegunaan template
+  is_default              boolean                 // Jadi default?
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table export_template_columns { // Kolom-kolom yang diekspor (urut & format)
+  id                      bigint [pk, increment]
+  export_template_id      bigint                  // Milik template apa
+  source_type_name        varchar(30)             // "applicant"|"form_field"|"expression"
+  source_key_name         varchar(150)            // ex: "applicant_full_name" / "asal_sekolah"
+  column_header_label     varchar(150)            // Judul kolom di Excel
+  column_order_number     int                     // Urutan kolom
+  column_format_hint      varchar(50)             // "date:dd/MM/yyyy" / "number:0"
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+Table site_settings { // Konten landing page publik
+  id                      bigint [pk, increment]
+  hero_title_text         varchar(120)            // Judul besar di halaman utama
+  hero_subtitle_text      text                    // Subjudul di halaman utama
+  hero_image_path         varchar(255)            // Gambar hero (path)
+  requirements_markdown   longtext                // Syarat pendaftaran (markdown)
+  faq_items_json          json                    // Daftar tanya-jawab FAQ [{"q":"","a":""},...]
+  cta_button_label        varchar(50)             // Tulisan tombol CTA
+  cta_button_url          varchar(255)            // Link tombol CTA
+  timeline_items_json     json                    // Timeline daftar [{"title":"","date":"","desc":""}]
+  created_at              timestamp
+  updated_at              timestamp
+}
+
+///////////////////////////////////////////////////////////////
+// RELATIONSHIPS (Refs) — diletakkan di paling bawah
+///////////////////////////////////////////////////////////////
+
+Ref: waves.id < applicants.wave_id
+
+Ref: forms.id < form_versions.form_id
+Ref: form_versions.id < form_steps.form_version_id
+Ref: form_versions.id < form_fields.form_version_id
+Ref: form_steps.id < form_fields.form_step_id
+
+Ref: applicants.id < submissions.applicant_id
+Ref: forms.id < submissions.form_id
+Ref: form_versions.id < submissions.form_version_id
+
+Ref: submissions.id < submission_answers.submission_id
+Ref: form_fields.id < submission_answers.form_field_id
+
+Ref: forms.id < submission_drafts.form_id
+Ref: form_versions.id < submission_drafts.form_version_id
+
+Ref: submissions.id < submission_files.submission_id
+Ref: form_fields.id < submission_files.form_field_id
+
+Ref: applicants.id < payments.applicant_id
+
+Ref: forms.id < export_templates.form_id
+Ref: export_templates.id < export_template_columns.export_template_id
