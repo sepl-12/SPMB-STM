@@ -19,6 +19,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Unique;
 
 class FormStepsRelationManager extends RelationManager
 {
@@ -40,9 +41,12 @@ class FormStepsRelationManager extends RelationManager
                     ->maxLength(50)
                     ->alphaDash()
                     ->helperText('Gunakan huruf kecil dan tanda hubung untuk konsistensi.')
-                    ->unique(ignoreRecord: true, modifyQueryUsing: function (Builder $query) {
-                        $query->where('form_version_id', $this->getActiveVersion()->getKey());
-                    })
+                    ->unique(
+                        ignoreRecord: true,
+                        modifyRuleUsing: function (Unique $rule) {
+                            return $rule->where('form_version_id', $this->getActiveVersion()->getKey());
+                        },
+                    )
                     ->dehydrateStateUsing(fn (?string $state) => $state ? Str::slug($state, '_') : null),
                 Textarea::make('step_description')
                     ->label('Deskripsi')

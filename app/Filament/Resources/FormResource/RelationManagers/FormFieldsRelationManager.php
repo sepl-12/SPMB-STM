@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Unique;
 
 class FormFieldsRelationManager extends RelationManager
 {
@@ -46,9 +47,12 @@ class FormFieldsRelationManager extends RelationManager
                             ->required()
                             ->maxLength(100)
                             ->helperText('Gunakan snake_case untuk konsistensi data.')
-                            ->unique(ignoreRecord: true, modifyQueryUsing: function (Builder $query) {
-                                $query->where('form_version_id', $this->getActiveVersion()->getKey());
-                            })
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: function (Unique $rule) {
+                                    return $rule->where('form_version_id', $this->getActiveVersion()->getKey());
+                                },
+                            )
                             ->dehydrateStateUsing(fn (?string $state) => $state ? Str::snake($state) : null),
                         Select::make('form_step_id')
                             ->label('Langkah')
