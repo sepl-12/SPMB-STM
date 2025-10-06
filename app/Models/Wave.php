@@ -12,6 +12,14 @@ class Wave extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'start_datetime' => 'datetime',
+        'end_datetime' => 'datetime',
+        'is_active' => 'boolean',
+        'registration_fee_amount' => 'decimal:2',
+        'quota_limit' => 'integer',
+    ];
+
     public function applicants(): HasMany
     {
         return $this->hasMany(Applicant::class);

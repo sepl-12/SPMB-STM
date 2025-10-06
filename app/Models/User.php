@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -17,10 +18,9 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'full_name',
-        'email_address',
-        'password_hash',
-        'role_name',
+        'name',
+        'email',
+        'password',
     ];
 
     /**
@@ -29,7 +29,8 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'password_hash',
+        'password',
+        'remember_token',
     ];
 
     /**
@@ -40,31 +41,8 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'password_hash' => 'hashed',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
         ];
-    }
-
-    /**
-     * Retrieve the authentication password.
-     */
-    public function getAuthPassword(): string
-    {
-        return $this->password_hash;
-    }
-
-    /**
-     * Disable remember token updates because the column does not exist.
-     */
-    public function setRememberToken($value): void
-    {
-        // Intentionally left empty.
-    }
-
-    /**
-     * There is no remember token column for this user model.
-     */
-    public function getRememberToken(): ?string
-    {
-        return null;
     }
 }
