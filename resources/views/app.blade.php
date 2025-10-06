@@ -7,4 +7,8 @@
     <x-requirements />
     <x-faq />
     <x-contact />
+    <x-footer />
+    
+    <!-- Floating WhatsApp Button -->
+    <x-whatsapp-button />
 </x-layout>
