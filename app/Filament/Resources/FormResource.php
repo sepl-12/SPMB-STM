@@ -6,13 +6,18 @@ use App\Filament\Resources\FormResource\Pages;
 use App\Filament\Resources\FormResource\RelationManagers\FormFieldsRelationManager;
 use App\Filament\Resources\FormResource\RelationManagers\FormStepsRelationManager;
 use App\Models\Form as FormModel;
+use App\Models\FormVersion;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -80,11 +85,57 @@ class FormResource extends Resource
                     ->label('Versi Aktif')
                     ->color('primary')
                     ->formatStateUsing(fn ($state) => $state ? 'v' . $state : 'Belum ada')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(true),
                 TextColumn::make('activeFormVersion.published_datetime')
                     ->label('Terbit')
                     ->dateTime('d M Y H:i')
-                    ->placeholder('-'),
+                    ->placeholder('-')
+                    ->toggleable(),
+                ToggleColumn::make('is_active')
+                    ->label('Aktif')
+                    ->state(fn (FormModel $record): bool => (bool) $record->activeFormVersion?->is_active)
+                    ->disabled(fn (FormModel $record): bool => ! $record->formVersions()->exists())
+                    ->updateStateUsing(function (ToggleColumn $column, bool $state) {
+                        /** @var FormModel $record */
+                        $record = $column->getRecord();
+
+                        $version = $record->activeFormVersion()->first() ?? $record->formVersions()->latest('version_number')->first();
+
+                        if (! $version) {
+                            return false;
+                        }
+
+                        if ($state) {
+                            FormVersion::query()
+                                ->where('form_id', $record->getKey())
+                                ->whereKeyNot($version->getKey())
+                                ->update([
+                                    'is_active' => false,
+                                    'published_datetime' => null,
+                                ]);
+
+                            $version->update([
+                                'is_active' => true,
+                                'published_datetime' => now(),
+                            ]);
+                        } else {
+                            $version->update([
+                                'is_active' => false,
+                                'published_datetime' => null,
+                            ]);
+                        }
+
+                        $record->unsetRelation('activeFormVersion');
+
+                        return (bool) $version->fresh()->is_active;
+                    })
+                    ->afterStateUpdated(function (ToggleColumn $column, bool $state) {
+                        Notification::make()
+                            ->title($state ? 'Formulir diaktifkan' : 'Formulir dinonaktifkan')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->actions([
                 Action::make('manage')
@@ -92,8 +143,16 @@ class FormResource extends Resource
                     ->icon('heroicon-o-wrench-screwdriver')
                     ->url(fn (FormModel $record) => self::getUrl('edit', ['record' => $record]))
                     ->button(),
+                DeleteAction::make()
+                    ->label('Hapus')
+                    ->requiresConfirmation()
+                    ->successNotificationTitle('Formulir dihapus'),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                DeleteBulkAction::make()
+                    ->label('Hapus Dipilih')
+                    ->requiresConfirmation(),
+            ]);
     }
 
     public static function getRelations(): array
@@ -113,8 +172,4 @@ class FormResource extends Resource
         ];
     }
 
-    public static function canDelete(Model $record): bool
-    {
-        return false;
-    }
 }
