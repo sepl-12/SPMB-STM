@@ -177,6 +177,316 @@
         </div>
     </section>
     
+    <!-- Alur Pendaftaran Section -->
+    <section id="alur-pendaftaran" class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Section Header -->
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+                    Alur Pendaftaran PPDB
+                </h2>
+                <p class="text-lg text-gray-600">
+                    Ikuti 4 langkah mudah untuk mendaftar di sekolah kami.
+                </p>
+            </div>
+            
+            <!-- Timeline -->
+            <div class="relative">
+                <!-- Vertical Line -->
+                <div class="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200 hidden sm:block"></div>
+                
+                <!-- Step 1 -->
+                <div class="relative flex items-start mb-12 last:mb-0">
+                    <!-- Icon Circle -->
+                    <div class="flex-shrink-0 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Content Card -->
+                    <div class="ml-6 flex-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            1. Buat Akun & Isi Formulir
+                        </h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            Calon siswa membuat akun dan mengisi formulir pendaftaran secara online dengan data yang lengkap dan benar.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="relative flex items-start mb-12 last:mb-0">
+                    <!-- Icon Circle -->
+                    <div class="flex-shrink-0 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Content Card -->
+                    <div class="ml-6 flex-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            2. Seleksi Berkas
+                        </h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            Panitia PPDB akan melakukan verifikasi dan validasi berkas pendaftaran yang telah diunggah oleh calon siswa.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="relative flex items-start mb-12 last:mb-0">
+                    <!-- Icon Circle -->
+                    <div class="flex-shrink-0 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Content Card -->
+                    <div class="ml-6 flex-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            3. Pengumuman Hasil
+                        </h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            Hasil seleksi akan diumumkan secara online melalui website ini. Calon siswa dapat melihat status kelulusan.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Step 4 -->
+                <div class="relative flex items-start mb-12 last:mb-0">
+                    <!-- Icon Circle -->
+                    <div class="flex-shrink-0 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Content Card -->
+                    <div class="ml-6 flex-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            4. Daftar Ulang
+                        </h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            Siswa yang dinyatakan lulus seleksi diwajibkan melakukan daftar ulang sesuai jadwal yang telah ditentukan.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CTA Button -->
+            <div class="text-center mt-12">
+                <a href="/daftar" class="inline-flex items-center justify-center px-8 py-4 bg-green-500 hover:bg-green-600 text-white font-semibold text-lg rounded-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green-500/40">
+                    Mulai Pendaftaran Sekarang
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Informasi Gelombang Pendaftaran Section -->
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Section Header -->
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+                    Informasi Gelombang Pendaftaran
+                </h2>
+                <p class="text-lg text-gray-600">
+                    Berikut adalah jadwal pendaftaran siswa baru untuk tahun ajaran 2025/2026.
+                </p>
+            </div>
+            
+            <!-- Timeline Progress Bar -->
+            <div class="relative mb-12 hidden md:block">
+                <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-300 -translate-y-1/2"></div>
+                <div class="relative flex justify-between items-center max-w-4xl mx-auto">
+                    <!-- Point 1 - Selesai -->
+                    <div class="w-4 h-4 bg-gray-400 rounded-full ring-4 ring-white"></div>
+                    <!-- Point 2 - Active -->
+                    <div class="w-4 h-4 bg-green-500 rounded-full ring-4 ring-white"></div>
+                    <!-- Point 3 - Upcoming -->
+                    <div class="w-4 h-4 bg-blue-500 rounded-full ring-4 ring-white"></div>
+                </div>
+            </div>
+            
+            <!-- Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                <!-- Gelombang 1 - Selesai -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300">
+                    <!-- Icon -->
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Title -->
+                    <h3 class="text-2xl font-bold text-gray-900 text-center mb-3">
+                        Gelombang 1
+                    </h3>
+                    
+                    <!-- Date -->
+                    <p class="text-gray-600 text-center mb-6">
+                        1 Januari - 28 Februari 2025
+                    </p>
+                    
+                    <!-- Status Badge -->
+                    <div class="flex justify-center">
+                        <span class="inline-flex items-center px-6 py-2 bg-gray-100 text-gray-600 font-semibold rounded-full text-sm">
+                            Selesai
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Gelombang 2 - Dibuka (Active) -->
+                <div class="bg-white rounded-2xl p-8 shadow-lg border-2 border-green-500 hover:shadow-xl transition-all duration-300 relative">
+                    <!-- Active Badge -->
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span class="inline-flex items-center px-4 py-1 bg-green-500 text-white font-semibold rounded-full text-xs">
+                            Sedang Berlangsung
+                        </span>
+                    </div>
+                    
+                    <!-- Icon -->
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Title -->
+                    <h3 class="text-2xl font-bold text-gray-900 text-center mb-3">
+                        Gelombang 2
+                    </h3>
+                    
+                    <!-- Date -->
+                    <p class="text-gray-600 text-center mb-6">
+                        1 Maret - 30 April 2025
+                    </p>
+                    
+                    <!-- Status Badge -->
+                    <div class="flex justify-center">
+                        <span class="inline-flex items-center px-6 py-2 bg-green-500 text-white font-semibold rounded-full text-sm">
+                            Dibuka
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Gelombang 3 - Akan Datang -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300">
+                    <!-- Icon -->
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Title -->
+                    <h3 class="text-2xl font-bold text-gray-900 text-center mb-3">
+                        Gelombang 3
+                    </h3>
+                    
+                    <!-- Date -->
+                    <p class="text-gray-600 text-center mb-6">
+                        1 Mei - 30 Juni 2025
+                    </p>
+                    
+                    <!-- Status Badge -->
+                    <div class="flex justify-center">
+                        <span class="inline-flex items-center px-6 py-2 border-2 border-blue-500 text-blue-500 font-semibold rounded-full text-sm">
+                            Akan Datang
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Dokumen yang Diperlukan Section -->
+    <section id="syarat" class="py-20 bg-white">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Card Container with Orange Border -->
+            <div class="bg-white rounded-3xl shadow-lg border-t-4 border-orange-500 p-8 md:p-12">
+                <!-- Icon and Title -->
+                <div class="text-center mb-12">
+                    <div class="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">
+                        Dokumen yang Diperlukan
+                    </h2>
+                </div>
+                
+                <!-- Documents Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Document 1 -->
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">1</span>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-gray-700 text-lg">Mengisi formulir pendaftaran</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Document 2 -->
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">2</span>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-gray-700 text-lg">Pas foto ukuran 3x4 (2 lembar)</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Document 3 -->
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">3</span>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-gray-700 text-lg">Fotocopy Kartu Keluarga (KK)</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Document 4 -->
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">4</span>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-gray-700 text-lg">Fotocopy Akta Kelahiran</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Document 5 -->
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">5</span>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-gray-700 text-lg">Fotocopy Kartu/surat keterangan NISN</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Document 6 -->
+                    <div class="flex items-start gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">6</span>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-gray-700 text-lg">Mengikuti test seleksi</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
     <script>
         // Mobile menu toggle
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
