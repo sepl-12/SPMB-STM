@@ -487,6 +487,163 @@
         </div>
     </section>
     
+    <!-- FAQ Section -->
+    <section id="faq" class="py-20 bg-gray-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Section Header -->
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                    Pertanyaan yang Sering Diajukan (FAQ)
+                </h2>
+                <p class="text-lg text-gray-600">
+                    Temukan jawaban atas pertanyaan umum seputar proses pendaftaran siswa baru di sekolah kami.
+                </p>
+            </div>
+            
+            <!-- FAQ Accordion -->
+            <div class="space-y-4">
+                <!-- FAQ Item 1 -->
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <span class="font-semibold text-gray-900 text-lg">Apa saja persyaratan pendaftaran?</span>
+                        <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5">
+                        <p class="text-gray-600 leading-relaxed">
+                            Persyaratan pendaftaran meliputi mengisi formulir online, pas foto 3x4 (2 lembar), fotocopy Kartu Keluarga (KK), fotocopy Akta Kelahiran, fotocopy kartu/surat keterangan NISN, dan mengikuti test seleksi.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 2 -->
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <span class="font-semibold text-gray-900 text-lg">Berapa biaya pendaftaran?</span>
+                        <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5">
+                        <p class="text-gray-600 leading-relaxed">
+                            Biaya pendaftaran adalah Rp 300.000 yang dapat dibayarkan melalui transfer bank atau pembayaran langsung ke sekolah. Biaya ini sudah termasuk biaya test seleksi dan formulir pendaftaran.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 3 -->
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <span class="font-semibold text-gray-900 text-lg">Apakah ada jalur prestasi?</span>
+                        <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5">
+                        <p class="text-gray-600 leading-relaxed">
+                            Ya, kami menyediakan jalur prestasi untuk siswa yang memiliki prestasi akademik atau non-akademik. Calon siswa dengan prestasi dapat melampirkan sertifikat atau piagam penghargaan saat mendaftar untuk mendapatkan nilai tambahan.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 4 -->
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <span class="font-semibold text-gray-900 text-lg">Kapan pengumuman hasil seleksi?</span>
+                        <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5">
+                        <p class="text-gray-600 leading-relaxed">
+                            Pengumuman hasil seleksi akan diumumkan 7 hari setelah test seleksi dilaksanakan. Hasil dapat dilihat secara online melalui website ini dengan memasukkan nomor pendaftaran Anda.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 5 -->
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <span class="font-semibold text-gray-900 text-lg">Bagaimana jika saya mengalami kesulitan saat mendaftar?</span>
+                        <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5">
+                        <p class="text-gray-600 leading-relaxed">
+                            Jika mengalami kesulitan saat mendaftar, Anda dapat menghubungi tim support kami melalui WhatsApp, telepon, atau email yang tertera di bagian kontak. Tim kami siap membantu Anda dari hari Senin - Jumat pukul 08:00 - 16:00 WIB.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Contact Us Section -->
+    <section id="kontak" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Section Header -->
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                    Hubungi Kami
+                </h2>
+                <p class="text-lg text-gray-600">
+                    Punya pertanyaan? Jangan ragu untuk menghubungi kami melalui informasi di bawah ini.
+                </p>
+            </div>
+            
+            <!-- Contact Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                <!-- Alamat Card -->
+                <div class="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">
+                        Alamat
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Jl. Pendidikan No. 123, Kota Ilmu, Indonesia
+                    </p>
+                </div>
+                
+                <!-- Telepon & WhatsApp Card -->
+                <div class="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">
+                        Telepon & WhatsApp
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        (021) 123-4567
+                    </p>
+                </div>
+                
+                <!-- Email Card -->
+                <div class="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-shadow text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">
+                        Email
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed break-words">
+                        info@smkmuh1sangatta.sch.id
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
     <script>
         // Mobile menu toggle
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
@@ -501,6 +658,19 @@
         mobileMenuLinks.forEach(link => {
             link.addEventListener('click', () => {
                 mobileMenu.classList.add('hidden');
+            });
+        });
+        
+        // FAQ Accordion
+        const faqToggles = document.querySelectorAll('.faq-toggle');
+        faqToggles.forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                const icon = this.querySelector('.faq-icon');
+                
+                // Toggle current FAQ
+                content.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
             });
         });
         
