@@ -41,12 +41,28 @@ class Form extends Model
 
     public function ensureActiveVersion(): FormVersion
     {
-        $active = $this->activeFormVersion()->first();
-
-        if ($active) {
+        if ($active = $this->activeFormVersion()->first()) {
             return $active;
         }
 
+        return $this->createFormVersion();
+    }
+
+    public function getCurrentFormVersion(): FormVersion
+    {
+        if ($active = $this->activeFormVersion()->first()) {
+            return $active;
+        }
+
+        if ($latest = $this->formVersions()->latest('version_number')->first()) {
+            return $latest;
+        }
+
+        return $this->createFormVersion();
+    }
+
+    protected function createFormVersion(): FormVersion
+    {
         $nextVersion = ($this->formVersions()->max('version_number') ?? 0) + 1;
 
         return tap($this->formVersions()->create([

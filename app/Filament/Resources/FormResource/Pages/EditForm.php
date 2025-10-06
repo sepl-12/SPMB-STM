@@ -30,6 +30,19 @@ class EditForm extends EditRecord
         ];
     }
 
+    public function getSubheading(): ?string
+    {
+        $version = $this->record->getCurrentFormVersion();
+
+        if (! $version) {
+            return null;
+        }
+
+        $status = $version->is_active ? 'aktif' : 'draft';
+
+        return sprintf('Versi saat ini: v%s (%s)', $version->version_number, $status);
+    }
+
     protected function publishActiveVersion(): void
     {
         $form = $this->record;
