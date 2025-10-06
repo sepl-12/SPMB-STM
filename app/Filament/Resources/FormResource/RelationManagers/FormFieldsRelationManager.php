@@ -41,7 +41,9 @@ class FormFieldsRelationManager extends RelationManager
                         TextInput::make('field_label')
                             ->label('Label')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (?string $state, callable $set) => $set('field_key', Str::slug($state ?? '', '_'))),
                         TextInput::make('field_key')
                             ->label('Key')
                             ->required()
@@ -53,7 +55,21 @@ class FormFieldsRelationManager extends RelationManager
                                     return $rule->where('form_version_id', $this->getActiveVersion()->getKey());
                                 },
                             )
-                            ->dehydrateStateUsing(fn (?string $state) => $state ? Str::snake($state) : null),
+                            ->disabled()
+                            ->dehydrated()
+                            ->afterStateHydrated(function (?string $state, callable $set, $record) {
+                                if (filled($state)) {
+                                    return;
+                                }
+
+                                $label = $record?->field_label;
+
+                                if (filled($label)) {
+                                    $set('field_key', Str::slug($label, '_'));
+                                }
+                            })
+                            ->dehydrateStateUsing(fn (?string $state) => $state ? Str::slug($state, '_') : null)
+                            ->extraAttributes(['readonly' => true]),
                         Select::make('form_step_id')
                             ->label('Langkah')
                             ->options(fn () => $this->getStepOptions())

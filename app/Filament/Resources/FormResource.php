@@ -16,6 +16,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class FormResource extends Resource
 {
@@ -36,12 +37,29 @@ class FormResource extends Resource
                 Forms\Components\TextInput::make('form_name')
                     ->label('Nama Formulir')
                     ->required()
-                    ->maxLength(100),
+                    ->maxLength(100)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (?string $state, callable $set) => $set('form_code', Str::slug($state ?? ''))),
                 Forms\Components\TextInput::make('form_code')
                     ->label('Kode Formulir')
                     ->required()
                     ->maxLength(50)
-                    ->unique(ignoreRecord: true),
+                    ->unique(ignoreRecord: true)
+                    ->disabled()
+                    ->dehydrated()
+                    ->afterStateHydrated(function (?string $state, callable $set, $record) {
+                        if (filled($state)) {
+                            return;
+                        }
+
+                        $name = $record?->form_name;
+
+                        if (filled($name)) {
+                            $set('form_code', Str::slug($name));
+                        }
+                    })
+                    ->dehydrateStateUsing(fn (?string $state) => Str::slug($state ?? ''))
+                    ->extraAttributes(['readonly' => true]),
             ]);
     }
 

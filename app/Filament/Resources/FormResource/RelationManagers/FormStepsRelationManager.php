@@ -34,7 +34,9 @@ class FormStepsRelationManager extends RelationManager
                 TextInput::make('step_title')
                     ->label('Judul Langkah')
                     ->required()
-                    ->maxLength(120),
+                    ->maxLength(120)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (?string $state, callable $set) => $set('step_key', Str::slug($state ?? '', '_'))),
                 TextInput::make('step_key')
                     ->label('Key')
                     ->required()
@@ -47,7 +49,21 @@ class FormStepsRelationManager extends RelationManager
                             return $rule->where('form_version_id', $this->getActiveVersion()->getKey());
                         },
                     )
-                    ->dehydrateStateUsing(fn (?string $state) => $state ? Str::slug($state, '_') : null),
+                    ->disabled()
+                    ->dehydrated()
+                    ->afterStateHydrated(function (?string $state, callable $set, $record) {
+                        if (filled($state)) {
+                            return;
+                        }
+
+                        $title = $record?->step_title;
+
+                        if (filled($title)) {
+                            $set('step_key', Str::slug($title, '_'));
+                        }
+                    })
+                    ->dehydrateStateUsing(fn (?string $state) => $state ? Str::slug($state, '_') : null)
+                    ->extraAttributes(['readonly' => true]),
                 Textarea::make('step_description')
                     ->label('Deskripsi')
                     ->rows(3)
