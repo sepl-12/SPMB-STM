@@ -1,0 +1,73 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\SiteSetting;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class SiteSettingSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        SiteSetting::create([
+            'hero_title_text' => 'Penerimaan Peserta Didik Baru Online 2025/2026',
+            'hero_subtitle_text' => 'SMK Muhammadiyah 1 Sangatta Utara membuka pendaftaran siswa baru. Daftar sekarang juga dan jadi bagian dari kami.',
+            'hero_image_path' => 'hero-bg.jpg',
+            'requirements_markdown' => "1. Mengisi formulir pendaftaran\n2. Pas foto ukuran 3x4 (2 lembar)\n3. Fotocopy Kartu Keluarga (KK)\n4. Fotocopy Akta Kelahiran\n5. Fotocopy Kartu/surat keterangan NISN\n6. Mengikuti test seleksi",
+            'faq_items_json' => [
+                [
+                    'question' => 'Apa saja persyaratan pendaftaran?',
+                    'answer' => 'Persyaratan pendaftaran meliputi mengisi formulir online, pas foto 3x4 (2 lembar), fotocopy Kartu Keluarga (KK), fotocopy Akta Kelahiran, fotocopy kartu/surat keterangan NISN, dan mengikuti test seleksi.'
+                ],
+                [
+                    'question' => 'Berapa biaya pendaftaran?',
+                    'answer' => 'Biaya pendaftaran adalah Rp 300.000 yang dapat dibayarkan melalui transfer bank atau pembayaran langsung ke sekolah. Biaya ini sudah termasuk biaya test seleksi dan formulir pendaftaran.'
+                ],
+                [
+                    'question' => 'Apakah ada jalur prestasi?',
+                    'answer' => 'Ya, kami menyediakan jalur prestasi untuk siswa yang memiliki prestasi akademik atau non-akademik. Calon siswa dengan prestasi dapat melampirkan sertifikat atau piagam penghargaan saat mendaftar untuk mendapatkan nilai tambahan.'
+                ],
+                [
+                    'question' => 'Kapan pengumuman hasil seleksi?',
+                    'answer' => 'Pengumuman hasil seleksi akan diumumkan 7 hari setelah test seleksi dilaksanakan. Hasil dapat dilihat secara online melalui website ini dengan memasukkan nomor pendaftaran Anda.'
+                ],
+                [
+                    'question' => 'Bagaimana jika saya mengalami kesulitan saat mendaftar?',
+                    'answer' => 'Jika mengalami kesulitan saat mendaftar, Anda dapat menghubungi tim support kami melalui WhatsApp, telepon, atau email yang tertera di bagian kontak. Tim kami siap membantu Anda dari hari Senin - Jumat pukul 08:00 - 16:00 WIB.'
+                ]
+            ],
+            'cta_button_label' => 'Daftar Sekarang',
+            'cta_button_url' => '/daftar',
+            'timeline_items_json' => [
+                [
+                    'step' => 1,
+                    'title' => 'Buat Akun & Isi Formulir',
+                    'description' => 'Calon siswa membuat akun dan mengisi formulir pendaftaran secara online dengan data yang lengkap dan benar.',
+                    'icon' => 'user-plus'
+                ],
+                [
+                    'step' => 2,
+                    'title' => 'Seleksi Berkas',
+                    'description' => 'Panitia PPDB akan melakukan verifikasi dan validasi berkas pendaftaran yang telah diunggah oleh calon siswa.',
+                    'icon' => 'document'
+                ],
+                [
+                    'step' => 3,
+                    'title' => 'Pengumuman Hasil',
+                    'description' => 'Hasil seleksi akan diumumkan secara online melalui website ini. Calon siswa dapat melihat status kelulusan.',
+                    'icon' => 'check-circle'
+                ],
+                [
+                    'step' => 4,
+                    'title' => 'Daftar Ulang',
+                    'description' => 'Siswa yang dinyatakan lulus seleksi diwajibkan melakukan daftar ulang sesuai jadwal yang telah ditentukan.',
+                    'icon' => 'currency'
+                ]
+            ],
+        ]);
+    }
+}

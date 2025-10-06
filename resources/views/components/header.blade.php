@@ -5,7 +5,7 @@
             <!-- Logo -->
             <a href="/" class="flex items-center gap-3 text-gray-900 hover:text-gray-700 transition-colors">
                 <img src="{{ asset('Logo STM.png') }}" alt="Logo SMK Muh 1" class="h-10 w-auto">
-                <span class="font-semibold text-lg hidden sm:block">PPDB SMK Muh 1</span>
+                {{-- <span class="font-semibold text-lg hidden sm:block"></span> --}}
             </a>
             
             <!-- Desktop Navigation -->
