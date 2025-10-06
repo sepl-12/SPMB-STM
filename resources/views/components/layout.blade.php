@@ -39,6 +39,13 @@
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
+            transition: background 0.3s ease-in-out, backdrop-filter 0.3s ease-in-out;
+        }
+        
+        header.bg-white {
+            background: rgb(255, 255, 255);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
         }
     </style>
     
@@ -51,14 +58,18 @@
         // Mobile menu toggle with animation
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const mobileMenu = document.getElementById('mobile-menu');
+        const mainHeader = document.getElementById('main-header');
         
-        if (mobileMenuToggle && mobileMenu) {
+        if (mobileMenuToggle && mobileMenu && mainHeader) {
             let isMenuOpen = false;
             
             mobileMenuToggle.addEventListener('click', function() {
                 if (!isMenuOpen) {
                     // Open menu
                     mobileMenu.classList.remove('hidden');
+                    // Remove glass effect
+                    mainHeader.classList.remove('bg-white/70', 'backdrop-blur-xl');
+                    mainHeader.classList.add('bg-white');
                     setTimeout(() => {
                         mobileMenu.style.maxHeight = '500px';
                         mobileMenu.style.opacity = '1';
@@ -68,6 +79,9 @@
                     // Close menu
                     mobileMenu.style.maxHeight = '0';
                     mobileMenu.style.opacity = '0';
+                    // Restore glass effect
+                    mainHeader.classList.remove('bg-white');
+                    mainHeader.classList.add('bg-white/70', 'backdrop-blur-xl');
                     setTimeout(() => {
                         mobileMenu.classList.add('hidden');
                     }, 300);
@@ -81,6 +95,9 @@
                 link.addEventListener('click', () => {
                     mobileMenu.style.maxHeight = '0';
                     mobileMenu.style.opacity = '0';
+                    // Restore glass effect
+                    mainHeader.classList.remove('bg-white');
+                    mainHeader.classList.add('bg-white/70', 'backdrop-blur-xl');
                     setTimeout(() => {
                         mobileMenu.classList.add('hidden');
                     }, 300);
