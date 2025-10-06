@@ -81,11 +81,14 @@ class SiteContentSettings extends Page implements HasForms
                         FileUpload::make('hero_image_path')
                             ->label('Gambar Hero')
                             ->image()
+                            ->disk('public')
+                            ->directory('hero')
                             ->visibility('public')
-                            ->directory('site/hero')
                             ->imageEditor()
-                            ->maxSize(2048)
-                            ->helperText('Unggah gambar dengan rasio 16:9 untuk tampilan terbaik.')
+                            ->maxSize(5120)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
+                            ->helperText('Unggah gambar dengan rasio 16:9 untuk tampilan terbaik. Max 5MB.')
+                            ->preserveFilenames()
                             ->columnSpanFull(),
                     ])
                     ->columns(2),

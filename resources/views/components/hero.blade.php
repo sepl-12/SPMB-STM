@@ -1,12 +1,17 @@
 <!-- Hero Section -->
 <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
     <!-- Background Image with Placeholder -->
-    <div class="absolute inset-0 z-0 hero-bg-placeholder">
-        @if($settings->hero_image_path && file_exists(public_path($settings->hero_image_path)))
-            <img src="{{ asset($settings->hero_image_path) }}" alt="SMK Muhammadiyah 1 Sangatta Utara" class="w-full h-full object-cover">
+    <div class="absolute inset-0 z-0">
+        @if($settings->hero_image_path)
+            <div class="absolute inset-0 hero-bg-placeholder">
+                <img src="{{ asset('storage/' . $settings->hero_image_path) }}" 
+                     alt="SMK Muhammadiyah 1 Sangatta Utara" 
+                     class="absolute inset-0 w-full h-full object-cover"
+                     loading="eager">
+            </div>
         @else
             <!-- Placeholder pattern jika gambar belum ada -->
-            <div class="w-full h-full bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700"></div>
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700"></div>
         @endif
     </div>
     
