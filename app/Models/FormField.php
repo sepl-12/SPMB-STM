@@ -21,6 +21,21 @@ class FormField extends Model
         'is_archived' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (FormField $field) {
+            if ($field->field_order_number) {
+                return;
+            }
+
+            $maxOrder = static::query()
+                ->where('form_version_id', $field->form_version_id)
+                ->max('field_order_number');
+
+            $field->field_order_number = ($maxOrder ?? 0) + 1;
+        });
+    }
+
     public function formVersion(): BelongsTo
     {
         return $this->belongsTo(FormVersion::class);
