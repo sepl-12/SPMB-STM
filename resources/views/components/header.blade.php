@@ -1,5 +1,5 @@
-<!-- Header -->
-<header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm">
+<!-- Header with Glassmorphism Effect -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl shadow-lg border-b border-white/20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
             <!-- Logo -->
@@ -33,8 +33,8 @@
         </div>
     </div>
     
-    <!-- Mobile Menu -->
-    <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-200 bg-white">
+    <!-- Mobile Menu with Animation -->
+    <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-200 bg-white/90 backdrop-blur-lg overflow-hidden transition-all duration-300 ease-in-out max-h-0 opacity-0">
         <nav class="px-4 py-4 space-y-2">
             <a href="#tentang" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Tentang</a>
             <a href="#alur-pendaftaran" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Alur Pendaftaran</a>

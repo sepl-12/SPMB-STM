@@ -42,14 +42,16 @@
             <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
                     <span class="font-semibold text-gray-900 text-lg">{{ $faq['question'] }}</span>
-                    <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-300 ease-in-out" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                <div class="faq-content hidden px-6 pb-5">
-                    <p class="text-gray-600 leading-relaxed">
-                        {{ $faq['answer'] }}
-                    </p>
+                <div class="faq-content faq-closed transition-all duration-300 ease-in-out overflow-hidden" style="max-height: 0;">
+                    <div class="px-6 pb-5">
+                        <p class="text-gray-600 leading-relaxed">
+                            {{ $faq['answer'] }}
+                        </p>
+                    </div>
                 </div>
             </div>
             @endforeach

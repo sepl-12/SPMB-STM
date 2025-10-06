@@ -13,9 +13,9 @@
     <!-- Overlay -->
     <div class="absolute inset-0 bg-gradient-to-b from-black/50 to-black/70 z-10"></div>
     
-    <!-- Wave SVG -->
-    <div class="absolute bottom-0 left-0 w-full z-20">
-        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto">
+    <!-- Wave SVG (Removed to fix gray line issue) -->
+    <div class="absolute bottom-0 left-0 w-full z-20 -mb-1">
+        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto block">
             <path d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L1360,120C1280,120,1120,120,960,120C800,120,640,120,480,120C320,120,160,120,80,120L0,120Z" fill="white"/>
         </svg>
     </div>
