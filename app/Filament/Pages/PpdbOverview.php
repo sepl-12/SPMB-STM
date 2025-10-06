@@ -15,6 +15,8 @@ class PpdbOverview extends Page
     protected static ?string $navigationGroup = 'Laporan';
 
     protected static ?string $navigationLabel = 'Rekap & Statistik';
+    
+    protected static ?string $title = 'Rekap & Statistik PPDB';
 
     protected static ?string $slug = 'ppdb-overview';
 

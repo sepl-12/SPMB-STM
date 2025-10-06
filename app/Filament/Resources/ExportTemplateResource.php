@@ -29,6 +29,10 @@ class ExportTemplateResource extends Resource
     protected static ?string $navigationLabel = 'Template Ekspor';
 
     protected static ?string $slug = 'export-templates';
+    
+    protected static ?string $modelLabel = 'Template Ekspor';
+    
+    protected static ?string $pluralModelLabel = 'Template Ekspor';
 
     public static function form(Form $form): Form
     {

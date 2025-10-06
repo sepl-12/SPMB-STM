@@ -28,9 +28,13 @@ class PaymentResource extends Resource
 
     protected static ?string $navigationGroup = 'PPDB';
 
-    protected static ?string $navigationLabel = 'Payments';
+    protected static ?string $navigationLabel = 'Pembayaran';
 
     protected static ?string $slug = 'payments';
+    
+    protected static ?string $modelLabel = 'Pembayaran';
+    
+    protected static ?string $pluralModelLabel = 'Pembayaran';
 
     public static function form(Form $form): Form
     {
@@ -44,18 +48,18 @@ class PaymentResource extends Resource
             ->defaultSort('status_updated_datetime', 'desc')
             ->columns([
                 TextColumn::make('merchant_order_code')
-                    ->label('Order Code')
+                    ->label('Kode Order')
                     ->searchable()
                     ->copyable()
                     ->toggleable(),
                 TextColumn::make('applicant.applicant_full_name')
-                    ->label('Calon Siswa')
+                    ->label('Nama Siswa')
                     ->searchable()
                     ->sortable()
                     ->description(fn (Payment $record) => $record->applicant?->registration_number)
                     ->url(fn (Payment $record) => $record->applicant_id ? ApplicantResource::getUrl('view', ['record' => $record->applicant_id]) : null, shouldOpenInNewTab: true),
                 TextColumn::make('payment_method_name')
-                    ->label('Metode')
+                    ->label('Metode Bayar')
                     ->searchable()
                     ->badge()
                     ->color('info')
@@ -68,14 +72,20 @@ class PaymentResource extends Resource
                         'warning' => ['PENDING', 'pending'],
                         'gray' => ['REFUNDED', 'refunded'],
                     ])
-                    ->formatStateUsing(fn (?string $state) => ucfirst(strtolower((string) $state)))
+                    ->formatStateUsing(fn (?string $state) => match(strtoupper($state ?? '')) {
+                        'PAID', 'SUCCESS' => 'Lunas',
+                        'PENDING' => 'Menunggu',
+                        'FAILED', 'CANCELED' => 'Gagal',
+                        'REFUNDED' => 'Dikembalikan',
+                        default => ucfirst(strtolower((string) $state))
+                    })
                     ->sortable(),
                 TextColumn::make('paid_amount_total')
-                    ->label('Amount')
+                    ->label('Jumlah')
                     ->money('IDR')
                     ->sortable(),
                 TextColumn::make('status_updated_datetime')
-                    ->label('Diupdate')
+                    ->label('Terakhir Update')
                     ->dateTime('d M Y H:i')
                     ->sortable(),
             ])

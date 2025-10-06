@@ -34,6 +34,10 @@ class FormResource extends Resource
     protected static ?string $navigationLabel = 'Formulir';
 
     protected static ?string $slug = 'forms';
+    
+    protected static ?string $modelLabel = 'Formulir Pendaftaran';
+    
+    protected static ?string $pluralModelLabel = 'Formulir Pendaftaran';
 
     public static function form(Form $form): Form
     {

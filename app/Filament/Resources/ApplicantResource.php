@@ -37,6 +37,10 @@ class ApplicantResource extends Resource
     protected static ?string $navigationLabel = 'Calon Siswa';
 
     protected static ?string $slug = 'applicants';
+    
+    protected static ?string $modelLabel = 'Calon Siswa';
+    
+    protected static ?string $pluralModelLabel = 'Calon Siswa';
 
     public static function form(Form $form): Form
     {
@@ -77,10 +81,11 @@ class ApplicantResource extends Resource
                     'gray' => ['refunded', 'void'],
                 ])
                 ->formatStateUsing(fn (?string $state) => match ($state) {
-                    'paid' => 'Paid',
-                    'unpaid' => 'Unpaid',
-                    'failed' => 'Failed',
-                    'refunded' => 'Refunded',
+                    'paid', 'success' => 'Lunas',
+                    'unpaid' => 'Belum Bayar',
+                    'pending' => 'Menunggu',
+                    'failed' => 'Gagal',
+                    'refunded' => 'Dikembalikan',
                     default => ucfirst((string) $state),
                 })
                 ->sortable(),
@@ -129,10 +134,11 @@ class ApplicantResource extends Resource
             SelectFilter::make('payment_status')
                 ->label('Status Bayar')
                 ->options([
-                    'paid' => 'Paid',
-                    'unpaid' => 'Unpaid',
-                    'failed' => 'Failed',
-                    'refunded' => 'Refunded',
+                    'paid' => 'Lunas',
+                    'unpaid' => 'Belum Bayar',
+                    'pending' => 'Menunggu',
+                    'failed' => 'Gagal',
+                    'refunded' => 'Dikembalikan',
                 ]),
         ];
 

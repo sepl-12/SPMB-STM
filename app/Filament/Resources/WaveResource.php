@@ -26,6 +26,10 @@ class WaveResource extends Resource
     protected static ?string $navigationLabel = 'Gelombang';
 
     protected static ?string $slug = 'waves';
+    
+    protected static ?string $modelLabel = 'Gelombang Pendaftaran';
+    
+    protected static ?string $pluralModelLabel = 'Gelombang Pendaftaran';
 
     public static function form(Form $form): Form
     {

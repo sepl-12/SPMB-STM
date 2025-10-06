@@ -23,9 +23,11 @@ class SiteContentSettings extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-home-modern';
 
-    protected static ?string $navigationGroup = 'Konten Situs';
+    protected static ?string $navigationGroup = 'Konten Website';
 
-    protected static ?string $navigationLabel = 'Info Halaman Utama';
+    protected static ?string $navigationLabel = 'Halaman Utama';
+    
+    protected static ?string $title = 'Pengaturan Halaman Utama';
 
     protected static ?string $slug = 'site-content';
 
