@@ -13,7 +13,15 @@
 /* Custom styles for hero section */
 .hero-bg-placeholder {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    position: relative;
+}
+
+.hero-bg-placeholder img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .hero-bg-placeholder::before {
@@ -27,6 +35,7 @@
         radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
     animation: pulse 8s ease-in-out infinite;
+    z-index: 1;
 }
 
 @keyframes pulse {
