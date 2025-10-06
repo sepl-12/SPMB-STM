@@ -33,13 +33,13 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 NavigationGroup::make()
+                    ->label('Laporan'),
+                NavigationGroup::make()
                     ->label('PPDB'),
                     // ->icon('heroicon-o-academic-cap'),
                 NavigationGroup::make()
                     ->label('Konten Situs'),
                     // ->icon('heroicon-o-home-modern'),
-                NavigationGroup::make()
-                    ->label('Laporan'),
                     // ->icon('heroicon-o-chart-bar'),
                 NavigationGroup::make()
                     ->label('Pengaturan'),
@@ -48,11 +48,11 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                // Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
+                // Widgets\AccountWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

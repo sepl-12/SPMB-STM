@@ -118,7 +118,6 @@ class FormFieldsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->model(FormField::class)
             ->modifyQueryUsing(fn (Builder $query) => $query->where('form_version_id', $this->getActiveVersion()->getKey()))
             ->defaultSort('field_order_number')
             ->columns([

@@ -75,7 +75,6 @@ class ExportTemplateColumnsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->model(ExportTemplateColumn::class)
             ->modifyQueryUsing(fn (Builder $query) => $query->orderBy('column_order_number'))
             ->defaultSort('column_order_number')
             ->columns([

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Form extends Model
@@ -56,5 +57,25 @@ class Form extends Model
                 ->whereKeyNot($version->getKey())
                 ->update(['is_active' => false]);
         });
+    }
+
+    public function formSteps(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            FormStep::class,
+            FormVersion::class,
+            'form_id',
+            'form_version_id'
+        )->where('form_versions.is_active', true);
+    }
+
+    public function formFields(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            FormField::class,
+            FormVersion::class,
+            'form_id',
+            'form_version_id'
+        )->where('form_versions.is_active', true);
     }
 }

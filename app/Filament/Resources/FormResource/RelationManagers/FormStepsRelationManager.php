@@ -57,7 +57,6 @@ class FormStepsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->model(FormStep::class)
             ->modifyQueryUsing(fn (Builder $query) => $query->where('form_version_id', $this->getActiveVersion()->getKey()))
             ->defaultSort('step_order_number')
             ->columns([
