@@ -13,32 +13,7 @@
         
         <!-- FAQ Accordion -->
         <div class="space-y-4">
-            @php
-                $faqs = [
-                    [
-                        'question' => 'Apa saja persyaratan pendaftaran?',
-                        'answer' => 'Persyaratan pendaftaran meliputi mengisi formulir online, pas foto 3x4 (2 lembar), fotocopy Kartu Keluarga (KK), fotocopy Akta Kelahiran, fotocopy kartu/surat keterangan NISN, dan mengikuti test seleksi.'
-                    ],
-                    [
-                        'question' => 'Berapa biaya pendaftaran?',
-                        'answer' => 'Biaya pendaftaran adalah Rp 300.000 yang dapat dibayarkan melalui transfer bank atau pembayaran langsung ke sekolah. Biaya ini sudah termasuk biaya test seleksi dan formulir pendaftaran.'
-                    ],
-                    [
-                        'question' => 'Apakah ada jalur prestasi?',
-                        'answer' => 'Ya, kami menyediakan jalur prestasi untuk siswa yang memiliki prestasi akademik atau non-akademik. Calon siswa dengan prestasi dapat melampirkan sertifikat atau piagam penghargaan saat mendaftar untuk mendapatkan nilai tambahan.'
-                    ],
-                    [
-                        'question' => 'Kapan pengumuman hasil seleksi?',
-                        'answer' => 'Pengumuman hasil seleksi akan diumumkan 7 hari setelah test seleksi dilaksanakan. Hasil dapat dilihat secara online melalui website ini dengan memasukkan nomor pendaftaran Anda.'
-                    ],
-                    [
-                        'question' => 'Bagaimana jika saya mengalami kesulitan saat mendaftar?',
-                        'answer' => 'Jika mengalami kesulitan saat mendaftar, Anda dapat menghubungi tim support kami melalui WhatsApp, telepon, atau email yang tertera di bagian kontak. Tim kami siap membantu Anda dari hari Senin - Jumat pukul 08:00 - 16:00 WIB.'
-                    ]
-                ];
-            @endphp
-            
-            @foreach($faqs as $faq)
+            @foreach($settings->faq_items_json ?? [] as $faq)
             <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors">
                     <span class="font-semibold text-gray-900 text-lg">{{ $faq['question'] }}</span>

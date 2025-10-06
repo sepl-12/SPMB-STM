@@ -17,14 +17,25 @@
             
             <!-- Documents Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                @foreach([
-                    'Mengisi formulir pendaftaran',
-                    'Pas foto ukuran 3x4 (2 lembar)',
-                    'Fotocopy Kartu Keluarga (KK)',
-                    'Fotocopy Akta Kelahiran',
-                    'Fotocopy Kartu/surat keterangan NISN',
-                    'Mengikuti test seleksi'
-                ] as $index => $document)
+                @php
+                    // Parse markdown requirements from database
+                    $requirements = [];
+                    if ($settings->requirements_markdown) {
+                        $lines = explode("\n", $settings->requirements_markdown);
+                        foreach ($lines as $line) {
+                            $line = trim($line);
+                            if (!empty($line)) {
+                                // Remove markdown numbering (e.g., "1. " or "1) ")
+                                $text = preg_replace('/^\d+[\.\)]\s*/', '', $line);
+                                if (!empty($text)) {
+                                    $requirements[] = $text;
+                                }
+                            }
+                        }
+                    }
+                @endphp
+                
+                @foreach($requirements as $index => $document)
                 <div class="flex items-start gap-4">
                     <div class="flex-shrink-0 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
                         <span class="text-white font-bold text-lg">{{ $index + 1 }}</span>

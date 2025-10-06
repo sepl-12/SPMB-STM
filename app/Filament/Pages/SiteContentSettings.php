@@ -122,7 +122,6 @@ class SiteContentSettings extends Page implements HasForms
                             ->maxLength(50),
                         TextInput::make('cta_button_url')
                             ->label('URL Tombol')
-                            ->url()
                             ->maxLength(255),
                     ])
                     ->columns(2),

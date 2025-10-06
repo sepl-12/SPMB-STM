@@ -2,8 +2,8 @@
 <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
     <!-- Background Image with Placeholder -->
     <div class="absolute inset-0 z-0 hero-bg-placeholder">
-        @if(file_exists(public_path('hero-bg.jpg')))
-            <img src="{{ asset('hero-bg.jpg') }}" alt="SMK Muhammadiyah 1 Sangatta Utara" class="w-full h-full object-cover">
+        @if($settings->hero_image_path && file_exists(public_path($settings->hero_image_path)))
+            <img src="{{ asset($settings->hero_image_path) }}" alt="SMK Muhammadiyah 1 Sangatta Utara" class="w-full h-full object-cover">
         @else
             <!-- Placeholder pattern jika gambar belum ada -->
             <div class="w-full h-full bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700"></div>
@@ -23,15 +23,15 @@
     <!-- Hero Content -->
     <div class="relative z-30 text-center text-white max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6 drop-shadow-lg">
-            Penerimaan Peserta Didik Baru Online 2025/2026
+            {{ $settings->hero_title_text }}
         </h1>
         <p class="text-lg sm:text-xl lg:text-2xl leading-relaxed mb-10 text-white/95 max-w-3xl mx-auto">
-            SMK Muhammadiyah 1 Sangatta Utara membuka pendaftaran siswa baru. Daftar sekarang juga dan jadi bagian dari kami.
+            {{ $settings->hero_subtitle_text }}
         </p>
         
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/daftar" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-green-500 hover:bg-green-600 text-white font-semibold text-lg rounded-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green-500/40">
-                Daftar Sekarang
+            <a href="{{ $settings->cta_button_url ?? '/daftar' }}" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-green-500 hover:bg-green-600 text-white font-semibold text-lg rounded-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green-500/40">
+                {{ $settings->cta_button_label ?? 'Daftar Sekarang' }}
             </a>
             <a href="#alur-pendaftaran" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-gray-50 text-gray-900 font-semibold text-lg rounded-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <span>Lihat Alur Pendaftaran</span>
