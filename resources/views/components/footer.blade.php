@@ -5,7 +5,7 @@
             <!-- About Section -->
             <div>
                 <div class="flex items-center gap-3 mb-4">
-                    <img src="{{ asset('Logo STM.png') }}" alt="Logo SMK Muh 1" class="h-12 w-auto">
+                    <img src="{{ asset('storage/' . 'Logo STM.png') }}" alt="Logo SMK Muh 1" class="h-20 w-auto">
                 </div>
                 <h3 class="text-white font-bold text-lg mb-3">SMK Muhammadiyah 1</h3>
                 <p class="text-sm leading-relaxed text-gray-400">

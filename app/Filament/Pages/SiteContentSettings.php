@@ -9,6 +9,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -84,11 +85,11 @@ class SiteContentSettings extends Page implements HasForms
                             ->disk('public')
                             ->directory('hero')
                             ->visibility('public')
-                            ->imageEditor()
                             ->maxSize(5120)
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
                             ->helperText('Unggah gambar dengan rasio 16:9 untuk tampilan terbaik. Max 5MB.')
-                            ->preserveFilenames()
+                            ->downloadable()
+                            ->openable()
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -136,20 +137,35 @@ class SiteContentSettings extends Page implements HasForms
                             ->label('Tahapan Timeline')
                             ->schema([
                                 TextInput::make('title')
-                                    ->label('Judul')
+                                    ->label('Judul Tahap')
                                     ->required()
-                                    ->maxLength(120),
-                                DatePicker::make('date')
-                                    ->label('Tanggal')
-                                    ->required(),
+                                    ->maxLength(120)
+                                    ->placeholder('Contoh: Registrasi Online'),
+                                Select::make('icon')
+                                    ->label('Icon')
+                                    ->options([
+                                        'user-plus' => '👤 Pendaftaran',
+                                        'document' => '📄 Dokumen',
+                                        'check-circle' => '✓ Verifikasi',
+                                        'currency' => '💰 Pembayaran',
+                                    ])
+                                    ->default('user-plus')
+                                    ->required()
+                                    ->helperText('Pilih icon yang sesuai dengan tahapan'),
                                 Textarea::make('description')
                                     ->label('Deskripsi')
-                                    ->rows(2),
+                                    ->rows(2)
+                                    ->placeholder('Jelaskan apa yang perlu dilakukan di tahap ini')
+                                    ->maxLength(250),
                             ])
                             ->default([])
                             ->collapsible()
-                            ->reorderable(),
-                    ]),
+                            ->reorderable()
+                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                            ->addActionLabel('Tambah Tahapan')
+                            ->columns(2),
+                    ])
+                    ->description('Atur alur pendaftaran PPDB. Icon akan otomatis ditampilkan urut jika tidak dipilih.'),
             ])
             ->columns(1)
             ->statePath('data');

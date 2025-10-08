@@ -21,9 +21,12 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('password'),
         ]);
 
-        // Seed site settings
+        // Seed site settings, waves, applicants, and payments
         $this->call([
             SiteSettingSeeder::class,
+            WaveSeeder::class,
+            ApplicantSeeder::class,
+            PaymentSeeder::class,
         ]);
     }
 }
