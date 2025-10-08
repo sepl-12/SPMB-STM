@@ -203,6 +203,7 @@
                                         <x-form.file-upload
                                             :label="$field->field_label"
                                             :name="$field->field_key"
+                                            :value="$fieldValue"
                                             :required="$field->is_required"
                                             :helpText="$field->field_help_text"
                                             :error="$errors->first($field->field_key)"

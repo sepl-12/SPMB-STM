@@ -1,6 +1,7 @@
 @props([
     'label' => '',
     'name' => '',
+    'value' => '',
     'required' => false,
     'helpText' => '',
     'error' => '',
@@ -8,7 +9,13 @@
     'maxSize' => '2MB'
 ])
 
-<div class="mb-4" x-data="{ fileName: '', isDragging: false }">
+@php
+    // Check if file already uploaded (value is path)
+    $hasExistingFile = !empty($value) && is_string($value);
+    $existingFileName = $hasExistingFile ? basename($value) : '';
+@endphp
+
+<div class="mb-4" x-data="{ fileName: '{{ $existingFileName }}', isDragging: false, hasExisting: {{ $hasExistingFile ? 'true' : 'false' }} }">
     @if($label)
         <label for="{{ $name }}" class="block text-sm font-medium text-gray-700 mb-2">
             {{ $label }}
@@ -17,6 +24,22 @@
             @endif
         </label>
     @endif
+    
+    <!-- Show existing file if any -->
+    <div x-show="hasExisting && !fileName" class="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-green-900">File sudah diupload</p>
+                <p class="text-xs text-green-700">{{ $existingFileName }}</p>
+            </div>
+        </div>
+        <a href="{{ $hasExistingFile ? asset('storage/' . $value) : '#' }}" target="_blank" class="text-xs text-green-600 hover:text-green-700 font-medium">
+            Lihat File
+        </a>
+    </div>
     
     <div 
         @dragover.prevent="isDragging = true"
@@ -27,6 +50,7 @@
             if (files.length) {
                 $refs.fileInput.files = files;
                 fileName = files[0].name;
+                hasExisting = false;
             }
         "
         :class="{ 'border-green-500 bg-green-50': isDragging }"
@@ -51,9 +75,9 @@
             id="{{ $name }}"
             name="{{ $name }}"
             class="hidden"
-            {{ $required ? 'required' : '' }}
+            {{ $required && !$hasExistingFile ? 'required' : '' }}
             @if($accept) accept="{{ $accept }}" @endif
-            @change="fileName = $event.target.files[0]?.name || ''"
+            @change="fileName = $event.target.files[0]?.name || ''; hasExisting = false;"
         />
     </div>
     
