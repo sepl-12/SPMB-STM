@@ -163,6 +163,7 @@ class SiteContentSettings extends Page implements HasForms
                             ])
                             ->default([])
                             ->collapsible()
+                            ->collapsed()
                             ->reorderable()
                             ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                             ->addActionLabel('Tambah Tahapan')
