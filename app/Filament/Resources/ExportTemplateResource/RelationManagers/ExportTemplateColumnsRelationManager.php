@@ -5,9 +5,7 @@ namespace App\Filament\Resources\ExportTemplateResource\RelationManagers;
 use App\Models\ExportTemplateColumn;
 use App\Models\FormField;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Form;
@@ -33,41 +31,43 @@ class ExportTemplateColumnsRelationManager extends RelationManager
                 ToggleButtons::make('source_type_name')
                     ->label('Sumber Data')
                     ->options([
-                        'applicant' => 'Data Pendaftar',
                         'form_field' => 'Field Formulir',
                         'expression' => 'Ekspresi',
                     ])
                     ->colors([
-                        'applicant' => 'info',
                         'form_field' => 'primary',
                         'expression' => 'warning',
                     ])
                     ->icons([
-                        'applicant' => 'heroicon-m-user-circle',
                         'form_field' => 'heroicon-m-clipboard-document-list',
                         'expression' => 'heroicon-m-code-bracket',
                     ])
                     ->required()
                     ->inline()
                     ->live(),
-                Select::make('source_key_select')
+                Select::make('source_key_name')
                     ->label('Field Form')
                     ->options(fn () => $this->getFormFieldOptions())
                     ->searchable()
                     ->visible(fn (callable $get) => $get('source_type_name') === 'form_field')
-                    ->required(fn (callable $get) => $get('source_type_name') === 'form_field'),
-                TextInput::make('source_key_input')
-                    ->label('Source Key')
-                    ->visible(fn (callable $get) => $get('source_type_name') !== 'form_field')
-                    ->required(fn (callable $get) => $get('source_type_name') !== 'form_field'),
+                    ->required(fn (callable $get) => $get('source_type_name') === 'form_field')
+                    ->helperText('Pilih field dari formulir yang akan menjadi sumber data kolom ini'),
+                TextInput::make('source_key_name')
+                    ->label('Ekspresi / Key')
+                    ->visible(fn (callable $get) => $get('source_type_name') === 'expression')
+                    ->required(fn (callable $get) => $get('source_type_name') === 'expression')
+                    ->helperText('Contoh: CONCAT("REG-", id) atau key lainnya')
+                    ->placeholder('Masukkan ekspresi atau key'),
                 TextInput::make('column_header_label')
                     ->label('Header Label')
                     ->required()
-                    ->maxLength(150),
+                    ->maxLength(150)
+                    ->helperText('Nama kolom yang akan muncul di file export'),
                 TextInput::make('column_format_hint')
                     ->label('Format (opsional)')
                     ->placeholder('mis. date:Y-m-d atau number:0.00')
-                    ->maxLength(50),
+                    ->maxLength(50)
+                    ->helperText('Format untuk mengubah tampilan data saat export'),
             ])
             ->columns(2);
     }
@@ -89,7 +89,6 @@ class ExportTemplateColumnsRelationManager extends RelationManager
                     ->label('Sumber')
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'applicant' => 'Applicant',
                         'form_field' => 'Form Field',
                         'expression' => 'Expression',
                         default => ucfirst($state),
@@ -105,49 +104,16 @@ class ExportTemplateColumnsRelationManager extends RelationManager
             ->reorderable('column_order_number')
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Tambah Kolom'),
+                    ->label('Tambah Kolom')
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['column_order_number'] = $this->getNextOrderNumber();
+                        return $data;
+                    }),
             ])
             ->actions([
                 EditAction::make(),
                 DeleteAction::make(),
             ]);
-    }
-
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        $data = $this->synchroniseFormData($data);
-        $data['column_order_number'] = $this->getNextOrderNumber();
-
-        return $data;
-    }
-
-    protected function mutateFormDataBeforeSave(array $data): array
-    {
-        return $this->synchroniseFormData($data);
-    }
-
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        if (($data['source_type_name'] ?? null) === 'form_field') {
-            $data['source_key_select'] = $data['source_key_name'];
-        } else {
-            $data['source_key_input'] = $data['source_key_name'];
-        }
-
-        return $data;
-    }
-
-    protected function synchroniseFormData(array $data): array
-    {
-        if (($data['source_type_name'] ?? null) === 'form_field') {
-            $data['source_key_name'] = $data['source_key_select'] ?? $data['source_key_name'] ?? null;
-        } else {
-            $data['source_key_name'] = $data['source_key_input'] ?? $data['source_key_name'] ?? null;
-        }
-
-        unset($data['source_key_select'], $data['source_key_input']);
-
-        return $data;
     }
 
     protected function getNextOrderNumber(): int
