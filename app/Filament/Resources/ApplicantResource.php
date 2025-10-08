@@ -364,4 +364,14 @@ class ApplicantResource extends Resource
     {
         return false;
     }
+
+     public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+    
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getModel()::count() > 0 ? 'success' : 'gray';
+    }
 }

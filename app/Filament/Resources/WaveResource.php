@@ -14,6 +14,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class WaveResource extends Resource
 {
@@ -110,8 +111,34 @@ class WaveResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Hapus')
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Gelombang?')
+                    ->modalDescription(fn (Wave $record) => 
+                        $record->applicants()->count() > 0
+                            ? "Gelombang ini memiliki {$record->applicants()->count()} pendaftar. Menghapus gelombang akan menghapus semua data terkait."
+                            : "Apakah Anda yakin ingin menghapus gelombang ini?"
+                    )
+                    ->modalSubmitActionLabel('Ya, Hapus')
+                    ->successNotificationTitle('Gelombang berhasil dihapus')
+                    ->before(function (Wave $record) {
+                        // Optional: Add logic before delete
+                        // Log the deletion for audit trail
+                        Log::info("Deleting wave: {$record->wave_name} (ID: {$record->id})");
+                    }),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Hapus yang Dipilih')
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Gelombang?')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus gelombang yang dipilih? Semua data terkait akan dihapus.')
+                        ->modalSubmitActionLabel('Ya, Hapus Semua')
+                        ->successNotificationTitle('Gelombang berhasil dihapus'),
+                ]),
+            ]);
     }
 
     public static function getRelations(): array
@@ -130,6 +157,18 @@ class WaveResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return false;
+        // Allow deletion
+        // Note: Cascade delete is handled by database foreign key constraint
+        return true;
+    }
+    
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+    
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getModel()::where('is_active', true)->count() > 0 ? 'success' : 'gray';
     }
 }
