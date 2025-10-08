@@ -113,7 +113,7 @@ class ExportTemplateResource extends Resource
                     ->action(function (ExportTemplate $record) {
                         // Get sample applicants (limit to 10 for preview)
                         $applicants = Applicant::query()
-                            ->with(['wave', 'answers'])
+                            ->with(['wave', 'latestSubmission'])
                             ->limit(10)
                             ->get();
 

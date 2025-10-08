@@ -22,7 +22,10 @@ class ApplicantsExport implements FromCollection, WithHeadings, WithMapping, Wit
     public function __construct(ExportTemplate $template, Collection $applicants)
     {
         $this->template = $template;
-        $this->applicants = $applicants;
+        
+        // Ensure relationships are loaded
+        $this->applicants = $applicants->load(['wave', 'latestSubmission']);
+        
         $this->columns = $template->exportTemplateColumns()
             ->orderBy('column_order_number')
             ->get();
@@ -98,11 +101,11 @@ class ApplicantsExport implements FromCollection, WithHeadings, WithMapping, Wit
         try {
             return match ($expression) {
                 'registration_number' => $applicant->registration_number,
-                'registered_datetime' => $applicant->registered_datetime?->format('d/m/Y H:i'),
+                'registered_datetime' => $applicant->registered_datetime,
                 'wave.name' => $applicant->wave?->wave_name,
                 'wave.year' => $applicant->wave?->year,
-                'created_at' => $applicant->created_at?->format('d/m/Y H:i'),
-                'updated_at' => $applicant->updated_at?->format('d/m/Y H:i'),
+                'created_at' => $applicant->created_at,
+                'updated_at' => $applicant->updated_at,
                 default => $this->evaluateCustomExpression($applicant, $expression),
             };
         } catch (\Throwable $e) {
@@ -140,15 +143,44 @@ class ApplicantsExport implements FromCollection, WithHeadings, WithMapping, Wit
     {
         // Apply format hints
         return match (strtolower($format)) {
-            'uppercase' => strtoupper($value),
-            'lowercase' => strtolower($value),
-            'capitalize' => ucwords($value),
-            'date' => is_string($value) ? \Carbon\Carbon::parse($value)->format('d/m/Y') : $value,
-            'datetime' => is_string($value) ? \Carbon\Carbon::parse($value)->format('d/m/Y H:i') : $value,
+            'uppercase' => is_string($value) ? strtoupper($value) : $value,
+            'lowercase' => is_string($value) ? strtolower($value) : $value,
+            'capitalize' => is_string($value) ? ucwords($value) : $value,
+            'date' => $this->formatAsDate($value, 'd/m/Y'),
+            'datetime' => $this->formatAsDate($value, 'd/m/Y H:i'),
             'number' => is_numeric($value) ? number_format($value, 0, ',', '.') : $value,
             'decimal' => is_numeric($value) ? number_format($value, 2, ',', '.') : $value,
             default => $value,
         };
+    }
+
+    protected function formatAsDate(mixed $value, string $format): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        // If already a Carbon instance
+        if ($value instanceof \Carbon\Carbon) {
+            return $value->format($format);
+        }
+
+        // If it's a DateTime instance
+        if ($value instanceof \DateTime) {
+            return $value->format($format);
+        }
+
+        // Try to parse string
+        if (is_string($value)) {
+            try {
+                return \Carbon\Carbon::parse($value)->format($format);
+            } catch (\Throwable $e) {
+                // If parsing fails, return original value
+                return $value;
+            }
+        }
+
+        return $value;
     }
 
     public function title(): string

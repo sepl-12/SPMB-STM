@@ -37,7 +37,7 @@ class ListApplicants extends ListRecords
 
                     // Get all applicants (or apply filters if needed)
                     $applicants = Applicant::query()
-                        ->with(['wave', 'answers'])
+                        ->with(['wave', 'latestSubmission'])
                         ->get();
 
                     if ($applicants->isEmpty()) {
