@@ -16,9 +16,15 @@ use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Nben\FilamentRecordNav\Actions\NextRecordAction;
+use Nben\FilamentRecordNav\Actions\PreviousRecordAction;
+use Nben\FilamentRecordNav\Concerns\WithRecordNavigation;
 
 class ViewApplicant extends ViewRecord
 {
+
+    use WithRecordNavigation;
+
     protected static string $resource = ApplicantResource::class;
 
     public function mount($record): void
@@ -30,6 +36,14 @@ class ViewApplicant extends ViewRecord
             'latestSubmission.submissionFiles',
             'payments',
         ]);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            PreviousRecordAction::make(),
+            NextRecordAction::make()
+        ];
     }
 
     public function infolist(Infolist $infolist): Infolist
@@ -104,12 +118,15 @@ class ViewApplicant extends ViewRecord
                                                 Grid::make(2)
                                                     ->schema([
                                                         TextEntry::make('merchant_order_code')->label('Order Code'),
-                                                        TextEntry::make('payment_status_name')->label('Status')->badge()->color(fn (array $state) => match ($state['payment_status_name']) {
-                                                            'PAID', 'paid', 'success' => 'success',
-                                                            'FAILED', 'failed' => 'danger',
-                                                            'PENDING', 'pending' => 'warning',
-                                                            default => 'gray',
-                                                        }),
+                                                        TextEntry::make('payment_status_name')
+                                                            ->label('Status')
+                                                            ->badge()
+                                                            ->color(fn (?string $state): string => match ($state) {
+                                                                'PAID', 'paid', 'success' => 'success',
+                                                                'FAILED', 'failed' => 'danger',
+                                                                'PENDING', 'pending' => 'warning',
+                                                                default => 'gray',
+                                                            }),
                                                         TextEntry::make('payment_method_name')->label('Metode'),
                                                         TextEntry::make('paid_amount_total')->label('Jumlah')->money('IDR'),
                                                         TextEntry::make('status_updated_datetime')->label('Diupdate')->dateTime('d M Y H:i'),
