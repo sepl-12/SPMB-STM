@@ -9,7 +9,7 @@ use Filament\Infolists\Components\Grid;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\Tab;
+use Filament\Infolists\Components\Tabs\Tab;
 use Filament\Infolists\Components\Tabs;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
@@ -89,38 +89,6 @@ class ViewApplicant extends ViewRecord
                                             ->label('')
                                             ->state('Belum ada jawaban formulir yang tersimpan.')
                                             ->visible(fn (Applicant $record) => empty($this->getAnswersWithLabels($record)))
-                                            ->color('gray'),
-                                    ]),
-                            ]),
-                        Tab::make('Berkas')
-                            ->schema([
-                                Section::make('Lampiran')
-                                    ->schema([
-                                        RepeatableEntry::make('latest_files')
-                                            ->label('')
-                                            ->state(fn (Applicant $record) => $this->getLatestFilesState($record)->values()->all())
-                                            ->visible(fn (Applicant $record) => $this->getLatestFilesState($record)->isNotEmpty())
-                                            ->schema([
-                                                Grid::make()
-                                                    ->schema([
-                                                        TextEntry::make('original_file_name')->label('Nama File')->wrap(),
-                                                        TextEntry::make('mime_type_name')->label('Tipe')->badge()->color('gray'),
-                                                        TextEntry::make('file_size')
-                                                            ->label('Ukuran')
-                                                            ->state(fn (array $state) => $state['file_size'])
-                                                            ->color('gray'),
-                                                        TextEntry::make('download_url')
-                                                            ->label('Unduh')
-                                                            ->url(fn (array $state) => $state['download_url'] ?? null, shouldOpenInNewTab: true)
-                                                            ->badge()
-                                                            ->color('primary')
-                                                            ->formatStateUsing(fn () => 'Download'),
-                                                    ]),
-                                            ]),
-                                        TextEntry::make('no_files_message')
-                                            ->label('')
-                                            ->state('Belum ada berkas yang diunggah.')
-                                            ->visible(fn (Applicant $record) => $this->getLatestFilesState($record)->isEmpty())
                                             ->color('gray'),
                                     ]),
                             ]),
