@@ -26,15 +26,15 @@
 <x-layout>
     <x-slot name="title">Formulir Pendaftaran Siswa Baru - PPDB SMK</x-slot>
 
-    <div class="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-12">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-6 sm:py-12">
+        <div class="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
             
             <!-- Header -->
-            <div class="text-center mb-8">
-                <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            <div class="text-center mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 px-2">
                     Formulir Pendaftaran Siswa Baru
                 </h1>
-                <p class="text-gray-600">
+                <p class="text-sm sm:text-base text-gray-600 px-2">
                     Silakan lengkapi data berikut dengan benar dan teliti.
                 </p>
             </div>
@@ -85,15 +85,15 @@
             @endif
 
             <!-- Main Form Card -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
                 @if($currentStep)
                     <!-- Step Header -->
-                    <div class="mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900 mb-2">
+                    <div class="mb-4 sm:mb-6">
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                             Langkah {{ $currentStepIndex + 1 }}: {{ $currentStep->step_title }}
                         </h2>
                         @if($currentStep->step_description)
-                            <p class="text-gray-600">{{ $currentStep->step_description }}</p>
+                            <p class="text-sm sm:text-base text-gray-600">{{ $currentStep->step_description }}</p>
                         @endif
                     </div>
 
@@ -227,7 +227,7 @@
                         </div>
 
                         <!-- Navigation Buttons -->
-                        <div class="mt-8 flex justify-between items-center">
+                        <div class="mt-6 sm:mt-8 flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3">
                             <!-- Previous Button -->
                             @if($currentStepIndex > 0)
                                 <button
@@ -235,12 +235,12 @@
                                     name="action"
                                     value="previous"
                                     formnovalidate
-                                    class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-200"
+                                    class="w-full sm:w-auto px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-200 text-center"
                                 >
                                     ← Sebelumnya
                                 </button>
                             @else
-                                <div></div>
+                                <div class="hidden sm:block"></div>
                             @endif
 
                             <!-- Next/Submit Button -->
@@ -249,7 +249,7 @@
                                 name="action"
                                 value="{{ $currentStepIndex < $steps->count() - 1 ? 'next' : 'submit' }}"
                                 {{ $currentStepIndex < $steps->count() - 1 ? 'formnovalidate' : '' }}
-                                class="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+                                class="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                             >
                                 @if($currentStepIndex < $steps->count() - 1)
                                     Selanjutnya →
@@ -264,16 +264,17 @@
                     </form>
 
                     <!-- Step Navigator (Optional - Quick Jump) -->
-                    <div class="mt-8 pt-6 border-t border-gray-200">
+                    <div class="mt-6 sm:mt-8 pt-6 border-t border-gray-200">
                         <p class="text-sm text-gray-600 mb-3">Navigasi Cepat:</p>
-                        <div class="flex flex-wrap gap-2">
+                        <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                             @foreach($steps as $index => $step)
                                 <button
                                     type="button"
                                     onclick="quickJump({{ $index }})"
-                                    class="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ $index == $currentStepIndex ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
+                                    class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 {{ $index == $currentStepIndex ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
                                 >
-                                    {{ $step->step_title }}
+                                    <span class="hidden sm:inline">{{ $step->step_title }}</span>
+                                    <span class="sm:hidden">{{ $index + 1 }}. {{ Str::limit($step->step_title, 15) }}</span>
                                 </button>
                             @endforeach
                         </div>

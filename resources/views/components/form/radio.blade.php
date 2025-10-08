@@ -10,7 +10,7 @@
 
 <div class="mb-4">
     @if($label)
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">
             {{ $label }}
             @if($required)
                 <span class="text-red-500">*</span>
@@ -24,25 +24,25 @@
                 $optionValue = $option['value'] ?? $option;
                 $optionLabel = $option['label'] ?? $option;
             @endphp
-            <label class="flex items-center hover:bg-gray-50 p-2 rounded cursor-pointer transition-colors">
+            <label class="flex items-center hover:bg-gray-50 p-2 sm:p-2.5 rounded cursor-pointer transition-colors">
                 <input
                     type="radio"
                     name="{{ $name }}"
                     value="{{ $optionValue }}"
                     {{ old($name, $value) == $optionValue ? 'checked' : '' }}
                     {{ $required ? 'required' : '' }}
-                    class="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500 focus:ring-2"
+                    class="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500 focus:ring-2 flex-shrink-0"
                 />
-                <span class="ml-2 text-sm text-gray-700">{{ $optionLabel }}</span>
+                <span class="ml-2 text-xs sm:text-sm text-gray-700">{{ $optionLabel }}</span>
             </label>
         @endforeach
     </div>
     
     @if($helpText)
-        <p class="mt-1 text-sm text-gray-500">{{ $helpText }}</p>
+        <p class="mt-1 text-xs sm:text-sm text-gray-500">{{ $helpText }}</p>
     @endif
     
     @if($error)
-        <p class="mt-1 text-sm text-red-600">{{ $error }}</p>
+        <p class="mt-1 text-xs sm:text-sm text-red-600">{{ $error }}</p>
     @endif
 </div>
