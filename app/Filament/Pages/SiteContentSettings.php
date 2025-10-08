@@ -106,6 +106,8 @@ class SiteContentSettings extends Page implements HasForms
                     ->schema([
                         Repeater::make('faq_items')
                             ->label('Pertanyaan Umum')
+                            ->collapsed()
+                            ->reorderableWithDragAndDrop()
                             ->schema([
                                 TextInput::make('question')
                                     ->label('Pertanyaan')
@@ -118,6 +120,7 @@ class SiteContentSettings extends Page implements HasForms
                             ])
                             ->default([])
                             ->minItems(0)
+                            ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
                             ->collapsible()
                             ->reorderable(),
                     ]),
