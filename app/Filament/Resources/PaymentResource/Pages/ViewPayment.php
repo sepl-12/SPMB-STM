@@ -76,17 +76,32 @@ class ViewPayment extends ViewRecord
                     ->collapsible(),
                 Section::make('Payload Gateway')
                     ->schema([
-                        KeyValueEntry::make('gateway_payload_json')
-                            ->label('')
-                            ->visible(fn (?array $state) => ! empty($state))
-                            ->expandable(),
+                        TextEntry::make('gateway_payload_display')
+                            ->label('Data Gateway')
+                            ->getStateUsing(function ($record) {
+                                if (empty($record->gateway_payload_json)) {
+                                    return null;
+                                }
+                                return json_encode($record->gateway_payload_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                            })
+                            ->formatStateUsing(fn (?string $state): string => $state ?? 'Tidak ada data')
+                            ->extraAttributes(['class' => 'font-mono text-xs'])
+                            ->html()
+                            ->formatStateUsing(function (?string $state): string {
+                                if (!$state || $state === 'Tidak ada data') {
+                                    return '<span class="text-gray-500">Tidak ada data</span>';
+                                }
+                                return '<pre class="bg-black p-4 rounded-lg overflow-x-auto text-xs">' . htmlspecialchars($state) . '</pre>';
+                            })
+                            ->visible(fn () => !empty($this->record->gateway_payload_json)),
                         TextEntry::make('no_payload')
                             ->label('')
                             ->state('Belum ada payload yang tersimpan.')
                             ->color('gray')
                             ->visible(fn () => empty($this->record->gateway_payload_json)),
                     ])
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 }
