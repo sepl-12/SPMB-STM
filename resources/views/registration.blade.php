@@ -234,6 +234,7 @@
                                     type="submit"
                                     name="action"
                                     value="previous"
+                                    formnovalidate
                                     class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-200"
                                 >
                                     ← Sebelumnya
@@ -247,6 +248,7 @@
                                 type="submit"
                                 name="action"
                                 value="{{ $currentStepIndex < $steps->count() - 1 ? 'next' : 'submit' }}"
+                                {{ $currentStepIndex < $steps->count() - 1 ? 'formnovalidate' : '' }}
                                 class="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
                             >
                                 @if($currentStepIndex < $steps->count() - 1)
@@ -266,18 +268,21 @@
                         <p class="text-sm text-gray-600 mb-3">Navigasi Cepat:</p>
                         <div class="flex flex-wrap gap-2">
                             @foreach($steps as $index => $step)
-                                <form method="POST" action="{{ route('registration.jump-to-step') }}" class="inline">
-                                    @csrf
-                                    <input type="hidden" name="jump_to_step" value="{{ $index }}">
-                                    <button
-                                        type="submit"
-                                        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ $index == $currentStepIndex ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
-                                    >
-                                        {{ $step->step_title }}
-                                    </button>
-                                </form>
+                                <button
+                                    type="button"
+                                    onclick="quickJump({{ $index }})"
+                                    class="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ $index == $currentStepIndex ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
+                                >
+                                    {{ $step->step_title }}
+                                </button>
                             @endforeach
                         </div>
+                        
+                        <!-- Hidden form for quick jump -->
+                        <form id="quickJumpForm" method="POST" action="{{ route('registration.jump-to-step') }}" style="display: none;">
+                            @csrf
+                            <input type="hidden" name="jump_to_step" id="jumpToStepInput" value="0">
+                        </form>
                     </div>
                 @else
                     <!-- No Form Available -->
@@ -298,12 +303,24 @@
         function registrationForm() {
             return {
                 init() {
-                    // Auto-save to localStorage
+                    // Auto-save to localStorage (optional)
                     this.$watch('$el', (value) => {
                         // Optional: implement auto-save functionality
                     });
                 }
             }
+        }
+        
+        // Quick jump function - bypasses form validation
+        function quickJump(stepIndex) {
+            document.getElementById('jumpToStepInput').value = stepIndex;
+            document.getElementById('quickJumpForm').submit();
+        }
+        
+        // Save current form data before navigation (optional enhancement)
+        function saveCurrentStepData() {
+            // This function can be called before quick jump to save current data
+            // Currently handled by server-side on form submit
         }
     </script>
     @endpush
