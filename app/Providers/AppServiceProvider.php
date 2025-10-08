@@ -25,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
         View::composer([
             'components.hero',
             'components.registration-flow',
+            'components.registration-waves',
             'components.requirements',
             'components.faq',
         ], SiteSettingComposer::class);

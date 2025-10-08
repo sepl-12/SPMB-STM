@@ -3,6 +3,7 @@
 namespace App\View\Composers;
 
 use App\Models\SiteSetting;
+use App\Models\Wave;
 use Illuminate\View\View;
 
 class SiteSettingComposer
@@ -31,6 +32,34 @@ class SiteSettingComposer
             ]);
         }
         
-        $view->with('settings', $settings);
+        // Get all waves and categorize them
+        $waves = Wave::orderBy('start_datetime', 'asc')->get();
+        $now = now();
+        
+        $categorizedWaves = [
+            'closed' => [],    // Gelombang yang sudah selesai atau tidak aktif
+            'active' => [],    // Gelombang yang sedang berlangsung dan aktif
+            'upcoming' => [],  // Gelombang yang akan datang dan aktif
+        ];
+        
+        foreach ($waves as $wave) {
+            // Priority: Check is_active first
+            if (!$wave->is_active || $now->gt($wave->end_datetime)) {
+                // Tidak aktif atau sudah lewat tanggal akhir
+                $categorizedWaves['closed'][] = $wave;
+            } elseif ($wave->is_active && $now->lt($wave->start_datetime)) {
+                // Aktif tapi belum dimulai
+                $categorizedWaves['upcoming'][] = $wave;
+            } elseif ($wave->is_active && $now->gte($wave->start_datetime) && $now->lte($wave->end_datetime)) {
+                // Aktif dan sedang berlangsung
+                $categorizedWaves['active'][] = $wave;
+            }
+        }
+        
+        $view->with([
+            'settings' => $settings,
+            'waves' => $waves,
+            'categorizedWaves' => $categorizedWaves,
+        ]);
     }
 }
