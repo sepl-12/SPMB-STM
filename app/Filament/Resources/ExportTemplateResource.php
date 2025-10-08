@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\ApplicantsExport;
 use App\Filament\Resources\ExportTemplateResource\Pages;
 use App\Filament\Resources\ExportTemplateResource\RelationManagers\ExportTemplateColumnsRelationManager;
+use App\Models\Applicant;
 use App\Models\ExportTemplate;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -17,6 +19,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExportTemplateResource extends Resource
 {
@@ -107,11 +110,36 @@ class ExportTemplateResource extends Resource
                     ->label('Uji Coba')
                     ->icon('heroicon-o-eye')
                     ->color('gray')
-                    ->action(fn (ExportTemplate $record) => Notification::make()
-                        ->title('Uji coba ekspor')
-                        ->body('Integrasikan generator file untuk mengekspor contoh data menggunakan template ' . $record->template_name . '.')
-                        ->info()
-                        ->send()),
+                    ->action(function (ExportTemplate $record) {
+                        // Get sample applicants (limit to 10 for preview)
+                        $applicants = Applicant::query()
+                            ->with(['wave', 'answers'])
+                            ->limit(10)
+                            ->get();
+
+                        if ($applicants->isEmpty()) {
+                            Notification::make()
+                                ->title('Tidak ada data untuk preview')
+                                ->warning()
+                                ->send();
+                            return;
+                        }
+
+                        $filename = 'preview_' . str_replace(' ', '_', strtolower($record->template_name)) . '_' . now()->format('YmdHis') . '.xlsx';
+
+                        try {
+                            return Excel::download(
+                                new ApplicantsExport($record, $applicants),
+                                $filename
+                            );
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('Preview ekspor gagal')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
             ])
             ->bulkActions([]);
     }

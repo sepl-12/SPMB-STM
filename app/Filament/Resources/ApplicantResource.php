@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\ApplicantsExport;
 use App\Filament\Resources\ApplicantResource\Pages;
 use App\Models\Applicant;
 use App\Models\ExportTemplate;
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ApplicantResource extends Resource
 {
@@ -172,11 +174,31 @@ class ApplicantResource extends Resource
                     ->required(),
             ])
             ->action(function (Applicant $record, array $data) {
-                Notification::make()
-                    ->title('Export berhasil dijadwalkan')
-                    ->body('Integrasikan layanan ekspor untuk menghasilkan file dari template terpilih.')
-                    ->success()
-                    ->send();
+                $template = ExportTemplate::find($data['template_id']);
+                
+                if (!$template) {
+                    Notification::make()
+                        ->title('Template tidak ditemukan')
+                        ->danger()
+                        ->send();
+                    return;
+                }
+
+                $applicants = collect([$record]);
+                $filename = 'pendaftar_' . $record->registration_number . '_' . now()->format('YmdHis') . '.xlsx';
+
+                try {
+                    return Excel::download(
+                        new ApplicantsExport($template, $applicants),
+                        $filename
+                    );
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title('Ekspor gagal')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
             });
     }
 
@@ -197,11 +219,30 @@ class ApplicantResource extends Resource
                     ->required(),
             ])
             ->action(function (Collection $records, array $data) {
-                Notification::make()
-                    ->title('Export berhasil dijadwalkan')
-                    ->body($records->count() . ' calon siswa akan diekspor menggunakan template terpilih.')
-                    ->success()
-                    ->send();
+                $template = ExportTemplate::find($data['template_id']);
+                
+                if (!$template) {
+                    Notification::make()
+                        ->title('Template tidak ditemukan')
+                        ->danger()
+                        ->send();
+                    return;
+                }
+
+                $filename = 'pendaftar_bulk_' . now()->format('YmdHis') . '.xlsx';
+
+                try {
+                    return Excel::download(
+                        new ApplicantsExport($template, $records),
+                        $filename
+                    );
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title('Ekspor gagal')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
             });
     }
 
