@@ -13,8 +13,10 @@ use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\Tabs\Tab;
 use Filament\Infolists\Components\Tabs;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\TextEntry\TextEntrySize;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Support\Enums\FontFamily;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
@@ -94,110 +96,92 @@ class ViewApplicant extends ViewRecord
                                                 TextEntry::make('applicant_phone_number')->label('Nomor Telepon'),
                                                 TextEntry::make('applicant_email_address')->label('Email'),
                                             ]),
-                                    ]),
-                            ]),
-                        Tab::make('Jawaban Form')
-                            ->icon('heroicon-o-document-text')
-                            ->badge(fn (Applicant $record) => count($this->getAnswersWithLabels($record)) ?: null)
-                            ->schema([
-                                Section::make('Ringkasan Jawaban')
-                                    ->description('Semua jawaban yang telah diisi oleh pendaftar')
-                                    ->headerActions([
-                                        \Filament\Infolists\Components\Actions\Action::make('expand_all')
-                                            ->label('Expand Semua')
-                                            ->icon('heroicon-o-arrows-pointing-out')
+                        ]),
+                    ]),
+                Tab::make('Jawaban Form')
+                    ->icon('heroicon-o-document-text')
+                    ->badge(fn (Applicant $record) => $this->getFormAnswersCount($record) ?: null)
+                    ->schema([
+                        Section::make('Ringkasan Jawaban')
+                            ->description('Semua jawaban yang telah diisi oleh pendaftar')
+                            ->headerActions([
+                                \Filament\Infolists\Components\Actions\Action::make('expand_all')
+                                    ->label('Expand Semua')
+                                    ->icon('heroicon-o-arrows-pointing-out')
+                                    ->color('gray')
+                                    ->hidden(fn (Applicant $record) => empty($this->getFormAnswerGroups($record))),
+                            ])
+                            ->schema(function (Applicant $record) {
+                                $answerGroups = $this->getFormAnswerGroups($record);
+
+                                if (empty($answerGroups)) {
+                                    return [
+                                        TextEntry::make('no_answers_message')
+                                            ->label('')
+                                            ->state('Belum ada jawaban formulir yang tersimpan.')
                                             ->color('gray')
-                                            ->hidden(fn (Applicant $record) => empty($this->getAnswersWithLabels($record))),
-                                    ])
-                                    ->schema(function (Applicant $record) {
-                                        $answersWithLabels = $this->getAnswersWithLabels($record);
-                                        
-                                        if (empty($answersWithLabels)) {
-                                            return [
-                                                TextEntry::make('no_answers_message')
-                                                    ->label('')
-                                                    ->state('Belum ada jawaban formulir yang tersimpan.')
-                                                    ->color('gray')
-                                                    ->icon('heroicon-o-information-circle'),
-                                            ];
-                                        }
+                                            ->icon('heroicon-o-information-circle'),
+                                    ];
+                                }
 
-                                        $sections = [];
-                                        
-                                        foreach ($answersWithLabels as $label => $value) {
-                                            // Determine icon based on value
-                                            $icon = 'heroicon-o-document-text';
-                                            $iconColor = 'gray';
-                                            
-                                            if (is_string($value)) {
-                                                if (filter_var($value, FILTER_VALIDATE_URL)) {
-                                                    $icon = 'heroicon-o-link';
-                                                    $iconColor = 'info';
-                                                } elseif (str_contains($value, '@')) {
-                                                    $icon = 'heroicon-o-envelope';
-                                                    $iconColor = 'warning';
-                                                } elseif (str_contains(strtolower($label), 'foto') || str_contains(strtolower($label), 'gambar')) {
-                                                    $icon = 'heroicon-o-photo';
-                                                    $iconColor = 'success';
-                                                } elseif (str_contains(strtolower($label), 'file') || str_contains(strtolower($label), 'dokumen')) {
-                                                    $icon = 'heroicon-o-document';
-                                                    $iconColor = 'primary';
-                                                }
-                                            }
-                                            
-                                            $sections[] = Section::make()
-                                                ->heading(fn () => new HtmlString(
-                                                    '<div class="flex items-center gap-3">' .
-                                                    '<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/20">' .
-                                                    '<svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">' .
-                                                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>' .
-                                                    '</svg>' .
-                                                    '</span>' .
-                                                    '<div>' .
-                                                    '<span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pertanyaan</span>' .
-                                                    '<span class="block text-sm font-semibold text-gray-950 dark:text-white mt-0.5">' . e($label) . '</span>' .
-                                                    '</div>' .
-                                                    '</div>'
-                                                ))
-                                                ->schema([
-                                                    TextEntry::make('answer_value_' . md5($label))
-                                                        ->label('')
-                                                        ->state($value)
-                                                        ->copyable()
-                                                        ->copyMessage('Tersalin!')
-                                                        ->copyMessageDuration(1500)
-                                                        ->placeholder('(belum diisi)')
-                                                        ->icon($icon)
-                                                        ->iconColor($iconColor)
-                                                        ->formatStateUsing(function ($state) {
-                                                            if ($state === null || $state === '') {
-                                                                return null;
-                                                            }
-                                                            
-                                                            if (is_string($state) && strlen($state) > 500) {
-                                                                return substr($state, 0, 500) . '... (klik copy untuk lihat lengkap)';
-                                                            }
-                                                            
-                                                            return $state;
-                                                        })
-                                                        ->color('success')
-                                                        ->weight('medium')
-                                                        ->size('md')
-                                                        ->badge()
-                                                        ->extraAttributes([
-                                                            'class' => 'break-words'
-                                                        ]),
-                                                ])
-                                                ->icon($icon)
-                                                ->iconColor($iconColor)
-                                                ->collapsible()
-                                                ->collapsed(false)
-                                                ->compact();
-                                        }
+                                $sections = [];
 
-                                        return $sections;
-                                    })
-                                    ->columnSpan('full'),
+                                foreach ($answerGroups as $group) {
+                                    /** @var \Illuminate\Support\Collection $fields */
+                                    $fields = $group['fields'];
+
+                                    if ($fields->isEmpty()) {
+                                        continue;
+                                    }
+
+                                    $fieldSections = $fields->map(function (array $field) {
+                                        $meta = $this->getAnswerDisplayMeta($field['label'], $field['value']);
+                                        return
+                                                TextEntry::make('answer_value_' . md5(($field['field_key'] ?? $field['label'])))
+                                                    ->label($field['label'])
+                                                    ->weight('bold')
+                                                    ->fontFamily(FontFamily::Mono)
+                                                    ->size(TextEntrySize::Medium)
+                                                    ->state($field['value'])
+                                                    ->copyable()
+                                                    ->copyMessage('Tersalin!')
+                                                    ->copyMessageDuration(1500)
+                                                    ->placeholder('(belum diisi)')
+                                                    ->formatStateUsing(function ($state) {
+                                                        if ($state === null || $state === '') {
+                                                            return null;
+                                                        }
+
+                                                        if (is_string($state) && strlen($state) > 500) {
+                                                            return substr($state, 0, 500) . '... (klik copy untuk lihat lengkap)';
+                                                        }
+
+                                                        return $state;
+                                                    })
+                                                    ->color('blue')
+                                                    ->extraAttributes([
+                                                        'class' => 'break-words'
+                                                    ]);
+                                        
+                                    })->all();
+
+                                    if (empty($fieldSections)) {
+                                        continue;
+                                    }
+
+                                    $sections[] = Section::make($group['title'])
+                                        ->description($group['description'])
+                                        ->schema($fieldSections)
+                                        ->icon('heroicon-o-rectangle-group')
+                                        ->collapsible()
+                                        ->collapsed(false)
+                                        ->compact()
+                                        ->columns(2);
+                                }
+
+                                return $sections;
+                            })
+                            ->columnSpan('full'),
                             ]),
                         Tab::make('Pembayaran')
                             ->icon('heroicon-o-banknotes')
@@ -235,11 +219,26 @@ class ViewApplicant extends ViewRecord
                                             ->color('gray'),
                                     ]),
                             ]),
-                    ]),
+                    ])->columnSpan('full'),
             ]);
     }
 
+    protected function getFormAnswersCount(Applicant $record): int
+    {
+        return collect($this->getFormAnswerGroups($record))
+            ->sum(fn (array $group) => $group['fields']->count());
+    }
+
     protected function getAnswersWithLabels(Applicant $record): array
+    {
+        return collect($this->getFormAnswerGroups($record))
+            ->flatMap(function (array $group) {
+                return $group['fields']->mapWithKeys(fn (array $field) => [$field['label'] => $field['value']]);
+            })
+            ->all();
+    }
+
+    protected function getFormAnswerGroups(Applicant $record): array
     {
         $answers = $record->getLatestSubmissionAnswers();
 
@@ -248,20 +247,119 @@ class ViewApplicant extends ViewRecord
         }
 
         $fields = FormField::query()
+            ->with('formStep')
             ->whereIn('field_key', array_keys($answers))
             ->where('is_archived', false)
-            ->get()
-            ->keyBy('field_key');
+            ->get();
 
-        return collect($answers)
-            ->mapWithKeys(function ($value, $key) use ($fields) {
-                $field = $fields[$key] ?? null;
-                $label = $field?->field_label ?? $key;
-                $formatted = $this->formatAnswerValueForDisplay($value, $field);
+        $sortedFields = $fields->sortBy([
+            fn (FormField $field) => $field->formStep?->step_order_number ?? PHP_INT_MAX,
+            fn (FormField $field) => $field->field_order_number,
+        ]);
 
-                return $formatted === null ? [] : [$label => $formatted];
+        $groups = $sortedFields
+            ->groupBy(fn (FormField $field) => $field->form_step_id ?? 'ungrouped')
+            ->map(function (Collection $fields) use ($answers) {
+                $step = $fields->first()->formStep;
+                $items = $fields->map(function (FormField $field) use ($answers) {
+                    $rawValue = $answers[$field->field_key] ?? null;
+                    $formatted = $this->formatAnswerValueForDisplay($rawValue, $field);
+
+                    if ($formatted === null || $formatted === '') {
+                        return null;
+                    }
+
+                    return [
+                        'label' => $field->field_label,
+                        'value' => $formatted,
+                        'field_key' => $field->field_key,
+                        'field' => $field,
+                    ];
+                })->filter()->values();
+
+                return [
+                    'title' => $step?->step_title ?? 'Bagian Formulir Lainnya',
+                    'description' => $step?->step_description,
+                    'order' => $step?->step_order_number ?? PHP_INT_MAX,
+                    'fields' => $items,
+                ];
             })
+            ->filter(fn (array $group) => $group['fields']->isNotEmpty())
+            ->sortBy('order')
+            ->values()
             ->all();
+
+        $definedFieldKeys = $fields->pluck('field_key');
+
+        $leftover = collect($answers)
+            ->except($definedFieldKeys->all())
+            ->filter(function ($value) {
+                if (is_array($value)) {
+                    return ! empty(array_filter($value));
+                }
+
+                return $value !== null && $value !== '';
+            });
+
+        if ($leftover->isNotEmpty()) {
+            $additionalFields = $leftover
+                ->map(function ($value, $key) {
+                    $formatted = $this->formatAnswerValueForDisplay($value, null);
+
+                    if ($formatted === null || $formatted === '') {
+                        return null;
+                    }
+
+                    return [
+                        'label' => $key,
+                        'value' => $formatted,
+                        'field_key' => $key,
+                        'field' => null,
+                    ];
+                })
+                ->filter()
+                ->values();
+
+            if ($additionalFields->isNotEmpty()) {
+                $groups[] = [
+                    'title' => 'Jawaban Tanpa Grup',
+                    'description' => 'Bidang formulir yang tidak lagi tersedia.',
+                    'order' => PHP_INT_MAX,
+                    'fields' => $additionalFields,
+                ];
+            }
+        }
+
+        return $groups;
+    }
+
+    protected function getAnswerDisplayMeta(string $label, mixed $value): array
+    {
+        $icon = 'heroicon-o-document-text';
+        $iconColor = 'gray';
+
+        if (is_string($value)) {
+            $lowerLabel = strtolower($label);
+
+            if (filter_var($value, FILTER_VALIDATE_URL)) {
+                $icon = 'heroicon-o-link';
+                $iconColor = 'info';
+            } elseif (str_contains($value, '@')) {
+                $icon = 'heroicon-o-envelope';
+                $iconColor = 'warning';
+            } elseif (str_contains($lowerLabel, 'foto') || str_contains($lowerLabel, 'gambar')) {
+                $icon = 'heroicon-o-photo';
+                $iconColor = 'success';
+            } elseif (str_contains($lowerLabel, 'file') || str_contains($lowerLabel, 'dokumen')) {
+                $icon = 'heroicon-o-document';
+                $iconColor = 'primary';
+            }
+        }
+
+        return [
+            'icon' => $icon,
+            'color' => $iconColor,
+        ];
     }
 
     protected function formatAnswerValueForDisplay($value, ?FormField $field): mixed
