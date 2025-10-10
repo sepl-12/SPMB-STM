@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Applicant;
 use App\Models\Payment;
+use App\Enum\PaymentStatus;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -34,7 +35,7 @@ class PaymentController extends Controller
 
         // Get or create payment
         $existingPayment = $applicant->payments()
-            ->where('payment_status_name', 'PENDING')
+            ->withStatus(PaymentStatus::PENDING)
             ->latest()
             ->first();
 
@@ -61,7 +62,7 @@ class PaymentController extends Controller
     {
         try {
             $notification = $request->all();
-            
+
             Log::info('Midtrans Notification Received', $notification);
 
             // Handle notification
@@ -70,7 +71,7 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Notification handled successfully']);
         } catch (\Exception $e) {
             Log::error('Midtrans Notification Error: ' . $e->getMessage());
-            
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -81,7 +82,7 @@ class PaymentController extends Controller
     public function finish(Request $request)
     {
         $orderId = $request->input('order_id');
-        
+
         if (!$orderId) {
             return redirect()->route('home')->with('error', 'Order ID tidak ditemukan.');
         }
@@ -98,7 +99,7 @@ class PaymentController extends Controller
 
         if ($statusCheck['success']) {
             $status = $statusCheck['status'];
-            
+
             // Update payment based on status check
             $this->midtransService->handleNotification((array) $status);
         }
@@ -183,7 +184,7 @@ class PaymentController extends Controller
 
         // Verify email matches
         $applicantEmail = $applicant->getLatestAnswerForField('email') ?? '';
-        
+
         if (strtolower($applicantEmail) !== strtolower($request->email)) {
             return back()->with('error', 'Email tidak sesuai dengan data pendaftaran.');
         }
@@ -231,7 +232,7 @@ class PaymentController extends Controller
 
         // Verify email
         $applicantEmail = $applicant->getLatestAnswerForField('email') ?? '';
-        
+
         if (strtolower($applicantEmail) !== strtolower($request->email)) {
             return response()->json([
                 'success' => false,
@@ -245,30 +246,30 @@ class PaymentController extends Controller
         if (!$payment) {
             // Create payment if not exists
             $result = $this->midtransService->createTransaction($applicant);
-            
+
             if (!$result['success']) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Gagal membuat transaksi pembayaran'
                 ], 500);
             }
-            
+
             $payment = Payment::find($result['payment_id']);
         }
 
         // Send email (for now, just return success with payment URL)
         try {
             $paymentUrl = route('payment.show', $applicant->registration_number);
-            
+
             // TODO: Send actual email when mail is configured
             // Mail::to($applicantEmail)->send(new PaymentLinkMail($applicant, $payment));
-            
+
             Log::info('Payment link requested', [
                 'registration_number' => $applicant->registration_number,
                 'email' => $applicantEmail,
                 'payment_url' => $paymentUrl
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Link pembayaran: ' . $paymentUrl . ' (Email akan dikirim saat mail dikonfigurasi)',
@@ -276,7 +277,7 @@ class PaymentController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send payment link: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengirim link pembayaran'

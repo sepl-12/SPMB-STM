@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\Applicant;
 use App\Models\Payment;
+use App\Enum\PaymentStatus;
+use App\Enum\PaymentMethod;
+use App\Helpers\PaymentHelper;
 use Midtrans\Config;
 use Midtrans\Snap;
 
@@ -73,8 +76,8 @@ class MidtransService
                 'merchant_order_code' => $orderId,
                 'paid_amount_total' => $amount,
                 'currency_code' => 'IDR',
-                'payment_method_name' => 'Midtrans Snap',
-                'payment_status_name' => 'PENDING',
+                'payment_method_name' => PaymentMethod::MIDTRANS_SNAP,
+                'payment_status_name' => PaymentStatus::PENDING,
                 'status_updated_datetime' => now(),
                 'gateway_payload_json' => [
                     'snap_token' => $snapToken,
@@ -119,10 +122,13 @@ class MidtransService
         // Determine payment status
         $paymentStatus = $this->determinePaymentStatus($transactionStatus, $fraudStatus);
 
+        // Get payment method from notification
+        $paymentMethod = $this->mapPaymentMethod($notification['payment_type'] ?? 'midtrans_snap');
+
         // Update payment record
         $payment->update([
             'payment_status_name' => $paymentStatus,
-            'payment_method_name' => $notification['payment_type'] ?? 'Midtrans Snap',
+            'payment_method_name' => $paymentMethod,
             'status_updated_datetime' => now(),
             'gateway_payload_json' => array_merge(
                 $payment->gateway_payload_json ?? [],
@@ -131,11 +137,11 @@ class MidtransService
         ]);
 
         // Update applicant payment status
-        if ($paymentStatus === 'PAID' || $paymentStatus === 'settlement') {
+        if ($paymentStatus->isSuccess()) {
             $payment->applicant->update([
                 'payment_status' => 'paid',
             ]);
-        } elseif (in_array($paymentStatus, ['FAILED', 'cancel', 'deny', 'expire'])) {
+        } elseif ($paymentStatus->isFailed()) {
             $payment->applicant->update([
                 'payment_status' => 'unpaid',
             ]);
@@ -145,19 +151,30 @@ class MidtransService
     /**
      * Determine payment status from Midtrans notification
      */
-    protected function determinePaymentStatus(string $transactionStatus, ?string $fraudStatus): string
+    protected function determinePaymentStatus(string $transactionStatus, ?string $fraudStatus): PaymentStatus
     {
-        if ($transactionStatus === 'capture') {
-            return $fraudStatus === 'accept' ? 'PAID' : 'PENDING';
-        } elseif ($transactionStatus === 'settlement') {
-            return 'PAID';
-        } elseif (in_array($transactionStatus, ['cancel', 'deny', 'expire'])) {
-            return 'FAILED';
-        } elseif ($transactionStatus === 'pending') {
-            return 'PENDING';
-        }
+        return PaymentHelper::mapMidtransStatus($transactionStatus, $fraudStatus);
+    }
 
-        return strtoupper($transactionStatus);
+    /**
+     * Map Midtrans payment type to PaymentMethod enum
+     */
+    protected function mapPaymentMethod(string $paymentType): PaymentMethod
+    {
+        return match (strtolower($paymentType)) {
+            'credit_card' => PaymentMethod::CREDIT_CARD,
+            'bca_va' => PaymentMethod::BCA_VA,
+            'bni_va' => PaymentMethod::BNI_VA,
+            'bri_va' => PaymentMethod::BRI_VA,
+            'permata_va' => PaymentMethod::PERMATA_VA,
+            'other_va' => PaymentMethod::OTHER_VA,
+            'gopay' => PaymentMethod::GOPAY,
+            'shopeepay' => PaymentMethod::SHOPEEPAY,
+            'qris' => PaymentMethod::QRIS,
+            'alfamart' => PaymentMethod::ALFAMART,
+            'indomaret' => PaymentMethod::INDOMARET,
+            default => PaymentMethod::MIDTRANS_SNAP,
+        };
     }
 
     /**
@@ -165,7 +182,7 @@ class MidtransService
      */
     protected function generateOrderId(Applicant $applicant): string
     {
-        return 'ORD-' . $applicant->registration_number . '-' . time();
+        return PaymentHelper::generateOrderId('ORD', $applicant->registration_number);
     }
 
     /**
@@ -175,7 +192,7 @@ class MidtransService
     {
         try {
             $status = \Midtrans\Transaction::status($orderId);
-            
+
             return [
                 'success' => true,
                 'status' => $status,
@@ -195,7 +212,7 @@ class MidtransService
     {
         try {
             $cancel = \Midtrans\Transaction::cancel($orderId);
-            
+
             return [
                 'success' => true,
                 'data' => $cancel,
