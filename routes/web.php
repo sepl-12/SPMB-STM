@@ -21,3 +21,8 @@ Route::get('/pembayaran/finish', [PaymentController::class, 'finish'])->name('pa
 Route::get('/pembayaran/status/{registration_number}', [PaymentController::class, 'status'])->name('payment.status');
 Route::get('/pembayaran/success/{registration_number}', [PaymentController::class, 'success'])->name('payment.success');
 Route::post('/pembayaran/check-status', [PaymentController::class, 'checkStatus'])->name('payment.check-status');
+
+// Payment Recovery routes
+Route::get('/cek-pembayaran', [PaymentController::class, 'checkPaymentForm'])->name('payment.check-form');
+Route::post('/cek-pembayaran', [PaymentController::class, 'findPayment'])->name('payment.find');
+Route::post('/kirim-ulang-link', [PaymentController::class, 'resendPaymentLink'])->name('payment.resend-link');

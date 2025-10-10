@@ -153,4 +153,134 @@ class PaymentController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Show check payment form
+     */
+    public function checkPaymentForm()
+    {
+        return view('payment.check-status');
+    }
+
+    /**
+     * Find payment by registration number and email
+     */
+    public function findPayment(Request $request)
+    {
+        $request->validate([
+            'registration_number' => 'required|string',
+            'email' => 'required|email',
+        ]);
+
+        // Find applicant with matching registration number
+        $applicant = Applicant::where('registration_number', $request->registration_number)
+            ->with('wave', 'payments')
+            ->first();
+
+        if (!$applicant) {
+            return back()->with('error', 'Data pendaftaran tidak ditemukan. Periksa kembali nomor pendaftaran Anda.');
+        }
+
+        // Verify email matches
+        $applicantEmail = $applicant->getLatestAnswerForField('email') ?? '';
+        
+        if (strtolower($applicantEmail) !== strtolower($request->email)) {
+            return back()->with('error', 'Email tidak sesuai dengan data pendaftaran.');
+        }
+
+        // Check if payment exists
+        $payment = $applicant->payments()->latest()->first();
+
+        if (!$payment) {
+            // No payment yet, redirect to payment page to create one
+            return redirect()->route('payment.show', $applicant->registration_number)
+                ->with('info', 'Silakan lanjutkan pembayaran Anda.');
+        }
+
+        // Redirect based on payment status
+        if (in_array(strtoupper($payment->payment_status_name), ['PAID', 'SETTLEMENT'])) {
+            return redirect()->route('payment.success', $applicant->registration_number)
+                ->with('success', 'Pembayaran Anda sudah berhasil!');
+        } else {
+            return redirect()->route('payment.show', $applicant->registration_number)
+                ->with('info', 'Lanjutkan pembayaran Anda.');
+        }
+    }
+
+    /**
+     * Resend payment link via email
+     */
+    public function resendPaymentLink(Request $request)
+    {
+        $request->validate([
+            'registration_number' => 'required|string',
+            'email' => 'required|email',
+        ]);
+
+        // Find applicant
+        $applicant = Applicant::where('registration_number', $request->registration_number)
+            ->with('wave', 'payments')
+            ->first();
+
+        if (!$applicant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data pendaftaran tidak ditemukan'
+            ], 404);
+        }
+
+        // Verify email
+        $applicantEmail = $applicant->getLatestAnswerForField('email') ?? '';
+        
+        if (strtolower($applicantEmail) !== strtolower($request->email)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email tidak sesuai dengan data pendaftaran'
+            ], 404);
+        }
+
+        // Get or create payment
+        $payment = $applicant->payments()->latest()->first();
+
+        if (!$payment) {
+            // Create payment if not exists
+            $result = $this->midtransService->createTransaction($applicant);
+            
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal membuat transaksi pembayaran'
+                ], 500);
+            }
+            
+            $payment = Payment::find($result['payment_id']);
+        }
+
+        // Send email (for now, just return success with payment URL)
+        try {
+            $paymentUrl = route('payment.show', $applicant->registration_number);
+            
+            // TODO: Send actual email when mail is configured
+            // Mail::to($applicantEmail)->send(new PaymentLinkMail($applicant, $payment));
+            
+            Log::info('Payment link requested', [
+                'registration_number' => $applicant->registration_number,
+                'email' => $applicantEmail,
+                'payment_url' => $paymentUrl
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Link pembayaran: ' . $paymentUrl . ' (Email akan dikirim saat mail dikonfigurasi)',
+                'payment_url' => $paymentUrl
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send payment link: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim link pembayaran'
+            ], 500);
+        }
+    }
 }
