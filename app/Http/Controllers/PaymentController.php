@@ -131,8 +131,7 @@ class PaymentController extends Controller
             ->firstOrFail();
 
         $latestPayment = $applicant->payments()
-            ->where('payment_status_name', 'PAID')
-            ->orWhere('payment_status_name', 'settlement')
+            ->successful()
             ->latest()
             ->first();
 
@@ -199,7 +198,7 @@ class PaymentController extends Controller
         }
 
         // Redirect based on payment status
-        if (in_array(strtoupper($payment->payment_status_name), ['PAID', 'SETTLEMENT'])) {
+        if ($payment->payment_status_name === PaymentStatus::SETTLEMENT) {
             return redirect()->route('payment.success', $applicant->registration_number)
                 ->with('success', 'Pembayaran Anda sudah berhasil!');
         } else {

@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Applicant;
 use App\Models\Payment;
+use App\Enum\PaymentStatus;
+use App\Enum\PaymentMethod;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -24,21 +26,17 @@ class PaymentSeeder extends Seeder
 
         $paymentGateways = [
             'Midtrans',
-            'Xendit',
-            'DOKU',
-            'Manual Transfer',
         ];
 
+        // Gunakan enum untuk payment methods
         $paymentMethods = [
-            'Bank Transfer - BCA',
-            'Bank Transfer - BNI',
-            'Bank Transfer - BRI',
-            'Bank Transfer - Mandiri',
-            'E-Wallet - GoPay',
-            'E-Wallet - OVO',
-            'E-Wallet - DANA',
-            'Virtual Account',
-            'QRIS',
+            PaymentMethod::BCA_VA,
+            PaymentMethod::BNI_VA,
+            PaymentMethod::BRI_VA,
+            PaymentMethod::MANDIRI_VA,
+            PaymentMethod::GOPAY,
+            PaymentMethod::QRIS,
+            PaymentMethod::CREDIT_CARD,
         ];
 
         $paymentData = [];
@@ -53,8 +51,10 @@ class PaymentSeeder extends Seeder
             // Get registration fee from wave
             $amount = $applicant->wave->registration_fee_amount;
             
-            // Payment status berdasarkan applicant status
-            $paymentStatusName = $applicant->payment_status === 'verified' ? 'settlement' : 'pending';
+            // Payment status berdasarkan applicant status - gunakan enum
+            $paymentStatus = $applicant->payment_status === 'verified' 
+                ? PaymentStatus::SETTLEMENT 
+                : PaymentStatus::PENDING;
             
             // Status updated datetime (1-3 hari setelah registrasi)
             $registeredTime = strtotime($applicant->registered_datetime);
@@ -68,22 +68,26 @@ class PaymentSeeder extends Seeder
                 'transaction_id' => 'TRX-' . strtoupper(substr(md5(uniqid()), 0, 16)),
                 'order_id' => $orderCode,
                 'gross_amount' => $amount,
-                'payment_type' => strtolower(str_replace(' ', '_', $method)),
+                'payment_type' => $method->value,
                 'transaction_time' => $statusUpdatedDate,
-                'transaction_status' => $paymentStatusName,
+                'transaction_status' => $paymentStatus->value,
                 'fraud_status' => 'accept',
-                'status_code' => $paymentStatusName === 'settlement' ? '200' : '201',
-                'status_message' => $paymentStatusName === 'settlement' ? 'Success, transaction is found' : 'Pending, waiting for payment',
+                'status_code' => $paymentStatus === PaymentStatus::SETTLEMENT ? '200' : '201',
+                'status_message' => $paymentStatus === PaymentStatus::SETTLEMENT 
+                    ? 'Success, transaction is found' 
+                    : 'Pending, waiting for payment',
             ];
             
             // Jika verified, tambah info bank
             if ($applicant->payment_status === 'verified') {
-                $gatewayPayload['va_numbers'] = [
-                    [
-                        'bank' => explode(' - ', $method)[1] ?? 'BCA',
-                        'va_number' => '8888' . rand(100000000000, 999999999999),
-                    ]
-                ];
+                if ($method->isVirtualAccount()) {
+                    $gatewayPayload['va_numbers'] = [
+                        [
+                            'bank' => strtoupper(str_replace('_va', '', $method->value)),
+                            'va_number' => '8888' . rand(100000000000, 999999999999),
+                        ]
+                    ];
+                }
                 $gatewayPayload['settlement_time'] = $statusUpdatedDate;
             }
 
@@ -93,8 +97,8 @@ class PaymentSeeder extends Seeder
                 'merchant_order_code' => $orderCode,
                 'paid_amount_total' => $amount,
                 'currency_code' => 'IDR',
-                'payment_method_name' => $method,
-                'payment_status_name' => $paymentStatusName,
+                'payment_method_name' => $method->value,
+                'payment_status_name' => $paymentStatus->value,
                 'status_updated_datetime' => $statusUpdatedDate,
                 'gateway_payload_json' => json_encode($gatewayPayload),
                 'created_at' => now(),

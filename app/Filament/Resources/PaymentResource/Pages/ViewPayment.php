@@ -52,14 +52,12 @@ class ViewPayment extends ViewRecord
                         Grid::make(3)
                             ->schema([
                                 TextEntry::make('merchant_order_code')->label('Order Code')->copyable(),
-                                TextEntry::make('payment_status_name')->label('Status')->badge()->color(fn (?string $state) => match (strtolower((string) $state)) {
-                                    'paid', 'success' => 'success',
-                                    'failed', 'canceled' => 'danger',
-                                    'pending' => 'warning',
-                                    'refunded' => 'gray',
-                                    default => 'info',
-                                })->formatStateUsing(fn (?string $state) => ucfirst(strtolower((string) $state))),
-                                TextEntry::make('payment_method_name')->label('Metode')->badge()->color('info'),
+                                TextEntry::make('payment_status_name')->label('Status')->badge()
+                                    ->formatStateUsing(fn ($state) => $state?->label() ?? ucfirst($state))
+                                    ->color(fn ($state): string => $state?->color() ?? 'gray'),
+                                TextEntry::make('payment_method_name')->label('Metode')->badge()
+                                    ->formatStateUsing(fn ($state) => $state?->label() ?? ucfirst($state))
+                                    ->color('info'),
                                 TextEntry::make('payment_gateway_name')->label('Gateway')->badge()->color('primary'),
                                 TextEntry::make('paid_amount_total')->label('Nominal')->money('IDR'),
                                 TextEntry::make('status_updated_datetime')->label('Diupdate')->dateTime('d M Y H:i'),

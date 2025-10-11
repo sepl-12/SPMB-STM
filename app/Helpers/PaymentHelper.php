@@ -100,18 +100,42 @@ class PaymentHelper
 
     /**
      * Get payment status from Midtrans transaction status
+     * @see https://docs.midtrans.com/en/after-payment/get-status
      */
     public static function mapMidtransStatus(string $transactionStatus, ?string $fraudStatus = null): PaymentStatus
     {
-        return match ($transactionStatus) {
-            'capture' => $fraudStatus === 'accept' ? PaymentStatus::PAID : PaymentStatus::PENDING,
+        return match (strtolower($transactionStatus)) {
+            'capture' => $fraudStatus === 'accept' ? PaymentStatus::SETTLEMENT : PaymentStatus::CAPTURE,
             'settlement' => PaymentStatus::SETTLEMENT,
             'pending' => PaymentStatus::PENDING,
             'cancel' => PaymentStatus::CANCEL,
             'deny' => PaymentStatus::DENY,
             'expire' => PaymentStatus::EXPIRE,
-            'failure' => PaymentStatus::FAILED,
+            'failure', 'failed' => PaymentStatus::FAILURE,
             default => PaymentStatus::PENDING,
+        };
+    }
+    
+    /**
+     * Map Midtrans payment type to PaymentMethod enum
+     */
+    public static function mapMidtransPaymentType(string $paymentType): PaymentMethod
+    {
+        return match (strtolower($paymentType)) {
+            'credit_card' => PaymentMethod::CREDIT_CARD,
+            'bank_transfer' => PaymentMethod::BANK_TRANSFER,
+            'bca_va', 'bca_klikbca', 'bca_klikpay' => PaymentMethod::BCA_VA,
+            'bni_va' => PaymentMethod::BNI_VA,
+            'bri_va' => PaymentMethod::BRI_VA,
+            'echannel', 'mandiri_clickpay' => PaymentMethod::MANDIRI_VA,
+            'permata_va' => PaymentMethod::PERMATA_VA,
+            'other_va' => PaymentMethod::OTHER_VA,
+            'gopay' => PaymentMethod::GOPAY,
+            'shopeepay' => PaymentMethod::SHOPEEPAY,
+            'qris' => PaymentMethod::QRIS,
+            'cstore', 'alfamart' => PaymentMethod::ALFAMART,
+            'indomaret' => PaymentMethod::INDOMARET,
+            default => PaymentMethod::ECHANNEL,
         };
     }
 

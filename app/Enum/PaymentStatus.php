@@ -2,16 +2,22 @@
 
 namespace App\Enum;
 
+/**
+ * Payment Status Enum
+ * 
+ * Standarisasi status pembayaran sesuai dengan Midtrans API
+ * @see https://docs.midtrans.com/en/after-payment/get-status
+ */
 enum PaymentStatus: string
 {
-    case PENDING = 'PENDING';
-    case PAID = 'PAID';
-    case FAILED = 'FAILED';
-    case CANCEL = 'CANCEL';
-    case DENY = 'DENY';
-    case EXPIRE = 'EXPIRE';
-    case SETTLEMENT = 'SETTLEMENT';
-    case CAPTURE = 'CAPTURE';
+    // Midtrans standard statuses (lowercase untuk match dengan Midtrans response)
+    case PENDING = 'pending';
+    case SETTLEMENT = 'settlement';
+    case CAPTURE = 'capture';
+    case CANCEL = 'cancel';
+    case DENY = 'deny';
+    case EXPIRE = 'expire';
+    case FAILURE = 'failure';
 
     /**
      * Get all status values as array
@@ -28,13 +34,12 @@ enum PaymentStatus: string
     {
         return match ($this) {
             self::PENDING => 'Menunggu Pembayaran',
-            self::PAID => 'Lunas',
-            self::FAILED => 'Gagal',
+            self::SETTLEMENT => 'Pembayaran Berhasil',
+            self::CAPTURE => 'Pembayaran Ditangkap',
             self::CANCEL => 'Dibatalkan',
             self::DENY => 'Ditolak',
             self::EXPIRE => 'Kedaluwarsa',
-            self::SETTLEMENT => 'Selesai',
-            self::CAPTURE => 'Tertangkap',
+            self::FAILURE => 'Gagal',
         };
     }
 
@@ -45,9 +50,9 @@ enum PaymentStatus: string
     {
         return match ($this) {
             self::PENDING => 'warning',
-            self::PAID, self::SETTLEMENT => 'success',
-            self::FAILED, self::CANCEL, self::DENY, self::EXPIRE => 'danger',
+            self::SETTLEMENT => 'success',
             self::CAPTURE => 'info',
+            self::CANCEL, self::DENY, self::EXPIRE, self::FAILURE => 'danger',
         };
     }
 
@@ -58,9 +63,9 @@ enum PaymentStatus: string
     {
         return match ($this) {
             self::PENDING => 'heroicon-o-clock',
-            self::PAID, self::SETTLEMENT => 'heroicon-o-check-circle',
-            self::FAILED, self::CANCEL, self::DENY, self::EXPIRE => 'heroicon-o-x-circle',
+            self::SETTLEMENT => 'heroicon-o-check-circle',
             self::CAPTURE => 'heroicon-o-information-circle',
+            self::CANCEL, self::DENY, self::EXPIRE, self::FAILURE => 'heroicon-o-x-circle',
         };
     }
 
@@ -69,7 +74,7 @@ enum PaymentStatus: string
      */
     public function isSuccess(): bool
     {
-        return in_array($this, [self::PAID, self::SETTLEMENT]);
+        return $this === self::SETTLEMENT;
     }
 
     /**
@@ -77,7 +82,7 @@ enum PaymentStatus: string
      */
     public function isFailed(): bool
     {
-        return in_array($this, [self::FAILED, self::CANCEL, self::DENY, self::EXPIRE]);
+        return in_array($this, [self::FAILURE, self::CANCEL, self::DENY, self::EXPIRE]);
     }
 
     /**
@@ -94,9 +99,28 @@ enum PaymentStatus: string
     public function getSimplifiedStatus(): string
     {
         return match ($this) {
-            self::PAID, self::SETTLEMENT => 'paid',
-            self::FAILED, self::CANCEL, self::DENY, self::EXPIRE => 'unpaid',
+            self::SETTLEMENT => 'paid',
+            self::FAILURE, self::CANCEL, self::DENY, self::EXPIRE => 'unpaid',
             default => 'unpaid',
+        };
+    }
+
+    /**
+     * Create from string (case-insensitive)
+     */
+    public static function fromString(string $status): ?self
+    {
+        $status = strtolower($status);
+        
+        return match ($status) {
+            'pending' => self::PENDING,
+            'settlement' => self::SETTLEMENT,
+            'capture' => self::CAPTURE,
+            'cancel' => self::CANCEL,
+            'deny' => self::DENY,
+            'expire' => self::EXPIRE,
+            'failure', 'failed' => self::FAILURE,
+            default => null,
         };
     }
 }

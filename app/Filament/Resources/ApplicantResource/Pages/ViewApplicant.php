@@ -201,13 +201,10 @@ class ViewApplicant extends ViewRecord
                                                         TextEntry::make('payment_status_name')
                                                             ->label('Status')
                                                             ->badge()
-                                                            ->color(fn (?string $state): string => match ($state) {
-                                                                'PAID', 'paid', 'success' => 'success',
-                                                                'FAILED', 'failed' => 'danger',
-                                                                'PENDING', 'pending' => 'warning',
-                                                                default => 'gray',
-                                                            }),
-                                                        TextEntry::make('payment_method_name')->label('Metode'),
+                                                            ->formatStateUsing(fn ($state) => $state?->label() ?? ucfirst($state))
+                                                            ->color(fn ($state): string => $state?->color() ?? 'gray'),
+                                                        TextEntry::make('payment_method_name')->label('Metode')
+                                                            ->formatStateUsing(fn ($state) => $state?->label() ?? ucfirst($state)),
                                                         TextEntry::make('paid_amount_total')->label('Jumlah')->money('IDR'),
                                                         TextEntry::make('status_updated_datetime')->label('Diupdate')->dateTime('d M Y H:i'),
                                                     ]),

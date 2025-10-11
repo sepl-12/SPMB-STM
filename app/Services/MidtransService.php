@@ -76,8 +76,8 @@ class MidtransService
                 'merchant_order_code' => $orderId,
                 'paid_amount_total' => $amount,
                 'currency_code' => 'IDR',
-                'payment_method_name' => PaymentMethod::MIDTRANS_SNAP,
-                'payment_status_name' => PaymentStatus::PENDING,
+                'payment_method_name' => PaymentMethod::ECHANNEL->value,
+                'payment_status_name' => PaymentStatus::PENDING->value,
                 'status_updated_datetime' => now(),
                 'gateway_payload_json' => [
                     'snap_token' => $snapToken,
@@ -123,12 +123,12 @@ class MidtransService
         $paymentStatus = $this->determinePaymentStatus($transactionStatus, $fraudStatus);
 
         // Get payment method from notification
-        $paymentMethod = $this->mapPaymentMethod($notification['payment_type'] ?? 'midtrans_snap');
+        $paymentMethod = $this->mapPaymentMethod($notification['payment_type'] ?? 'echannel');
 
         // Update payment record
         $payment->update([
-            'payment_status_name' => $paymentStatus,
-            'payment_method_name' => $paymentMethod,
+            'payment_status_name' => $paymentStatus->value,
+            'payment_method_name' => $paymentMethod->value,
             'status_updated_datetime' => now(),
             'gateway_payload_json' => array_merge(
                 $payment->gateway_payload_json ?? [],
@@ -161,20 +161,7 @@ class MidtransService
      */
     protected function mapPaymentMethod(string $paymentType): PaymentMethod
     {
-        return match (strtolower($paymentType)) {
-            'credit_card' => PaymentMethod::CREDIT_CARD,
-            'bca_va' => PaymentMethod::BCA_VA,
-            'bni_va' => PaymentMethod::BNI_VA,
-            'bri_va' => PaymentMethod::BRI_VA,
-            'permata_va' => PaymentMethod::PERMATA_VA,
-            'other_va' => PaymentMethod::OTHER_VA,
-            'gopay' => PaymentMethod::GOPAY,
-            'shopeepay' => PaymentMethod::SHOPEEPAY,
-            'qris' => PaymentMethod::QRIS,
-            'alfamart' => PaymentMethod::ALFAMART,
-            'indomaret' => PaymentMethod::INDOMARET,
-            default => PaymentMethod::MIDTRANS_SNAP,
-        };
+        return PaymentHelper::mapMidtransPaymentType($paymentType);
     }
 
     /**

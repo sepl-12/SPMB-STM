@@ -35,7 +35,7 @@ trait HasPaymentAttributes
      */
     public function getMethodLabelAttribute(): string
     {
-        $method = $this->payment_method_name ?? PaymentMethod::MIDTRANS_SNAP;
+        $method = $this->payment_method_name ?? PaymentMethod::ECHANNEL;
         return $method->label();
     }
 
@@ -79,7 +79,7 @@ trait HasPaymentAttributes
      */
     public function getProcessingTimeAttribute(): string
     {
-        $method = $this->payment_method_name ?? PaymentMethod::MIDTRANS_SNAP;
+        $method = $this->payment_method_name ?? PaymentMethod::ECHANNEL;
         return $method->processingTime();
     }
 
@@ -88,7 +88,7 @@ trait HasPaymentAttributes
      */
     public function getPaymentInstructionsAttribute(): array
     {
-        $method = $this->payment_method_name ?? PaymentMethod::MIDTRANS_SNAP;
+        $method = $this->payment_method_name ?? PaymentMethod::ECHANNEL;
         return PaymentHelper::getPaymentInstructions($method);
     }
 

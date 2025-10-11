@@ -74,10 +74,7 @@ class Payment extends Model
      */
     public function scopeSuccessful($query)
     {
-        return $query->whereIn('payment_status_name', [
-            PaymentStatus::PAID->value,
-            PaymentStatus::SETTLEMENT->value,
-        ]);
+        return $query->where('payment_status_name', PaymentStatus::SETTLEMENT->value);
     }
 
     /**
@@ -86,7 +83,7 @@ class Payment extends Model
     public function scopeFailed($query)
     {
         return $query->whereIn('payment_status_name', [
-            PaymentStatus::FAILED->value,
+            PaymentStatus::FAILURE->value,
             PaymentStatus::CANCEL->value,
             PaymentStatus::DENY->value,
             PaymentStatus::EXPIRE->value,

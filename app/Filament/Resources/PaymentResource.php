@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Enum\PaymentStatus;
+use App\Enum\PaymentMethod;
 use App\Filament\Resources\ApplicantResource;
 use App\Filament\Resources\PaymentResource\Pages;
 use App\Models\Payment;
@@ -62,23 +64,18 @@ class PaymentResource extends Resource
                     ->label('Metode Bayar')
                     ->searchable()
                     ->badge()
+                    ->formatStateUsing(fn ($state) => $state?->label() ?? ucfirst($state))
                     ->color('info')
                     ->toggleable(),
                 BadgeColumn::make('payment_status_name')
                     ->label('Status')
                     ->colors([
-                        'success' => ['PAID', 'paid', 'success'],
-                        'danger' => ['FAILED', 'failed', 'canceled'],
-                        'warning' => ['PENDING', 'pending'],
-                        'gray' => ['REFUNDED', 'refunded'],
+                        'success' => PaymentStatus::SETTLEMENT->value,
+                        'danger' => [PaymentStatus::FAILURE->value, PaymentStatus::CANCEL->value, PaymentStatus::DENY->value, PaymentStatus::EXPIRE->value],
+                        'warning' => PaymentStatus::PENDING->value,
+                        'info' => PaymentStatus::CAPTURE->value,
                     ])
-                    ->formatStateUsing(fn (?string $state) => match(strtoupper($state ?? '')) {
-                        'PAID', 'SUCCESS' => 'Lunas',
-                        'PENDING' => 'Menunggu',
-                        'FAILED', 'CANCELED' => 'Gagal',
-                        'REFUNDED' => 'Dikembalikan',
-                        default => ucfirst(strtolower((string) $state))
-                    })
+                    ->formatStateUsing(fn ($state) => $state instanceof PaymentStatus ? $state->label() : ucfirst($state))
                     ->sortable(),
                 TextColumn::make('paid_amount_total')
                     ->label('Jumlah')
@@ -92,22 +89,13 @@ class PaymentResource extends Resource
             ->filters([
                 SelectFilter::make('payment_status_name')
                     ->label('Status')
-                    ->options(fn () => Payment::query()
-                        ->select('payment_status_name')
-                        ->distinct()
-                        ->orderBy('payment_status_name')
-                        ->pluck('payment_status_name', 'payment_status_name')
-                        ->filter()
-                        ->mapWithKeys(fn ($label, $value) => [$value => ucfirst(strtolower($label))])
+                    ->options(fn () => collect(PaymentStatus::cases())
+                        ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
                         ->all()),
                 SelectFilter::make('payment_method_name')
                     ->label('Metode')
-                    ->options(fn () => Payment::query()
-                        ->select('payment_method_name')
-                        ->distinct()
-                        ->orderBy('payment_method_name')
-                        ->pluck('payment_method_name', 'payment_method_name')
-                        ->filter()
+                    ->options(fn () => collect(PaymentMethod::cases())
+                        ->mapWithKeys(fn ($method) => [$method->value => $method->label()])
                         ->all()),
                 Filter::make('status_range')
                     ->label('Rentang Tanggal')

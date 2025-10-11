@@ -9,9 +9,9 @@
                 
                 @if($latestPayment)
                     @php
-                        $isPaid = in_array(strtoupper($latestPayment->payment_status_name), ['PAID', 'SETTLEMENT']);
-                        $isPending = strtoupper($latestPayment->payment_status_name) === 'PENDING';
-                        $isFailed = in_array(strtoupper($latestPayment->payment_status_name), ['FAILED', 'CANCEL', 'DENY', 'EXPIRE']);
+                        $isPaid = $latestPayment->payment_status_name->isSuccess();
+                        $isPending = $latestPayment->payment_status_name->isPending();
+                        $isFailed = $latestPayment->payment_status_name->isFailed();
                     @endphp
 
                     <!-- Status Icon -->
@@ -53,7 +53,7 @@
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Metode Pembayaran</span>
-                                <span class="font-semibold text-gray-900">{{ $latestPayment->payment_method_name }}</span>
+                                <span class="font-semibold text-gray-900">{{ $latestPayment->payment_method_name->label() }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Jumlah</span>
@@ -150,7 +150,7 @@
         </div>
     </div>
 
-    @if($latestPayment && strtoupper($latestPayment->payment_status_name) === 'PENDING')
+    @if($latestPayment && $latestPayment->payment_status_name->isPending())
     @push('scripts')
     <script>
         function checkPaymentStatus() {

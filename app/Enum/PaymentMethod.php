@@ -32,8 +32,8 @@ enum PaymentMethod: string
         // Bank Transfer
     case BANK_TRANSFER = 'bank_transfer';
 
-        // Midtrans Specific
-    case MIDTRANS_SNAP = 'Midtrans Snap';
+        // Payment Gateway / Unknown
+    case ECHANNEL = 'echannel'; // Midtrans default untuk metode tidak diketahui
 
     /**
      * Get all method values as array
@@ -65,7 +65,7 @@ enum PaymentMethod: string
             self::ALFAMART => 'Alfamart',
             self::INDOMARET => 'Indomaret',
             self::BANK_TRANSFER => 'Transfer Bank',
-            self::MIDTRANS_SNAP => 'Midtrans Snap',
+            self::ECHANNEL => 'Payment Gateway',
         };
     }
 
@@ -81,7 +81,7 @@ enum PaymentMethod: string
             self::QRIS => 'qr_code',
             self::ALFAMART, self::INDOMARET => 'convenience_store',
             self::BANK_TRANSFER => 'bank_transfer',
-            self::MIDTRANS_SNAP => 'payment_gateway',
+            self::ECHANNEL => 'payment_gateway',
         };
     }
 
@@ -123,7 +123,7 @@ enum PaymentMethod: string
             self::ALFAMART => 'red',
             self::INDOMARET => 'yellow',
             self::BANK_TRANSFER => 'gray',
-            self::MIDTRANS_SNAP => 'blue',
+            self::ECHANNEL => 'blue',
         };
     }
 
@@ -169,7 +169,7 @@ enum PaymentMethod: string
             self::BCA_VA, self::BNI_VA, self::BRI_VA, self::MANDIRI_VA, self::PERMATA_VA, self::OTHER_VA => 'Real-time',
             self::ALFAMART, self::INDOMARET => '15-30 menit',
             self::BANK_TRANSFER => '1-3 jam kerja',
-            self::MIDTRANS_SNAP => 'Bervariasi',
+            self::ECHANNEL => 'Bervariasi',
         };
     }
 }

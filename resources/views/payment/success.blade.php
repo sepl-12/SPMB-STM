@@ -40,7 +40,7 @@
                         </div>
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600">Metode Pembayaran</span>
-                            <span class="font-semibold text-gray-900">{{ $latestPayment->payment_method_name }}</span>
+                            <span class="font-semibold text-gray-900">{{ $latestPayment->payment_method_name->label() }}</span>
                         </div>
                         
                         <div class="border-t border-gray-300 my-3"></div>
