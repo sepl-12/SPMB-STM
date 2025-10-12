@@ -97,7 +97,7 @@ enum PaymentMethod: string
             self::QRIS => 'heroicon-o-qr-code',
             self::ALFAMART, self::INDOMARET => 'heroicon-o-building-storefront',
             self::BANK_TRANSFER => 'heroicon-o-banknotes',
-            self::MIDTRANS_SNAP => 'heroicon-o-globe-alt',
+            self::ECHANNEL => 'heroicon-o-globe-alt',
         };
     }
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FileDownloadController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RegistrationController;
 use Illuminate\Support\Facades\Route;
@@ -26,3 +27,7 @@ Route::post('/pembayaran/check-status', [PaymentController::class, 'checkStatus'
 Route::get('/cek-pembayaran', [PaymentController::class, 'checkPaymentForm'])->name('payment.check-form');
 Route::post('/cek-pembayaran', [PaymentController::class, 'findPayment'])->name('payment.find');
 Route::post('/kirim-ulang-link', [PaymentController::class, 'resendPaymentLink'])->name('payment.resend-link');
+
+// File Download routes
+Route::get('/files/{fileId}/download', [FileDownloadController::class, 'download'])->name('file.download');
+Route::get('/files/{fileId}/preview', [FileDownloadController::class, 'preview'])->name('file.preview');

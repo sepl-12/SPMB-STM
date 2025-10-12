@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\ApplicantResource\Pages;
 
+use App\Filament\Infolists\Components\FileViewerEntry;
 use App\Filament\Resources\ApplicantResource;
 use App\Models\Applicant;
 use App\Models\FormField;
 use Filament\Infolists\Components\Actions\Action;
 use Filament\Infolists\Components\Grid;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section;
@@ -134,35 +136,88 @@ class ViewApplicant extends ViewRecord
                                         continue;
                                     }
 
-                                    $fieldSections = $fields->map(function (array $field) {
+                                    $fieldSections = $fields->map(function (array $field) use ($record) {
                                         $meta = $this->getAnswerDisplayMeta($field['label'], $field['value']);
-                                        return
-                                                TextEntry::make('answer_value_' . md5(($field['field_key'] ?? $field['label'])))
-                                                    ->label($field['label'])
-                                                    ->weight('bold')
-                                                    ->fontFamily(FontFamily::Mono)
-                                                    ->size(TextEntrySize::Medium)
-                                                    ->state($field['value'])
-                                                    ->copyable()
-                                                    ->copyMessage('Tersalin!')
-                                                    ->copyMessageDuration(1500)
-                                                    ->placeholder('(belum diisi)')
-                                                    ->formatStateUsing(function ($state) {
-                                                        if ($state === null || $state === '') {
-                                                            return null;
-                                                        }
-
-                                                        if (is_string($state) && strlen($state) > 500) {
-                                                            return substr($state, 0, 500) . '... (klik copy untuk lihat lengkap)';
-                                                        }
-
-                                                        return $state;
-                                                    })
-                                                    ->color('blue')
-                                                    ->extraAttributes([
-                                                        'class' => 'break-words'
-                                                    ]);
+                                        $fieldKey = 'answer_value_' . md5(($field['field_key'] ?? $field['label']));
                                         
+                                        // Check if field is an image type
+                                        if ($field['field']?->field_type === 'image') {
+                                            $rawValue = $field['raw_value'];
+                                            
+                                            // Handle different image value formats
+                                            if (is_string($rawValue) && !empty($rawValue)) {
+                                                // Single image path
+                                                return ImageEntry::make($fieldKey)
+                                                    ->label($field['label'])
+                                                    ->state($rawValue)
+                                                    ->disk('public')
+                                                    ->height(200)
+                                                    ->width('auto')
+                                                    ->extraAttributes([
+                                                        'class' => 'rounded-lg'
+                                                    ]);
+                                            } elseif (is_array($rawValue)) {
+                                                // Handle array of images (if format is [['url' => '...', 'name' => '...']])
+                                                $imageUrls = collect($rawValue)
+                                                    ->map(fn($file) => is_array($file) ? ($file['url'] ?? $file['path'] ?? null) : $file)
+                                                    ->filter()
+                                                    ->toArray();
+                                                
+                                                if (!empty($imageUrls)) {
+                                                    return ImageEntry::make($fieldKey)
+                                                        ->label($field['label'])
+                                                        ->state($imageUrls)
+                                                        ->disk('public')
+                                                        ->height(200)
+                                                        ->width('auto')
+                                                        ->extraAttributes([
+                                                            'class' => 'rounded-lg'
+                                                        ]);
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Check if field is a file/document type
+                                        if ($field['field']?->field_type === 'file' && $field['field']?->id) {
+                                            $fileData = $this->getFileDataForField($record, $field['field']->id);
+                                            
+                                            if ($fileData) {
+                                                return FileViewerEntry::make($fieldKey)
+                                                    ->label($field['label'])
+                                                    ->fileName($fileData['original_file_name'])
+                                                    ->fileSize($fileData['file_size'])
+                                                    ->mimeType($fileData['mime_type_name'])
+                                                    ->downloadUrl($fileData['download_url'])
+                                                    ->previewUrl($fileData['preview_url']);
+                                            }
+                                        }
+                                        
+                                        // Default to TextEntry for non-image or if image not found
+                                        return TextEntry::make($fieldKey)
+                                            ->label($field['label'])
+                                            ->weight('bold')
+                                            ->fontFamily(FontFamily::Mono)
+                                            ->size(TextEntrySize::Medium)
+                                            ->state($field['value'])
+                                            ->copyable()
+                                            ->copyMessage('Tersalin!')
+                                            ->copyMessageDuration(1500)
+                                            ->placeholder('(belum diisi)')
+                                            ->formatStateUsing(function ($state) {
+                                                if ($state === null || $state === '') {
+                                                    return null;
+                                                }
+
+                                                if (is_string($state) && strlen($state) > 500) {
+                                                    return substr($state, 0, 500) . '... (klik copy untuk lihat lengkap)';
+                                                }
+
+                                                return $state;
+                                            })
+                                            ->color('blue')
+                                            ->extraAttributes([
+                                                'class' => 'break-words'
+                                            ]);
                                     })->all();
 
                                     if (empty($fieldSections)) {
@@ -269,6 +324,7 @@ class ViewApplicant extends ViewRecord
                     return [
                         'label' => $field->field_label,
                         'value' => $formatted,
+                        'raw_value' => $rawValue,
                         'field_key' => $field->field_key,
                         'field' => $field,
                     ];
@@ -310,6 +366,7 @@ class ViewApplicant extends ViewRecord
                     return [
                         'label' => $key,
                         'value' => $formatted,
+                        'raw_value' => $value,
                         'field_key' => $key,
                         'field' => null,
                     ];
@@ -453,5 +510,47 @@ class ViewApplicant extends ViewRecord
         }
 
         return number_format($size, $unit === 0 ? 0 : 2) . ' ' . $units[$unit];
+    }
+
+    protected function getFileDataForField(Applicant $record, int $formFieldId): ?array
+    {
+        $submission = $record->latestSubmission;
+
+        if (!$submission) {
+            return null;
+        }
+
+        $file = $submission->submissionFiles
+            ->where('form_field_id', $formFieldId)
+            ->first();
+
+        if (!$file) {
+            return null;
+        }
+
+        $downloadUrl = null;
+        $previewUrl = null;
+
+        if ($file->stored_disk_name && $file->stored_file_path) {
+            try {
+                $disk = Storage::disk($file->stored_disk_name);
+                if ($disk->exists($file->stored_file_path)) {
+                    // Use dedicated download and preview routes
+                    $downloadUrl = route('file.download', ['fileId' => $file->id]);
+                    $previewUrl = route('file.preview', ['fileId' => $file->id]);
+                }
+            } catch (\Throwable $exception) {
+                $downloadUrl = null;
+                $previewUrl = null;
+            }
+        }
+
+        return [
+            'original_file_name' => $file->original_file_name,
+            'mime_type_name' => $file->mime_type_name,
+            'file_size' => $this->formatFileSize($file->file_size_bytes),
+            'download_url' => $downloadUrl,
+            'preview_url' => $previewUrl,
+        ];
     }
 }
