@@ -69,13 +69,8 @@ class PaymentResource extends Resource
                     ->toggleable(),
                 BadgeColumn::make('payment_status_name')
                     ->label('Status')
-                    ->colors([
-                        'success' => PaymentStatus::SETTLEMENT->value,
-                        'danger' => [PaymentStatus::FAILURE->value, PaymentStatus::CANCEL->value, PaymentStatus::DENY->value, PaymentStatus::EXPIRE->value],
-                        'warning' => PaymentStatus::PENDING->value,
-                        'info' => PaymentStatus::CAPTURE->value,
-                    ])
                     ->formatStateUsing(fn ($state) => $state instanceof PaymentStatus ? $state->label() : ucfirst($state))
+                    ->color(fn ($state): string => $state instanceof PaymentStatus ? $state->color() : 'gray')
                     ->sortable(),
                 TextColumn::make('paid_amount_total')
                     ->label('Jumlah')
