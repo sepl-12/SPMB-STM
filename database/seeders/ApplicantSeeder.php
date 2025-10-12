@@ -77,15 +77,8 @@ class ApplicantSeeder extends Seeder
                 // Random major
                 $major = $majors[array_rand($majors)];
                 
-                // Random payment status dengan probabilitas
-                $rand = rand(1, 100);
-                if ($rand <= 60) {
-                    $paymentStatus = 'verified'; // 60% sudah verified
-                } elseif ($rand <= 85) {
-                    $paymentStatus = 'paid'; // 25% sudah bayar tapi belum verified
-                } else {
-                    $paymentStatus = 'pending'; // 15% masih pending
-                }
+                // Note: payment_status is now computed from Payment relation
+                // Will be set when Payment is created in PaymentSeeder
                 
                 // Registered datetime dalam range gelombang
                 $startTime = strtotime($wave->start_datetime);
@@ -101,7 +94,7 @@ class ApplicantSeeder extends Seeder
                     'applicant_email_address' => $email,
                     'chosen_major_name' => $major,
                     'wave_id' => $wave->id,
-                    'payment_status' => $paymentStatus,
+                    // payment_status removed - now computed from Payment relation
                     'registered_datetime' => $registeredDate,
                     'created_at' => now(),
                     'updated_at' => now(),

@@ -145,7 +145,7 @@ class RegistrationController extends Controller
                 'applicant_email_address' => $registrationData['email'] ?? '-',
                 'chosen_major_name' => $registrationData['jurusan'] ?? $registrationData['major'] ?? 'Belum Dipilih',
                 'wave_id' => $activeWave->id,
-                'payment_status' => 'unpaid',
+                // Note: payment_status is now computed from Payment relation
                 'registered_datetime' => now(),
             ]);
 

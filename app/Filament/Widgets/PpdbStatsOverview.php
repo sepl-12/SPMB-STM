@@ -14,11 +14,16 @@ class PpdbStatsOverview extends StatsOverviewWidget
     protected function getCards(): array
     {
         $totalApplicants = Applicant::count();
-        $paidCount = Applicant::where('payment_status', 'paid')->count();
-        $totalPaidAmount = Applicant::where('payment_status', 'paid')
-            ->withSum('payments as total_paid_sum', 'paid_amount_total')
-            ->get()
-            ->sum('total_paid_sum');
+        
+        // Count paid applicants (those with successful payment)
+        $paidCount = Applicant::whereHas('latestPayment', function ($query) {
+            $query->where('payment_status_name', \App\Enum\PaymentStatus::SETTLEMENT->value);
+        })->count();
+        
+        // Sum of all successful payments
+        $totalPaidAmount = \App\Models\Payment::where('payment_status_name', \App\Enum\PaymentStatus::SETTLEMENT->value)
+            ->sum('paid_amount_total');
+            
         $todayCount = Applicant::whereDate('registered_datetime', Carbon::today())->count();
 
         return [

@@ -16,11 +16,12 @@ class PaymentSeeder extends Seeder
      */
     public function run(): void
     {
-        // Hanya buat payment untuk applicant yang statusnya 'paid' atau 'verified'
-        $applicants = Applicant::whereIn('payment_status', ['paid', 'verified'])->get();
+        // Buat payment untuk semua applicant (payment_status sekarang computed dari Payment)
+        // 85% akan diberi payment successful, 15% pending/failed
+        $applicants = Applicant::all();
         
         if ($applicants->isEmpty()) {
-            $this->command->warn('Tidak ada calon siswa dengan status paid/verified. Jalankan ApplicantSeeder terlebih dahulu.');
+            $this->command->warn('Tidak ada calon siswa. Jalankan ApplicantSeeder terlebih dahulu.');
             return;
         }
 
@@ -42,6 +43,18 @@ class PaymentSeeder extends Seeder
         $paymentData = [];
 
         foreach ($applicants as $applicant) {
+            // Random untuk menentukan apakah ada payment atau tidak
+            $rand = rand(1, 100);
+            
+            // 85% akan punya payment settlement, 10% pending, 5% failed
+            if ($rand <= 85) {
+                $paymentStatus = PaymentStatus::SETTLEMENT;
+            } elseif ($rand <= 95) {
+                $paymentStatus = PaymentStatus::PENDING;
+            } else {
+                $paymentStatus = PaymentStatus::FAILURE;
+            }
+            
             $gateway = $paymentGateways[array_rand($paymentGateways)];
             $method = $paymentMethods[array_rand($paymentMethods)];
             
@@ -50,11 +63,6 @@ class PaymentSeeder extends Seeder
             
             // Get registration fee from wave
             $amount = $applicant->wave->registration_fee_amount;
-            
-            // Payment status berdasarkan applicant status - gunakan enum
-            $paymentStatus = $applicant->payment_status === 'verified' 
-                ? PaymentStatus::SETTLEMENT 
-                : PaymentStatus::PENDING;
             
             // Status updated datetime (1-3 hari setelah registrasi)
             $registeredTime = strtotime($applicant->registered_datetime);
@@ -78,8 +86,8 @@ class PaymentSeeder extends Seeder
                     : 'Pending, waiting for payment',
             ];
             
-            // Jika verified, tambah info bank
-            if ($applicant->payment_status === 'verified') {
+            // Jika settlement, tambah info bank dan settlement time
+            if ($paymentStatus === PaymentStatus::SETTLEMENT) {
                 if ($method->isVirtualAccount()) {
                     $gatewayPayload['va_numbers'] = [
                         [

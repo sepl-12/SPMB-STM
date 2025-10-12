@@ -136,16 +136,8 @@ class MidtransService
             ),
         ]);
 
-        // Update applicant payment status
-        if ($paymentStatus->isSuccess()) {
-            $payment->applicant->update([
-                'payment_status' => 'paid',
-            ]);
-        } elseif ($paymentStatus->isFailed()) {
-            $payment->applicant->update([
-                'payment_status' => 'unpaid',
-            ]);
-        }
+        // Note: Applicant payment_status is now computed from Payment automatically
+        // No manual update needed - Single Source of Truth pattern
     }
 
     /**

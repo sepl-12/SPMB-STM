@@ -41,6 +41,7 @@ class ViewApplicant extends ViewRecord
             'wave',
             'latestSubmission.submissionFiles',
             'payments',
+            'latestPayment',
         ]);
     }
 
@@ -71,23 +72,12 @@ class ViewApplicant extends ViewRecord
                                                 TextEntry::make('applicant_full_name')->label('Nama Lengkap'),
                                                 TextEntry::make('chosen_major_name')->label('Jurusan'),
                                                 TextEntry::make('wave.wave_name')->label('Gelombang'),
-                                                TextEntry::make('payment_status')
+                                                TextEntry::make('latestPayment.payment_status_name')
                                                     ->label('Status Bayar')
                                                     ->badge()
-                                                    ->color(fn (?string $state) => match ($state) {
-                                                        'paid' => 'success',
-                                                        'failed' => 'danger',
-                                                        'unpaid', 'pending' => 'warning',
-                                                        'refunded' => 'gray',
-                                                        default => 'info',
-                                                    })
-                                                    ->formatStateUsing(fn (?string $state) => match ($state) {
-                                                        'paid' => 'Paid',
-                                                        'failed' => 'Failed',
-                                                        'unpaid' => 'Unpaid',
-                                                        'refunded' => 'Refunded',
-                                                        default => ucfirst((string) $state),
-                                                    }),
+                                                    ->formatStateUsing(fn ($state) => $state?->label() ?? 'Belum Bayar')
+                                                    ->color(fn ($state): string => $state?->color() ?? 'warning')
+                                                    ->placeholder('Belum Bayar'),
                                             ]),
                                     ]),
                                 Section::make('Kontak')

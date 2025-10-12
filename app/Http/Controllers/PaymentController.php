@@ -24,11 +24,11 @@ class PaymentController extends Controller
     public function show($registration_number)
     {
         $applicant = Applicant::where('registration_number', $registration_number)
-            ->with('wave', 'payments')
+            ->with('wave', 'payments', 'latestPayment')
             ->firstOrFail();
 
-        // Check if applicant already paid
-        if ($applicant->payment_status === 'paid') {
+        // Check if applicant already paid (using computed accessor from latest payment)
+        if ($applicant->hasSuccessfulPayment()) {
             return redirect()->route('payment.success', $registration_number)
                 ->with('message', 'Pembayaran Anda sudah berhasil.');
         }

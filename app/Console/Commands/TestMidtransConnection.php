@@ -193,7 +193,7 @@ class TestMidtransConnection extends Command
             'registration_number' => $this->generateRegistrationNumber(),
             'applicant_full_name' => $name,
             'registered_datetime' => now(),
-            'payment_status' => 'unpaid',
+            // payment_status is computed from Payment relation
         ]);
 
         // Create submission

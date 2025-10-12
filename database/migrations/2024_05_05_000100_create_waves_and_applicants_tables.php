@@ -32,7 +32,7 @@ return new class extends Migration
             $table->string('applicant_email_address', 150);
             $table->string('chosen_major_name', 50);
             $table->foreignId('wave_id')->constrained('waves')->cascadeOnDelete();
-            $table->string('payment_status', 20);
+            $table->string('payment_status', 20)->nullable();
             $table->dateTime('registered_datetime');
             $table->timestamps();
         });

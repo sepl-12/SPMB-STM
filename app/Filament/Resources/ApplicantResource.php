@@ -52,7 +52,7 @@ class ApplicantResource extends Resource
     public static function table(Table $table): Table
     {
         $table = $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['wave', 'latestSubmission']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['wave', 'latestSubmission', 'latestPayment']))
             ->defaultSort('registered_datetime', 'desc');
 
         $columns = [
@@ -74,23 +74,12 @@ class ApplicantResource extends Resource
                 ->badge()
                 ->color('warning')
                 ->sortable(),
-            BadgeColumn::make('payment_status')
+            BadgeColumn::make('latestPayment.payment_status_name')
                 ->label('Status Bayar')
-                ->colors([
-                    'success' => ['paid', 'success'],
-                    'danger' => ['failed'],
-                    'warning' => ['pending', 'unpaid'],
-                    'gray' => ['refunded', 'void'],
-                ])
-                ->formatStateUsing(fn (?string $state) => match ($state) {
-                    'paid', 'success' => 'Lunas',
-                    'unpaid' => 'Belum Bayar',
-                    'pending' => 'Menunggu',
-                    'failed' => 'Gagal',
-                    'refunded' => 'Dikembalikan',
-                    default => ucfirst((string) $state),
-                })
-                ->sortable(),
+                ->formatStateUsing(fn ($state) => $state?->label() ?? 'Belum Bayar')
+                ->color(fn ($state): string => $state?->color() ?? 'warning')
+                ->sortable()
+                ->placeholder('Belum Bayar'),
             TextColumn::make('registered_datetime')
                 ->label('Tgl Daftar')
                 ->dateTime('d M Y H:i')
@@ -133,15 +122,19 @@ class ApplicantResource extends Resource
                     ->pluck('chosen_major_name', 'chosen_major_name')
                     ->filter()
                     ->all()),
-            SelectFilter::make('payment_status')
+            SelectFilter::make('latestPayment.payment_status_name')
                 ->label('Status Bayar')
-                ->options([
-                    'paid' => 'Lunas',
-                    'unpaid' => 'Belum Bayar',
-                    'pending' => 'Menunggu',
-                    'failed' => 'Gagal',
-                    'refunded' => 'Dikembalikan',
-                ]),
+                ->options(fn () => collect(\App\Enum\PaymentStatus::cases())
+                    ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
+                    ->all())
+                ->query(function ($query, $data) {
+                    if (filled($data['value'])) {
+                        return $query->whereHas('latestPayment', function ($q) use ($data) {
+                            $q->where('payment_status_name', $data['value']);
+                        });
+                    }
+                    return $query;
+                }),
         ];
 
         foreach (self::getFilterableFields() as $field) {
