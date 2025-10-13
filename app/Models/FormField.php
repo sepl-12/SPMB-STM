@@ -19,6 +19,7 @@ class FormField extends Model
         'is_filterable' => 'boolean',
         'is_exportable' => 'boolean',
         'is_archived' => 'boolean',
+        'is_system_field' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -33,6 +34,34 @@ class FormField extends Model
                 ->max('field_order_number');
 
             $field->field_order_number = ($maxOrder ?? 0) + 1;
+        });
+
+        // Protect system fields from critical changes (silent protection)
+        static::updating(function (FormField $field) {
+            if ($field->is_system_field) {
+                // Silently revert field_key changes
+                if ($field->isDirty('field_key')) {
+                    $field->field_key = $field->getOriginal('field_key');
+                }
+
+                // Silently revert field_type changes
+                if ($field->isDirty('field_type')) {
+                    $field->field_type = $field->getOriginal('field_type');
+                }
+
+                // Silently prevent archiving
+                if ($field->isDirty('is_archived') && $field->is_archived) {
+                    $field->is_archived = false;
+                }
+            }
+        });
+
+        // Prevent deleting system fields (silent fail)
+        static::deleting(function (FormField $field) {
+            if ($field->is_system_field) {
+                // Return false to prevent deletion without throwing error
+                return false;
+            }
         });
     }
 
