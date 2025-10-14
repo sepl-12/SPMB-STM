@@ -1,61 +1,187 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SPMB STM - Sistem Penerimaan Peserta Didik Baru
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> Modern, scalable student registration system built with Laravel 10 & Filament 3.
 
-## About Laravel
+[![Laravel](https://img.shields.io/badge/Laravel-10.x-red.svg)](https://laravel.com)
+[![Filament](https://img.shields.io/badge/Filament-3.x-orange.svg)](https://filamentphp.com)
+[![PHP](https://img.shields.io/badge/PHP-8.1+-blue.svg)](https://php.net)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue.svg)](https://mysql.com)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📖 Table of Contents
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Documentation](#documentation)
+- [Testing](#testing)
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🎯 Overview
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+**SPMB STM** adalah sistem manajemen penerimaan peserta didik baru yang komprehensif dengan fokus pada:
+- ✅ **User Experience** - Form wizard yang mudah digunakan
+- ✅ **Flexibility** - Dynamic form builder untuk admin
+- ✅ **Integration** - Payment gateway Midtrans terintegrasi
+- ✅ **Scalability** - Architecture yang mudah dikembangkan
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## ⭐ Key Features
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 🎨 **Dynamic Form Builder**
+- Form builder dengan berbagai field types
+- Form versioning untuk data integrity
+- Multi-step wizard navigation
+- **System fields protection** untuk field critical
 
-### Premium Partners
+### 💳 **Payment Gateway Integration**
+- Midtrans Snap integration
+- Auto-update payment status via webhook
+- Single Source of Truth architecture
+- Real-time status tracking
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 📊 **Data Management**
+- Comprehensive applicant management
+- File preview (images/PDFs inline)
+- Excel export dengan customizable columns
+- Dashboard statistics
 
-## Contributing
+### 🌊 **Wave Management**
+- Kelola periode pendaftaran
+- Set quotas & registration fees
+- Active/inactive wave control
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## 📋 Requirements
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **PHP:** 8.1 or higher
+- **Composer:** Latest version
+- **Node.js:** 16.x or higher
+- **MySQL:** 8.0 or higher
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🚀 Installation
 
-## License
+### **1. Clone & Install**
+```bash
+git clone <repository-url>
+cd SPMB-STM
+composer install
+npm install
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### **2. Environment Setup**
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+### **3. Database**
+Create database and configure `.env`:
+```env
+DB_DATABASE=spmb_stm
+DB_USERNAME=root
+DB_PASSWORD=your_password
+```
+
+### **4. Migrate & Seed**
+```bash
+php artisan migrate --seed
+php artisan storage:link
+```
+
+### **5. Run**
+```bash
+# Terminal 1
+php artisan serve
+
+# Terminal 2
+npm run dev
+```
+
+---
+
+## ⚙️ Configuration
+
+### **Admin Access**
+- **URL:** `http://localhost:8000/admin`
+- **Email:** `admin@example.com`
+- **Password:** `password`
+
+### **Midtrans Setup**
+Add to `.env`:
+```env
+MIDTRANS_SERVER_KEY=your-server-key
+MIDTRANS_CLIENT_KEY=your-client-key
+MIDTRANS_IS_PRODUCTION=false
+```
+
+**Webhook URL:** `https://yourdomain.com/payment/notification`
+
+---
+
+## 📚 Documentation
+
+### **📖 Essential Reading**
+
+| Document | Description |
+|----------|-------------|
+| **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** | Complete developer handbook |
+| **[ARCHITECTURE.md](ARCHITECTURE.md)** | System architecture & design |
+| **[docs/INDEX.md](docs/INDEX.md)** | Documentation navigation |
+
+### **📁 Documentation Structure**
+
+```
+docs/
+├── payment/               # Payment integration (13 files)
+├── form-management/       # Form system (8 files)
+├── features/              # Feature docs (6 files)
+├── troubleshooting/       # Bug fixes & solutions (7 files)
+└── archived/              # Historical docs (2 files)
+```
+
+### **🔗 Quick Links**
+
+- **Payment Setup:** [docs/payment/PAYMENT_GATEWAY_MIDTRANS.md](docs/payment/PAYMENT_GATEWAY_MIDTRANS.md)
+- **Form Builder:** [docs/form-management/DYNAMIC_REGISTRATION_FORM.md](docs/form-management/DYNAMIC_REGISTRATION_FORM.md)
+- **System Protection:** [docs/SYSTEM_FIELDS_PROTECTION_GUIDE.md](docs/SYSTEM_FIELDS_PROTECTION_GUIDE.md)
+- **All Docs:** [docs/INDEX.md](docs/INDEX.md)
+
+---
+
+## 🧪 Testing
+
+```bash
+php artisan test
+php artisan midtrans:test
+```
+
+---
+
+## 🆘 Support
+
+**Common Issues:**
+- Payment not updating → Check webhook URL
+- File upload fails → Check storage permissions
+- Form not showing → Check active wave
+
+**Documentation:** [docs/troubleshooting/](docs/troubleshooting/)
+
+---
+
+## 📄 License
+
+Proprietary - All rights reserved
+
+---
+
+**Last Updated:** 2025-01-13  
+**Version:** 1.0.0

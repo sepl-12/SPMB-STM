@@ -16,6 +16,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -58,15 +59,16 @@ class FormFieldsRelationManager extends RelationManager
                                     ->maxLength(255)
                                     ->placeholder('Contoh: Nama Lengkap')
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (?string $state, callable $set, $record) => !$record?->is_system_field ? $set('field_key', Str::slug($state ?? '', '_')) : null)
-                                    ->helperText(fn ($record) => $record?->is_system_field ? '✅ Label boleh diubah untuk customization' : null),
+                                    ->afterStateUpdated(fn(?string $state, callable $set, $record) => !$record?->is_system_field ? $set('field_key', Str::slug($state ?? '', '_')) : null)
+                                    ->helperText(fn($record) => $record?->is_system_field ? '✅ Label boleh diubah untuk customization' : null),
                                 TextInput::make('field_key')
                                     ->label('Key (ID Unik)')
                                     ->required()
                                     ->maxLength(100)
-                                    ->helperText(fn ($record) => $record?->is_system_field 
-                                        ? '🔒 LOCKED - Field ini terhubung ke applicants table' 
-                                        : 'Otomatis dibuat dari label. Gunakan snake_case.'
+                                    ->helperText(
+                                        fn($record) => $record?->is_system_field
+                                            ? '🔒 LOCKED - Field ini terhubung ke applicants table'
+                                            : 'Otomatis dibuat dari label. Gunakan snake_case.'
                                     )
                                     ->unique(
                                         ignoreRecord: true,
@@ -87,12 +89,12 @@ class FormFieldsRelationManager extends RelationManager
                                             $set('field_key', Str::slug($label, '_'));
                                         }
                                     })
-                                    ->dehydrateStateUsing(fn (?string $state) => $state ? Str::slug($state, '_') : null)
+                                    ->dehydrateStateUsing(fn(?string $state) => $state ? Str::slug($state, '_') : null)
                                     ->extraAttributes(['readonly' => true]),
                             ]),
                     ])
                     ->collapsible(),
-                    
+
                 Forms\Components\Section::make('Penempatan & Tipe')
                     ->description('Tentukan di mana dan bagaimana pertanyaan ditampilkan')
                     ->schema([
@@ -100,7 +102,7 @@ class FormFieldsRelationManager extends RelationManager
                             ->schema([
                                 Select::make('form_step_id')
                                     ->label('Langkah Wizard')
-                                    ->options(fn () => $this->getStepOptions())
+                                    ->options(fn() => $this->getStepOptions())
                                     ->required()
                                     ->searchable()
                                     ->placeholder('Pilih langkah...')
@@ -122,15 +124,16 @@ class FormFieldsRelationManager extends RelationManager
                                     ->default('text')
                                     ->searchable()
                                     ->live()
-                                    ->disabled(fn ($record) => $record?->is_system_field ?? false)
-                                    ->helperText(fn ($record) => $record?->is_system_field 
-                                        ? '🔒 LOCKED - Tipe tidak dapat diubah untuk system field' 
-                                        : 'Pilih tipe yang sesuai dengan data yang akan dikumpulkan'
+                                    ->disabled(fn($record) => $record?->is_system_field ?? false)
+                                    ->helperText(
+                                        fn($record) => $record?->is_system_field
+                                            ? '🔒 LOCKED - Tipe tidak dapat diubah untuk system field'
+                                            : 'Pilih tipe yang sesuai dengan data yang akan dikumpulkan'
                                     ),
                             ]),
                     ])
                     ->collapsible(),
-                    
+
                 Forms\Components\Section::make('Teks Pembantu')
                     ->description('Tambahkan petunjuk untuk membantu user mengisi form')
                     ->schema([
@@ -148,7 +151,7 @@ class FormFieldsRelationManager extends RelationManager
                     ])
                     ->collapsible()
                     ->collapsed(),
-                    
+
                 Forms\Components\Section::make('Pengaturan Validasi & Export')
                     ->description('Atur validasi dan pengaturan data')
                     ->schema([
@@ -172,24 +175,25 @@ class FormFieldsRelationManager extends RelationManager
                             ]),
                         Toggle::make('is_archived')
                             ->label('Arsipkan Pertanyaan')
-                            ->helperText(fn ($record) => $record?->is_system_field 
-                                ? '🔒 System field tidak dapat diarsipkan' 
-                                : 'Pertanyaan yang diarsipkan tidak akan tampil di formulir tetapi tetap tersimpan untuk referensi'
+                            ->helperText(
+                                fn($record) => $record?->is_system_field
+                                    ? '🔒 System field tidak dapat diarsipkan'
+                                    : 'Pertanyaan yang diarsipkan tidak akan tampil di formulir tetapi tetap tersimpan untuk referensi'
                             )
                             ->default(false)
-                            ->disabled(fn ($record) => $record?->is_system_field ?? false)
+                            ->disabled(fn($record) => $record?->is_system_field ?? false)
                             ->inline(false),
                     ])
                     ->collapsible()
                     ->collapsed(),
-                    
+
                 Forms\Components\Section::make('Pilihan Jawaban')
                     ->description('Atur pilihan untuk select/multi-select')
                     ->schema([
                         Forms\Components\Placeholder::make('options_info')
                             ->label('')
                             ->content('Tambahkan minimal 1 pilihan. Label adalah yang ditampilkan, Value adalah yang disimpan di database.')
-                            ->visible(fn (callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true)),
+                            ->visible(fn(callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true)),
                         Repeater::make('field_options')
                             ->label('Daftar Pilihan')
                             ->schema([
@@ -209,12 +213,12 @@ class FormFieldsRelationManager extends RelationManager
                             ->addActionLabel('Tambah Pilihan')
                             ->reorderableWithButtons()
                             ->collapsible()
-                            ->itemLabel(fn (array $state): ?string => $state['label'] ?? 'Pilihan')
-                            ->visible(fn (callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true))
+                            ->itemLabel(fn(array $state): ?string => $state['label'] ?? 'Pilihan')
+                            ->visible(fn(callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true))
                             ->default([])
                             ->columnSpanFull(),
                     ])
-                    ->visible(fn (callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true))
+                    ->visible(fn(callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true))
                     ->collapsible(),
             ]);
     }
@@ -222,7 +226,7 @@ class FormFieldsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->where('form_version_id', $this->getActiveVersion()->getKey()))
+            ->modifyQueryUsing(fn(Builder $query) => $query->where('form_version_id', $this->getActiveVersion()->getKey()))
             ->defaultSort('field_order_number')
             ->defaultGroup('formStep.step_title')
             ->columns([
@@ -242,15 +246,15 @@ class FormFieldsRelationManager extends RelationManager
                     ->label('Label Pertanyaan')
                     ->searchable()
                     ->sortable()
-                    ->description(fn (FormField $record) => $record->field_key)
-                    ->badge(fn (FormField $record) => $record->is_system_field)
-                    ->color(fn (FormField $record) => $record->is_system_field ? 'warning' : null)
-                    ->icon(fn (FormField $record) => $record->is_system_field ? 'heroicon-o-lock-closed' : null)
+                    ->description(fn(FormField $record) => $record->field_key)
+                    ->badge(fn(FormField $record) => $record->is_system_field)
+                    ->color(fn(FormField $record) => $record->is_system_field ? 'warning' : null)
+                    ->icon(fn(FormField $record) => $record->is_system_field ? 'heroicon-o-lock-closed' : null)
                     ->wrap(),
                 TextColumn::make('field_type')
                     ->label('Tipe')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'text', 'textarea', 'number' => 'primary',
                         'select', 'multi_select' => 'warning',
                         'date' => 'success',
@@ -258,7 +262,7 @@ class FormFieldsRelationManager extends RelationManager
                         'boolean' => 'info',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'text' => 'Teks',
                         'textarea' => 'Textarea',
                         'number' => 'Angka',
@@ -310,7 +314,7 @@ class FormFieldsRelationManager extends RelationManager
             ->filters([
                 SelectFilter::make('form_step_id')
                     ->label('Filter Langkah')
-                    ->options(fn () => $this->getStepOptions())
+                    ->options(fn() => $this->getStepOptions())
                     ->placeholder('Semua Langkah'),
                 SelectFilter::make('field_type')
                     ->label('Filter Tipe')
@@ -348,56 +352,59 @@ class FormFieldsRelationManager extends RelationManager
                     ->successNotificationTitle('Pertanyaan berhasil ditambahkan'),
             ])
             ->actions([
-                EditAction::make()
-                    ->modalHeading('Edit Pertanyaan')
-                    ->modalWidth('3xl'),
-                Action::make('duplicate')
-                    ->label('Duplikat')
-                    ->icon('heroicon-o-document-duplicate')
-                    ->color('gray')
-                    ->requiresConfirmation()
-                    ->modalHeading('Duplikat Pertanyaan')
-                    ->modalDescription('Pertanyaan akan diduplikat dengan urutan baru')
-                    ->action(function (FormField $record) {
-                        $newRecord = $record->replicate();
-                        $newRecord->field_key = $record->field_key . '_copy_' . time();
-                        $newRecord->field_label = $record->field_label . ' (Copy)';
-                        $newRecord->field_order_number = $this->getNextOrderNumber();
-                        $newRecord->save();
-                    })
-                    ->successNotificationTitle('Pertanyaan berhasil diduplikat')
-                    ->after(fn () => $this->getTable()->deselectAllRecords()),
-                Action::make('toggleArchive')
-                    ->label(fn (FormField $record) => $record->is_archived ? 'Pulihkan' : 'Arsipkan')
-                    ->icon('heroicon-o-archive-box')
-                    ->color(fn (FormField $record) => $record->is_archived ? 'success' : 'warning')
-                    ->requiresConfirmation()
-                    ->modalHeading(fn (FormField $record) => $record->is_archived ? 'Pulihkan Pertanyaan' : 'Arsipkan Pertanyaan')
-                    ->modalDescription(fn (FormField $record) => $record->is_archived 
-                        ? 'Pertanyaan akan dimunculkan kembali di formulir'
-                        : 'Pertanyaan tidak akan tampil di formulir tetapi tetap tersimpan'
-                    )
-                    ->action(function (FormField $record) {
-                        $record->is_archived = ! $record->is_archived;
-                        $record->save();
-                    })
-                    ->successNotificationTitle('Status arsip diperbarui')
-                    ->after(fn () => $this->getTable()->deselectAllRecords())
-                    ->hidden(fn (FormField $record) => $record->is_system_field),
-                Tables\Actions\DeleteAction::make()
-                    ->hidden(fn (FormField $record) => $record->is_system_field)
-                    ->modalHeading('Hapus Pertanyaan')
-                    ->modalDescription('Pertanyaan yang dihapus tidak dapat dipulihkan. Yakin ingin melanjutkan?')
-                    ->after(function (FormField $record) {
-                        // Jika field masih ada setelah delete, berarti protected
-                        if ($record->exists && $record->is_system_field) {
-                            \Filament\Notifications\Notification::make()
-                                ->warning()
-                                ->title('Field Sistem Tidak Dapat Dihapus')
-                                ->body("Field '{$record->field_label}' adalah field sistem dan tidak dapat dihapus.")
-                                ->send();
-                        }
-                    }),
+                ActionGroup::make([
+                    EditAction::make()
+                        ->modalHeading('Edit Pertanyaan')
+                        ->modalWidth('3xl'),
+                    Action::make('duplicate')
+                        ->label('Duplikat')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('gray')
+                        ->requiresConfirmation()
+                        ->modalHeading('Duplikat Pertanyaan')
+                        ->modalDescription('Pertanyaan akan diduplikat dengan urutan baru')
+                        ->action(function (FormField $record) {
+                            $newRecord = $record->replicate();
+                            $newRecord->field_key = $record->field_key . '_copy_' . time();
+                            $newRecord->field_label = $record->field_label . ' (Copy)';
+                            $newRecord->field_order_number = $this->getNextOrderNumber();
+                            $newRecord->save();
+                        })
+                        ->successNotificationTitle('Pertanyaan berhasil diduplikat')
+                        ->after(fn() => $this->getTable()->deselectAllRecords()),
+                    Action::make('toggleArchive')
+                        ->label(fn(FormField $record) => $record->is_archived ? 'Pulihkan' : 'Arsipkan')
+                        ->icon('heroicon-o-archive-box')
+                        ->color(fn(FormField $record) => $record->is_archived ? 'success' : 'warning')
+                        ->requiresConfirmation()
+                        ->modalHeading(fn(FormField $record) => $record->is_archived ? 'Pulihkan Pertanyaan' : 'Arsipkan Pertanyaan')
+                        ->modalDescription(
+                            fn(FormField $record) => $record->is_archived
+                                ? 'Pertanyaan akan dimunculkan kembali di formulir'
+                                : 'Pertanyaan tidak akan tampil di formulir tetapi tetap tersimpan'
+                        )
+                        ->action(function (FormField $record) {
+                            $record->is_archived = ! $record->is_archived;
+                            $record->save();
+                        })
+                        ->successNotificationTitle('Status arsip diperbarui')
+                        ->after(fn() => $this->getTable()->deselectAllRecords())
+                        ->hidden(fn(FormField $record) => $record->is_system_field),
+                    Tables\Actions\DeleteAction::make()
+                        ->hidden(fn(FormField $record) => $record->is_system_field)
+                        ->modalHeading('Hapus Pertanyaan')
+                        ->modalDescription('Pertanyaan yang dihapus tidak dapat dipulihkan. Yakin ingin melanjutkan?')
+                        ->after(function (FormField $record) {
+                            // Jika field masih ada setelah delete, berarti protected
+                            if ($record->exists && $record->is_system_field) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Field Sistem Tidak Dapat Dihapus')
+                                    ->body("Field '{$record->field_label}' adalah field sistem dan tidak dapat dihapus.")
+                                    ->send();
+                            }
+                        }),
+                ])
             ])
             ->bulkActions([
                 BulkAction::make('moveToStep')
@@ -406,7 +413,7 @@ class FormFieldsRelationManager extends RelationManager
                     ->form([
                         Select::make('form_step_id')
                             ->label('Pindah ke Langkah')
-                            ->options(fn () => $this->getStepOptions())
+                            ->options(fn() => $this->getStepOptions())
                             ->required(),
                     ])
                     ->action(function (Collection $records, array $data) {
@@ -423,12 +430,12 @@ class FormFieldsRelationManager extends RelationManager
                     ->color('warning')
                     ->requiresConfirmation()
                     ->action(function (Collection $records) {
-                        $systemFields = $records->filter(fn ($record) => $record->is_system_field);
-                        $regularFields = $records->reject(fn ($record) => $record->is_system_field);
-                        
+                        $systemFields = $records->filter(fn($record) => $record->is_system_field);
+                        $regularFields = $records->reject(fn($record) => $record->is_system_field);
+
                         // Only archive non-system fields
                         $regularFields->each->update(['is_archived' => true]);
-                        
+
                         // Show notification if system fields were skipped
                         if ($systemFields->count() > 0) {
                             \Filament\Notifications\Notification::make()
@@ -438,8 +445,9 @@ class FormFieldsRelationManager extends RelationManager
                                 ->send();
                         }
                     })
-                    ->successNotificationTitle(fn (Collection $records) => 
-                        'Berhasil diarsipkan: ' . $records->reject(fn ($record) => $record->is_system_field)->count() . ' pertanyaan'
+                    ->successNotificationTitle(
+                        fn(Collection $records) =>
+                        'Berhasil diarsipkan: ' . $records->reject(fn($record) => $record->is_system_field)->count() . ' pertanyaan'
                     )
                     ->deselectRecordsAfterCompletion(),
                 BulkAction::make('restore')
@@ -447,7 +455,7 @@ class FormFieldsRelationManager extends RelationManager
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['is_archived' => false]))
+                    ->action(fn(Collection $records) => $records->each->update(['is_archived' => false]))
                     ->successNotificationTitle('Pertanyaan berhasil dipulihkan')
                     ->deselectRecordsAfterCompletion(),
                 Tables\Actions\DeleteBulkAction::make()
@@ -456,8 +464,8 @@ class FormFieldsRelationManager extends RelationManager
                     ->modalHeading('Hapus Pertanyaan')
                     ->modalDescription('Pertanyaan yang dihapus tidak dapat dipulihkan. Yakin ingin melanjutkan?')
                     ->before(function (Collection $records) {
-                        $systemFields = $records->filter(fn ($record) => $record->is_system_field);
-                        
+                        $systemFields = $records->filter(fn($record) => $record->is_system_field);
+
                         if ($systemFields->count() > 0) {
                             \Filament\Notifications\Notification::make()
                                 ->warning()
@@ -468,9 +476,9 @@ class FormFieldsRelationManager extends RelationManager
                         }
                     })
                     ->after(function (Collection $records) {
-                        $deleted = $records->filter(fn ($record) => !$record->exists);
-                        $protected = $records->filter(fn ($record) => $record->exists && $record->is_system_field);
-                        
+                        $deleted = $records->filter(fn($record) => !$record->exists);
+                        $protected = $records->filter(fn($record) => $record->exists && $record->is_system_field);
+
                         if ($protected->count() > 0) {
                             \Filament\Notifications\Notification::make()
                                 ->info()
@@ -481,6 +489,7 @@ class FormFieldsRelationManager extends RelationManager
                     }),
 
             ])
+            ->defaultPaginationPageOption(50)
             ->emptyStateHeading('Belum Ada Pertanyaan')
             ->emptyStateDescription('Tambahkan pertanyaan pertama untuk formulir Anda.')
             ->emptyStateIcon('heroicon-o-question-mark-circle');
