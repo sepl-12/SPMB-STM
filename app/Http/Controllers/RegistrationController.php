@@ -132,6 +132,16 @@ class RegistrationController extends Controller
             return redirect()->route('registration.index')->with('error', 'Gelombang pendaftaran tidak aktif.');
         }
 
+        // cek jika kuotanya sudah penuh atau belum
+        if ($activeWave->quota_limit) {
+            $currentCount = Applicant::where('wave_id', $activeWave->id)->count();
+            if ($currentCount >= $activeWave->quota_limit) {
+                return redirect()
+                    ->route('registration.index')
+                    ->with('error', 'Kuota pendaftaran untuk gelombang ini sudah penuh.');
+            }
+        }
+
         DB::beginTransaction();
         try {
             // Create applicant record
