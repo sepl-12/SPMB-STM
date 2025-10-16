@@ -28,6 +28,8 @@ Route::get('/cek-pembayaran', [PaymentController::class, 'checkPaymentForm'])->n
 Route::post('/cek-pembayaran', [PaymentController::class, 'findPayment'])->name('payment.find');
 Route::post('/kirim-ulang-link', [PaymentController::class, 'resendPaymentLink'])->name('payment.resend-link');
 
-// File Download routes
-Route::get('/files/{fileId}/download', [FileDownloadController::class, 'download'])->name('file.download');
-Route::get('/files/{fileId}/preview', [FileDownloadController::class, 'preview'])->name('file.preview');
+// File Download routes - secured with signed URLs and rate limiting
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('/files/{file}/download', [FileDownloadController::class, 'download'])->name('file.download');
+    Route::get('/files/{file}/preview', [FileDownloadController::class, 'preview'])->name('file.preview');
+});

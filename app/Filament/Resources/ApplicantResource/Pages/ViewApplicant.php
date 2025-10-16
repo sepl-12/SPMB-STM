@@ -458,8 +458,8 @@ class ViewApplicant extends ViewRecord
                     try {
                         $disk = Storage::disk($file->stored_disk_name);
                         if ($disk->exists($file->stored_file_path)) {
-                            // @phpstan-ignore-next-line
-                            $downloadUrl = $disk->url($file->stored_file_path);
+                            // Use signed URL with UUID for security
+                            $downloadUrl = $file->getSignedDownloadUrl(24);
                         }
                     } catch (\Throwable $exception) {
                         $downloadUrl = null;
@@ -525,9 +525,9 @@ class ViewApplicant extends ViewRecord
             try {
                 $disk = Storage::disk($file->stored_disk_name);
                 if ($disk->exists($file->stored_file_path)) {
-                    // Use dedicated download and preview routes
-                    $downloadUrl = route('file.download', ['fileId' => $file->id]);
-                    $previewUrl = route('file.preview', ['fileId' => $file->id]);
+                    // Use signed URLs with UUID (secure, expiring in 24 hours)
+                    $downloadUrl = $file->getSignedDownloadUrl(24);
+                    $previewUrl = $file->getSignedPreviewUrl(24);
                 }
             } catch (\Throwable $exception) {
                 $downloadUrl = null;

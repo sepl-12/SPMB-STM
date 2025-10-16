@@ -45,6 +45,7 @@ class ExportTemplateResource extends Resource
                     ->label('Formulir')
                     ->relationship('form', 'form_name')
                     ->required()
+                    ->preload()
                     ->searchable(),
                 Forms\Components\TextInput::make('template_name')
                     ->label('Nama Template')
