@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Enum\PaymentStatus;
 use App\Enum\PaymentMethod;
 use App\Helpers\PaymentHelper;
+use Illuminate\Support\Facades\Log;
 use Midtrans\Config;
 use Midtrans\Snap;
 
@@ -109,6 +110,16 @@ class MidtransService
         $fraudStatus = $notification['fraud_status'] ?? null;
 
         if (!$orderId) {
+            return;
+        }
+
+        // check payment signature key
+        $signatureKey = $notification['signature_key'] ?? '';
+        $statusCode = $notification['status_code'] ?? '';
+        $grossAmount = $notification['gross_amount'] ?? '';
+        $expectedSignature = hash('sha512', $orderId . $statusCode . $grossAmount . config('midtrans.server_key'));
+        if ($signatureKey !== $expectedSignature) {
+            Log::warning('Midtrans Notification: Invalid signature key for order_id ' . $orderId);
             return;
         }
 
