@@ -2,7 +2,7 @@
 
 namespace App\View\Composers;
 
-use App\Models\SiteSetting;
+use App\Models\AppSetting;
 use App\Models\Wave;
 use Illuminate\View\View;
 
@@ -16,21 +16,17 @@ class SiteSettingComposer
      */
     public function compose(View $view)
     {
-        $settings = SiteSetting::first();
-        
-        // If no settings exist, create default or use fallback
-        if (!$settings) {
-            $settings = new SiteSetting([
-                'hero_title_text' => 'Penerimaan Peserta Didik Baru Online 2025/2026',
-                'hero_subtitle_text' => 'SMK Muhammadiyah 1 Sangatta Utara membuka pendaftaran siswa baru.',
-                'hero_image_path' => 'hero-bg.jpg',
-                'cta_button_label' => 'Daftar Sekarang',
-                'cta_button_url' => '/daftar',
-                'requirements_markdown' => "1. Mengisi formulir pendaftaran\n2. Pas foto ukuran 3x4 (2 lembar)",
-                'faq_items_json' => [],
-                'timeline_items_json' => [],
-            ]);
-        }
+        // Get settings from app_settings table
+        $settings = (object) [
+            'hero_title_text' => AppSetting::get('hero_title', 'Penerimaan Peserta Didik Baru Online 2025/2026'),
+            'hero_subtitle_text' => AppSetting::get('hero_subtitle', 'Membuka pendaftaran siswa baru tahun ajaran 2025/2026'),
+            'hero_image_path' => AppSetting::get('hero_image', ''),
+            'cta_button_label' => AppSetting::get('cta_button_label', 'Daftar Sekarang'),
+            'cta_button_url' => AppSetting::get('cta_button_url', '/daftar'),
+            'requirements_markdown' => AppSetting::get('requirements_text', "1. Mengisi formulir pendaftaran\n2. Pas foto ukuran 3x4 (2 lembar)"),
+            'faq_items_json' => json_decode(AppSetting::get('faq_items', '[]'), true) ?: [],
+            'timeline_items_json' => json_decode(AppSetting::get('timeline_items', '[]'), true) ?: [],
+        ];
         
         // Get all waves and categorize them
         $waves = Wave::orderBy('start_datetime', 'asc')->get();

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->index('setting_key');
         });
 
-        // Seed default contact and social settings
+        // Seed default settings
         DB::table('app_settings')->insert([
             // Contact Information
             [
@@ -64,7 +64,7 @@ return new class extends Migration
                 'setting_key' => 'social_facebook_url',
                 'setting_value' => '',
                 'setting_type' => 'string',
-                'setting_description' => 'URL Facebook page (contoh: https://facebook.com/sekolahkita)',
+                'setting_description' => 'URL Facebook page',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -72,7 +72,7 @@ return new class extends Migration
                 'setting_key' => 'social_instagram_handle',
                 'setting_value' => '',
                 'setting_type' => 'string',
-                'setting_description' => 'Instagram handle (contoh: @sekolahkita)',
+                'setting_description' => 'Instagram handle',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -80,7 +80,7 @@ return new class extends Migration
                 'setting_key' => 'social_twitter_handle',
                 'setting_value' => '',
                 'setting_type' => 'string',
-                'setting_description' => 'Twitter/X handle (contoh: @sekolahkita)',
+                'setting_description' => 'Twitter/X handle',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -89,6 +89,72 @@ return new class extends Migration
                 'setting_value' => '',
                 'setting_type' => 'string',
                 'setting_description' => 'URL YouTube channel',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            
+            // Site Content
+            [
+                'setting_key' => 'hero_title',
+                'setting_value' => 'Penerimaan Peserta Didik Baru Online 2025/2026',
+                'setting_type' => 'string',
+                'setting_description' => 'Judul hero halaman utama',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'setting_key' => 'hero_subtitle',
+                'setting_value' => 'Membuka pendaftaran siswa baru tahun ajaran 2025/2026',
+                'setting_type' => 'text',
+                'setting_description' => 'Subjudul hero halaman utama',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'setting_key' => 'hero_image',
+                'setting_value' => '',
+                'setting_type' => 'string',
+                'setting_description' => 'Path gambar hero',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'setting_key' => 'requirements_text',
+                'setting_value' => "1. Mengisi formulir pendaftaran\n2. Pas foto ukuran 3x4 (2 lembar)\n3. Fotokopi ijazah/SKHUN",
+                'setting_type' => 'text',
+                'setting_description' => 'Syarat pendaftaran (markdown)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'setting_key' => 'faq_items',
+                'setting_value' => '[]',
+                'setting_type' => 'json',
+                'setting_description' => 'FAQ items (JSON array)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'setting_key' => 'timeline_items',
+                'setting_value' => '[]',
+                'setting_type' => 'json',
+                'setting_description' => 'Timeline items (JSON array)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'setting_key' => 'cta_button_label',
+                'setting_value' => 'Daftar Sekarang',
+                'setting_type' => 'string',
+                'setting_description' => 'Label tombol CTA',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'setting_key' => 'cta_button_url',
+                'setting_value' => '/daftar',
+                'setting_type' => 'string',
+                'setting_description' => 'URL tombol CTA',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
