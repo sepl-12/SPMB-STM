@@ -1,7 +1,12 @@
 <!-- Floating WhatsApp Button -->
+@php
+    $waNumber = setting('contact_whatsapp', '6281234567890');
+    $waMessage = urlencode('Halo, saya ingin bertanya tentang PPDB ' . config('app.name', 'SMK Muhammadiyah 1 Sangatta Utara'));
+@endphp
 <a 
-    href="https://wa.me/6281234567890?text=Halo,%20saya%20ingin%20bertanya%20tentang%20PPDB%20SMK%20Muhammadiyah%201%20Sangatta%20Utara" 
+    href="https://wa.me/{{ $waNumber }}?text={{ $waMessage }}" 
     target="_blank"
+    rel="noopener noreferrer"
     class="fixed bottom-6 right-6 z-40 group"
     id="whatsapp-button"
 >

@@ -27,6 +27,10 @@
   - Seed 16 settings (contact, social, site content)
 - ✅ Migration: `drop_site_settings_table.php`
   - Drop table lama
+- ✅ Seeder: `SiteSettingSeeder.php`
+  - Updated to use AppSetting model
+  - Seeds all 16 default settings
+  - Includes contact & social media info
 
 ### **2. Model & Helper**
 - ✅ `AppSetting` model dengan caching
@@ -69,8 +73,11 @@ php artisan migrate:reset
 # Run all migrations
 php artisan migrate
 
-# Seed data (optional)
+# Seed data
 php artisan db:seed
+
+# Or seed only site settings
+php artisan db:seed --class=SiteSettingSeeder
 ```
 
 ### **Step 3: Clear Cache**

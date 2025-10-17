@@ -25,7 +25,7 @@
                     Alamat
                 </h3>
                 <p class="text-gray-600 leading-relaxed">
-                    Jl. Pendidikan No. 123, Kota Ilmu, Indonesia
+                    {{ setting('contact_address', 'Jl. Pendidikan No. 123, Jakarta') }}
                 </p>
             </div>
             
@@ -39,9 +39,22 @@
                 <h3 class="text-xl font-bold text-gray-900 mb-3">
                     Telepon & WhatsApp
                 </h3>
-                <p class="text-gray-600 leading-relaxed">
-                    (021) 123-4567
-                </p>
+                <div class="text-gray-600 leading-relaxed space-y-1">
+                    @if(setting('contact_phone'))
+                    <p>
+                        <a href="tel:{{ setting('contact_phone') }}" class="hover:text-green-500 transition-colors">
+                            {{ setting('contact_phone') }}
+                        </a>
+                    </p>
+                    @endif
+                    @if(setting('contact_whatsapp'))
+                    <p>
+                        <a href="https://wa.me/{{ setting('contact_whatsapp') }}" target="_blank" rel="noopener noreferrer" class="hover:text-green-500 transition-colors">
+                            WhatsApp: +{{ setting('contact_whatsapp') }}
+                        </a>
+                    </p>
+                    @endif
+                </div>
             </div>
             
             <!-- Email Card -->
@@ -55,7 +68,9 @@
                     Email
                 </h3>
                 <p class="text-gray-600 leading-relaxed break-words">
-                    info@smkmuh1sangatta.sch.id
+                    <a href="mailto:{{ setting('contact_email') }}" class="hover:text-green-500 transition-colors">
+                        {{ setting('contact_email', 'info@sekolah.com') }}
+                    </a>
                 </p>
             </div>
         </div>

@@ -83,14 +83,8 @@ class SiteSettings extends Page implements HasForms
                             ->label('Label Tombol')
                             ->maxLength(50)
                             ->placeholder('Daftar Sekarang'),
-
-                        TextInput::make('cta_button_url')
-                            ->label('URL Tombol')
-                            ->url()
-                            ->maxLength(255)
-                            ->placeholder('/daftar'),
                     ])
-                    ->columns(2),
+                    ->columns(1),
 
                 // Requirements Section
                 Section::make('Syarat Pendaftaran')
@@ -103,7 +97,11 @@ class SiteSettings extends Page implements HasForms
                             ->label('Syarat Pendaftaran')
                             ->columnSpanFull()
                             ->toolbarButtons([
-                                'bold', 'italic', 'bulletList', 'orderedList', 'link',
+                                'bold',
+                                'italic',
+                                'bulletList',
+                                'orderedList',
+                                'link',
                             ])
                             ->placeholder("1. Mengisi formulir\n2. Pas foto 3x4\n3. Fotokopi ijazah"),
                     ]),
@@ -128,7 +126,7 @@ class SiteSettings extends Page implements HasForms
                                     ->required(),
                             ])
                             ->collapsed()
-                            ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
+                            ->itemLabel(fn(array $state): ?string => $state['question'] ?? null)
                             ->columnSpanFull()
                             ->defaultItems(0),
                     ]),
@@ -163,7 +161,7 @@ class SiteSettings extends Page implements HasForms
                                     ->maxLength(250),
                             ])
                             ->collapsed()
-                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                            ->itemLabel(fn(array $state): ?string => $state['title'] ?? null)
                             ->columns(2)
                             ->columnSpanFull()
                             ->defaultItems(0),
@@ -253,22 +251,22 @@ class SiteSettings extends Page implements HasForms
             'hero_title' => AppSetting::get('hero_title', ''),
             'hero_subtitle' => AppSetting::get('hero_subtitle', ''),
             'hero_image' => AppSetting::get('hero_image', ''),
-            
+
             // CTA
             'cta_button_label' => AppSetting::get('cta_button_label', ''),
             'cta_button_url' => AppSetting::get('cta_button_url', ''),
-            
+
             // Content
             'requirements_text' => AppSetting::get('requirements_text', ''),
             'faq_items' => json_decode(AppSetting::get('faq_items', '[]'), true) ?: [],
             'timeline_items' => json_decode(AppSetting::get('timeline_items', '[]'), true) ?: [],
-            
+
             // Contact
             'contact_email' => AppSetting::get('contact_email', ''),
             'contact_whatsapp' => AppSetting::get('contact_whatsapp', ''),
             'contact_phone' => AppSetting::get('contact_phone', ''),
             'contact_address' => AppSetting::get('contact_address', ''),
-            
+
             // Social
             'social_facebook_url' => AppSetting::get('social_facebook_url', ''),
             'social_instagram_handle' => AppSetting::get('social_instagram_handle', ''),
@@ -279,36 +277,33 @@ class SiteSettings extends Page implements HasForms
 
     public function save(): void
     {
-        $data = $this->form->getState();
+        try {
+            $data = $this->form->getState();
 
-        // Save each setting
-        foreach ($data as $key => $value) {
-            // Handle JSON fields
-            if (in_array($key, ['faq_items', 'timeline_items'])) {
-                AppSetting::set($key, json_encode(array_values($value ?? [])));
-            } else {
-                AppSetting::set($key, $value ?? '');
+            // Save each setting
+            foreach ($data as $key => $value) {
+                // Handle JSON fields
+                if (in_array($key, ['faq_items', 'timeline_items'])) {
+                    AppSetting::set($key, json_encode(array_values($value ?? [])));
+                } else {
+                    AppSetting::set($key, $value ?? '');
+                }
             }
+
+            // Clear cache after save
+            AppSetting::clearCache();
+
+            Notification::make()
+                ->success()
+                ->title('Berhasil Disimpan')
+                ->body('Pengaturan website telah diperbarui.')
+                ->send();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->danger()
+                ->title('Gagal Menyimpan')
+                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                ->send();
         }
-
-        // Clear cache after save
-        AppSetting::clearCache();
-
-        Notification::make()
-            ->success()
-            ->title('Berhasil Disimpan')
-            ->body('Pengaturan website telah diperbarui.')
-            ->send();
-    }
-
-    protected function getFormActions(): array
-    {
-        return [
-            \Filament\Actions\Action::make('save')
-                ->label('Simpan Semua Perubahan')
-                ->submit('save')
-                ->color('primary')
-                ->icon('heroicon-o-check-circle'),
-        ];
     }
 }
