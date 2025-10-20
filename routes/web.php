@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\FileDownloadController;
+use App\Http\Controllers\GoogleOauthController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RegistrationController;
 use Illuminate\Support\Facades\Route;
@@ -33,3 +34,6 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::get('/files/{file}/download', [FileDownloadController::class, 'download'])->name('file.download');
     Route::get('/files/{file}/preview', [FileDownloadController::class, 'preview'])->name('file.preview');
 });
+
+Route::get('/google/oauth/redirect', [GoogleOauthController::class, 'redirect'])->name('google.oauth.redirect');
+Route::get('/google/oauth/callback', [GoogleOauthController::class, 'callback'])->name('google.oauth.callback');

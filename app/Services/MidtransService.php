@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Mail\PaymentConfirmed;
 use App\Models\Applicant;
 use App\Models\Payment;
 use App\Enum\PaymentStatus;
 use App\Enum\PaymentMethod;
 use App\Helpers\PaymentHelper;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Midtrans\Config;
 use Midtrans\Snap;
 
@@ -146,6 +148,18 @@ class MidtransService
                 ['notification' => $notification]
             ),
         ]);
+
+        // Send email notification if payment is successful
+        if ($paymentStatus === PaymentStatus::SETTLEMENT || $paymentStatus === PaymentStatus::CAPTURE) {
+            try {
+                $applicant = $payment->applicant()->with('wave')->first();
+                if ($applicant && $applicant->applicant_email_address && $applicant->applicant_email_address !== '-') {
+                    app(GmailMailableSender::class)->send($applicant->applicant_email_address, new PaymentConfirmed($payment));
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to send payment confirmation email: ' . $e->getMessage());
+            }
+        }
 
         // Note: Applicant payment_status is now computed from Payment automatically
         // No manual update needed - Single Source of Truth pattern

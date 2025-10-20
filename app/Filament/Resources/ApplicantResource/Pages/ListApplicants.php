@@ -4,11 +4,17 @@ namespace App\Filament\Resources\ApplicantResource\Pages;
 
 use App\Exports\ApplicantsExport;
 use App\Filament\Resources\ApplicantResource;
+use App\Mail\ApplicantRegistered;
+use App\Mail\ExamCardReady;
+use App\Mail\PaymentConfirmed;
 use App\Models\Applicant;
 use App\Models\ExportTemplate;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Tables\Actions\BulkAction;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ListApplicants extends ListRecords

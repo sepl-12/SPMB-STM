@@ -4,9 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Exports\ApplicantsExport;
 use App\Filament\Resources\ApplicantResource\Pages;
+use App\Mail\ApplicantRegistered;
+use App\Mail\ExamCardReady;
+use App\Mail\PaymentConfirmed;
 use App\Models\Applicant;
 use App\Models\ExportTemplate;
 use App\Models\FormField;
+use App\Services\GmailMailableSender;
 use Filament\Forms;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Form;
@@ -26,6 +30,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ApplicantResource extends Resource
@@ -104,6 +109,7 @@ class ApplicantResource extends Resource
             ->bulkActions([
                 BulkActionGroup::make([
                     self::makeBulkExportAction(),
+                    self::makeBulkSendEmailAction(),
                 ]),
             ]);
     }
@@ -236,6 +242,72 @@ class ApplicantResource extends Resource
                         ->danger()
                         ->send();
                 }
+            });
+    }
+
+    protected static function makeBulkSendEmailAction(): BulkAction
+    {
+        return BulkAction::make('bulkSendEmail')
+            ->label('Kirim Email')
+            ->icon('heroicon-o-envelope')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading('Kirim Email ke Pendaftar')
+            ->modalDescription('Pilih jenis email yang akan dikirim ke pendaftar terpilih')
+            ->modalSubmitActionLabel('Kirim Email')
+            ->form([
+                Forms\Components\Select::make('email_type')
+                    ->label('Jenis Email')
+                    ->options([
+                        'registration' => '✅ Email Pendaftaran Berhasil',
+                        'payment' => '💳 Email Pembayaran Berhasil',
+                        'exam_card' => '🎉 Email Kartu Ujian',
+                    ])
+                    ->required()
+                    ->default('registration')
+                    ->native(false)
+                    ->helperText('Email akan dikirim secara async menggunakan queue'),
+            ])
+            ->action(function (Collection $records, array $data) {
+                $emailType = $data['email_type'];
+                $successCount = 0;
+                $failedCount = 0;
+                $skippedCount = 0;
+
+                foreach ($records as $applicant) {
+                    // Skip if no valid email
+                    if (!$applicant->applicant_email_address || $applicant->applicant_email_address === '-') {
+                        $skippedCount++;
+                        continue;
+                    }
+                    $recipient = $applicant->applicant_email_address;
+                    try {
+                        match($emailType) {
+                            'registration' => app(GmailMailableSender::class)->send($recipient, new ApplicantRegistered($applicant)),
+                            'payment' => app(GmailMailableSender::class)->send($recipient, new PaymentConfirmed($applicant->latestPayment)),
+                            'exam_card' => app(GmailMailableSender::class)->send($recipient, new ExamCardReady($applicant)),
+                        };
+                        $successCount++;
+                    } catch (\Exception $e) {
+                        $failedCount++;
+                        \Log::error("Failed to send email to {$applicant->applicant_email_address}: " . $e->getMessage());
+                    }
+                }
+
+                // Show summary notification
+                $message = "✅ Berhasil: {$successCount}";
+                if ($failedCount > 0) {
+                    $message .= " | ❌ Gagal: {$failedCount}";
+                }
+                if ($skippedCount > 0) {
+                    $message .= " | ⏭️ Dilewati: {$skippedCount} (email tidak valid)";
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title('Email Terkirim!')
+                    ->body($message)
+                    ->send();
             });
     }
 

@@ -4,8 +4,13 @@ namespace App\Filament\Resources\ApplicantResource\Pages;
 
 use App\Filament\Infolists\Components\FileViewerEntry;
 use App\Filament\Resources\ApplicantResource;
+use App\Mail\ApplicantRegistered;
+use App\Mail\ExamCardReady;
+use App\Mail\PaymentConfirmed;
 use App\Models\Applicant;
 use App\Models\FormField;
+use App\Services\GmailMailableSender;
+use Filament\Actions\Action as HeaderAction;
 use Filament\Infolists\Components\Actions\Action;
 use Filament\Infolists\Components\Grid;
 use Filament\Infolists\Components\ImageEntry;
@@ -17,9 +22,11 @@ use Filament\Infolists\Components\Tabs;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\TextEntry\TextEntrySize;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\FontFamily;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Nben\FilamentRecordNav\Actions\NextRecordAction;
@@ -48,6 +55,66 @@ class ViewApplicant extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            HeaderAction::make('sendEmail')
+                ->label('Kirim Email')
+                ->icon('heroicon-o-envelope')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->modalHeading('Kirim Email ke Pendaftar')
+                ->modalDescription('Pilih jenis email yang akan dikirim ke ' . $this->record->applicant_full_name)
+                ->modalSubmitActionLabel('Kirim Email')
+                ->form([
+                    \Filament\Forms\Components\Select::make('email_type')
+                        ->label('Jenis Email')
+                        ->options([
+                            'registration' => ' Email Pendaftaran Berhasil',
+                            'payment' => 'Email Pembayaran Berhasil',
+                            'exam_card' => ' Email Kartu Ujian',
+                        ])
+                        ->required()
+                        ->default('registration')
+                        ->native(false),
+                    
+                    \Filament\Forms\Components\TextInput::make('custom_email')
+                        ->label('Email Tujuan (Opsional)')
+                        ->email()
+                        ->placeholder($this->record->applicant_email_address)
+                        ->helperText('Kosongkan untuk menggunakan email pendaftar'),
+                ])
+                ->action(function (array $data) {
+                    $emailType = $data['email_type'];
+                    $recipient = $data['custom_email'] ?? $this->record->applicant_email_address;
+
+                    if (!$recipient || $recipient === '-') {
+                        Notification::make()
+                            ->danger()
+                            ->title('Email Tidak Valid')
+                            ->body('Pendaftar tidak memiliki email yang valid.')
+                            ->send();
+                        return;
+                    }
+
+                    try {
+                        match($emailType) {
+                            'registration' => app(GmailMailableSender::class)->send($recipient, new ApplicantRegistered($this->record)),
+                            'payment' => app(GmailMailableSender::class)->send($recipient, new PaymentConfirmed($this->record->latestPayment)),
+                            'exam_card' => app(GmailMailableSender::class)->send($recipient, new ExamCardReady($this->record)),
+                        };
+
+                        Notification::make()
+                            ->success()
+                            ->title('Email Terkirim!')
+                            ->body("Email {$emailType} berhasil dikirim ke {$recipient}")
+                            ->send();
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->danger()
+                            ->title('Gagal Mengirim Email')
+                            ->body($e->getMessage())
+                            ->send();
+                    }
+                }),
+            
             PreviousRecordAction::make(),
             NextRecordAction::make()
         ];

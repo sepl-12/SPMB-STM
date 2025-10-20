@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ApplicantRegistered;
 use App\Models\Applicant;
 use App\Models\Form;
 use App\Models\Submission;
 use App\Models\SubmissionAnswer;
 use App\Models\SubmissionFile;
 use App\Models\Wave;
+use App\Services\GmailMailableSender;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class RegistrationController extends Controller
@@ -239,6 +242,16 @@ class RegistrationController extends Controller
             }
 
             DB::commit();
+
+            // Send email notification
+            try {
+                if ($applicant->applicant_email_address && $applicant->applicant_email_address !== '-') {
+                    app(GmailMailableSender::class)->send($applicant->applicant_email_address, new ApplicantRegistered($applicant));
+                }
+            } catch (\Exception $e) {
+                // Log error but don't stop the flow
+                \Log::error('Failed to send registration email: ' . $e->getMessage());
+            }
 
             // Clear session data
             session()->forget(['registration_data', 'current_step']);
