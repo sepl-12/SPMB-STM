@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FormResource\RelationManagers;
 
+use App\Enum\FormFieldType;
 use App\Models\FormField;
 use App\Models\FormVersion;
 use Filament\Forms;
@@ -109,17 +110,7 @@ class FormFieldsRelationManager extends RelationManager
                                     ->helperText('Pertanyaan akan tampil di langkah ini'),
                                 Select::make('field_type')
                                     ->label('Tipe Input')
-                                    ->options([
-                                        'text' => '📝 Teks - Input teks pendek',
-                                        'textarea' => '📄 Textarea - Input teks panjang',
-                                        'number' => '🔢 Angka - Input numerik',
-                                        'select' => '📋 Select - Pilihan tunggal',
-                                        'multi_select' => '☑️ Multi Select - Pilihan ganda',
-                                        'date' => '📅 Tanggal - Pemilih tanggal',
-                                        'file' => '📎 File - Upload file',
-                                        'image' => '🖼️ Gambar - Upload gambar',
-                                        'boolean' => '✅ Ya/Tidak - Toggle on/off',
-                                    ])
+                                    ->options(FormFieldType::options())
                                     ->required()
                                     ->default('text')
                                     ->searchable()
@@ -193,7 +184,7 @@ class FormFieldsRelationManager extends RelationManager
                         Forms\Components\Placeholder::make('options_info')
                             ->label('')
                             ->content('Tambahkan minimal 1 pilihan. Label adalah yang ditampilkan, Value adalah yang disimpan di database.')
-                            ->visible(fn(callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true)),
+                            ->visible(fn(callable $get) => FormFieldType::tryFrom($get('field_type'))?->requiresOptions() ?? false),
                         Repeater::make('field_options')
                             ->label('Daftar Pilihan')
                             ->schema([
@@ -214,11 +205,11 @@ class FormFieldsRelationManager extends RelationManager
                             ->reorderableWithButtons()
                             ->collapsible()
                             ->itemLabel(fn(array $state): ?string => $state['label'] ?? 'Pilihan')
-                            ->visible(fn(callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true))
+                            ->visible(fn(callable $get) => FormFieldType::tryFrom($get('field_type'))?->requiresOptions() ?? false)
                             ->default([])
                             ->columnSpanFull(),
                     ])
-                    ->visible(fn(callable $get) => in_array($get('field_type'), ['select', 'multi_select'], true))
+                    ->visible(fn(callable $get) => FormFieldType::tryFrom($get('field_type'))?->requiresOptions() ?? false)
                     ->collapsible(),
             ]);
     }
@@ -254,26 +245,8 @@ class FormFieldsRelationManager extends RelationManager
                 TextColumn::make('field_type')
                     ->label('Tipe')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'text', 'textarea', 'number' => 'primary',
-                        'select', 'multi_select' => 'warning',
-                        'date' => 'success',
-                        'file', 'image' => 'danger',
-                        'boolean' => 'info',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'text' => 'Teks',
-                        'textarea' => 'Textarea',
-                        'number' => 'Angka',
-                        'select' => 'Select',
-                        'multi_select' => 'Multi Select',
-                        'date' => 'Tanggal',
-                        'file' => 'File',
-                        'image' => 'Gambar',
-                        'boolean' => 'Ya/Tidak',
-                        default => $state,
-                    })
+                    ->color(fn(string $state): string => FormFieldType::tryFrom($state)?->badgeColor() ?? 'gray')
+                    ->formatStateUsing(fn(string $state): string => FormFieldType::tryFrom($state)?->shortLabel() ?? $state)
                     ->sortable(),
                 IconColumn::make('is_required')
                     ->label('Wajib')
@@ -318,17 +291,7 @@ class FormFieldsRelationManager extends RelationManager
                     ->placeholder('Semua Langkah'),
                 SelectFilter::make('field_type')
                     ->label('Filter Tipe')
-                    ->options([
-                        'text' => 'Teks',
-                        'textarea' => 'Textarea',
-                        'number' => 'Angka',
-                        'select' => 'Select',
-                        'multi_select' => 'Multi Select',
-                        'date' => 'Tanggal',
-                        'file' => 'File',
-                        'image' => 'Gambar',
-                        'boolean' => 'Ya/Tidak',
-                    ])
+                    ->options(FormFieldType::shortOptions())
                     ->placeholder('Semua Tipe'),
                 TernaryFilter::make('is_required')
                     ->label('Wajib Isi')
