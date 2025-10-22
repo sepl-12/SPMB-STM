@@ -42,7 +42,7 @@ class RegistrationController extends Controller
     {
         $currentStepIndex = $request->input('current_step', 0);
         $action = $request->input('action', 'next');
-        
+
         // Get form data
         $form = Form::with(['activeFormVersion.formSteps.formFields'])->first();
         $formVersion = $form->activeFormVersion;
@@ -56,7 +56,7 @@ class RegistrationController extends Controller
         if ($currentStep) {
             foreach ($currentStep->formFields as $field) {
                 $fieldKey = $field->field_key;
-                
+
                 // Handle file uploads
                 if (in_array($field->field_type, ['file', 'image'])) {
                     if ($request->hasFile($fieldKey)) {
@@ -64,11 +64,11 @@ class RegistrationController extends Controller
                         $path = $file->store('registration-files', 'public');
                         $registrationData[$fieldKey] = $path;
                     }
-                } 
+                }
                 // Handle multiselect
                 elseif ($field->field_type === 'multiselect') {
                     $registrationData[$fieldKey] = $request->input($fieldKey, []);
-                } 
+                }
                 // Handle other fields
                 else {
                     if ($request->has($fieldKey)) {
@@ -103,14 +103,14 @@ class RegistrationController extends Controller
     public function jumpToStep(Request $request)
     {
         $jumpToStep = $request->input('jump_to_step', 0);
-        
+
         // Get form to validate step exists
         $form = Form::with(['activeFormVersion.formSteps'])->first();
         $formVersion = $form->activeFormVersion;
         $steps = $formVersion->formSteps()->where('is_visible_for_public', true)->orderBy('step_order_number')->get();
-        
+
         $jumpToStep = max(0, min($steps->count() - 1, $jumpToStep));
-        
+
         session(['current_step' => $jumpToStep]);
 
         return redirect()->route('registration.index');
@@ -135,21 +135,19 @@ class RegistrationController extends Controller
             return redirect()->route('registration.index')->with('error', 'Gelombang pendaftaran tidak aktif.');
         }
 
-        // cek jika kuotanya sudah penuh atau belum
-        if ($activeWave->quota_limit) {
-            $currentCount = Applicant::where('wave_id', $activeWave->id)->count();
-            if ($currentCount >= $activeWave->quota_limit) {
+        DB::beginTransaction();
+        try {
+            // Check quota with database lock to prevent race condition
+            if (!$this->checkQuotaAvailability($activeWave)) {
+                DB::rollBack();
                 return redirect()
                     ->route('registration.index')
                     ->with('error', 'Kuota pendaftaran untuk gelombang ini sudah penuh.');
             }
-        }
 
-        DB::beginTransaction();
-        try {
             // Create applicant record
             $registrationNumber = $this->generateRegistrationNumber();
-            
+
             $applicant = Applicant::create([
                 'registration_number' => $registrationNumber,
                 'applicant_full_name' => $registrationData['nama_lengkap'] ?? $registrationData['full_name'] ?? 'Nama Belum Diisi',
@@ -173,7 +171,7 @@ class RegistrationController extends Controller
 
             // Save individual answers and files
             $allFields = $formVersion->formFields()->get();
-            
+
             foreach ($allFields as $field) {
                 $fieldKey = $field->field_key;
                 $fieldValue = $registrationData[$fieldKey] ?? null;
@@ -199,7 +197,7 @@ class RegistrationController extends Controller
                         ];
                         $mimeType = $mimeTypes[strtolower($extension)] ?? $mimeType;
                     }
-                    
+
                     SubmissionFile::create([
                         'submission_id' => $submission->id,
                         'form_field_id' => $field->id,
@@ -259,7 +257,7 @@ class RegistrationController extends Controller
             return redirect()->route('registration.success', ['registration_number' => $registrationNumber]);
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()->route('registration.index')
                 ->with('error', 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
         }
@@ -271,20 +269,49 @@ class RegistrationController extends Controller
     public function success($registration_number)
     {
         $applicant = Applicant::where('registration_number', $registration_number)->firstOrFail();
-        
+
         return view('registration-success', compact('applicant'));
     }
 
     /**
-     * Generate unique registration number
+     * Check if wave quota is available with database lock
+     * 
+     * @param Wave $wave
+     * @return bool
+     * @throws \Exception
+     */
+    protected function checkQuotaAvailability(Wave $wave): bool
+    {
+        if (!$wave->quota_limit) {
+            return true; // No quota limit set
+        }
+
+        // Lock the wave record to prevent concurrent quota checks
+        $lockedWave = Wave::where('id', $wave->id)->lockForUpdate()->first();
+
+        if (!$lockedWave) {
+            throw new \Exception('Wave not found or locked');
+        }
+
+        // Count current applicants with lock to ensure accuracy
+        $currentCount = Applicant::where('wave_id', $wave->id)
+            ->lockForUpdate()
+            ->count();
+
+        return $currentCount < $wave->quota_limit;
+    }
+
+    /**
+     * Generate unique registration number with database lock to prevent duplicates
      */
     protected function generateRegistrationNumber(): string
     {
         $year = now()->year;
         $prefix = 'PPDB-' . $year . '-';
-        
-        // Get last registration number for this year
+
+        // Use database lock to prevent race condition on registration number generation
         $lastNumber = Applicant::where('registration_number', 'like', $prefix . '%')
+            ->lockForUpdate()
             ->orderBy('id', 'desc')
             ->value('registration_number');
 
@@ -295,6 +322,20 @@ class RegistrationController extends Controller
             $newNum = 1;
         }
 
-        return $prefix . str_pad($newNum, 5, '0', STR_PAD_LEFT);
+        $registrationNumber = $prefix . str_pad($newNum, 5, '0', STR_PAD_LEFT);
+
+        // Double check uniqueness (extra safety)
+        $attempts = 0;
+        while (Applicant::where('registration_number', $registrationNumber)->exists() && $attempts < 10) {
+            $newNum++;
+            $registrationNumber = $prefix . str_pad($newNum, 5, '0', STR_PAD_LEFT);
+            $attempts++;
+        }
+
+        if ($attempts >= 10) {
+            throw new \Exception('Unable to generate unique registration number after 10 attempts');
+        }
+
+        return $registrationNumber;
     }
 }
