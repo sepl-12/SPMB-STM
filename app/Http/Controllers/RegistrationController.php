@@ -2,24 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Enum\FormFieldType;
-use App\Mail\ApplicantRegistered;
 use App\Models\Applicant;
-use App\Models\Form;
-use App\Models\Submission;
-use App\Models\SubmissionAnswer;
-use App\Models\SubmissionFile;
 use App\Models\Wave;
-use App\Services\FormFieldValidationService;
-use App\Services\GmailMailableSender;
+use App\Registration\Actions\SaveRegistrationStepAction;
+use App\Registration\Actions\SubmitRegistrationAction;
+use App\Registration\Data\RegistrationPageViewModel;
+use App\Registration\Data\RegistrationWizard;
+use App\Registration\Exceptions\RegistrationClosedException;
+use App\Registration\Exceptions\RegistrationQuotaExceededException;
+use App\Registration\Exceptions\RegistrationStepValidationException;
+use App\Registration\Services\RegistrationSessionStore;
+use App\Registration\Services\RegistrationWizardLoader;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class RegistrationController extends Controller
 {
+    public function __construct(
+        private readonly RegistrationWizardLoader $wizardLoader,
+        private readonly RegistrationSessionStore $sessionStore,
+        private readonly SaveRegistrationStepAction $saveStepAction,
+        private readonly SubmitRegistrationAction $submitRegistrationAction
+    ) {
+    }
+
     /**
      * Show registration form
      */
@@ -32,10 +39,25 @@ class RegistrationController extends Controller
             ->first();
 
         if (!$activeWave) {
+            $this->sessionStore->clear();
             return view('registration-closed');
         }
 
-        return view('registration');
+        try {
+            $wizard = $this->wizardLoader->load();
+        } catch (ModelNotFoundException $e) {
+            \Log::warning('Registration wizard unavailable', ['message' => $e->getMessage()]);
+
+            return view('registration-closed');
+        }
+
+        $currentStepIndex = $this->resolveCurrentStepIndex($wizard->stepCount());
+
+        $viewModel = new RegistrationPageViewModel($wizard, $this->sessionStore->getData(), $currentStepIndex);
+
+        return view('registration', [
+            'viewModel' => $viewModel,
+        ]);
     }
 
     /**
@@ -43,130 +65,40 @@ class RegistrationController extends Controller
      */
     public function saveStep(Request $request)
     {
-        $currentStepIndex = $request->input('current_step', 0);
+        $currentStepIndex = (int) $request->input('current_step', 0);
         $action = $request->input('action', 'next');
 
-        // Get form data
-        $form = Form::with(['activeFormVersion.formSteps.formFields'])->first();
-        $formVersion = $form->activeFormVersion;
-        $steps = $formVersion->formSteps()->where('is_visible_for_public', true)->orderBy('step_order_number')->get();
-        $currentStep = $steps[$currentStepIndex] ?? null;
+        try {
+            $wizard = $this->wizardLoader->load();
+        } catch (ModelNotFoundException $e) {
+            \Log::warning('Registration wizard unavailable on save step.', ['message' => $e->getMessage()]);
 
-        // Get all form data from session
-        $registrationData = session('registration_data', []);
-
-        // Save current step data
-        if ($currentStep) {
-            $stepData = [];
-            $filesToStore = [];
-
-            foreach ($currentStep->formFields as $field) {
-                $fieldKey = $field->field_key;
-
-                $fieldType = FormFieldType::tryFrom($field->field_type);
-
-                // Handle file uploads
-                if ($fieldType?->isFileUpload()) {
-                    if ($request->hasFile($fieldKey)) {
-                        $uploadedFile = $request->file($fieldKey);
-                        $stepData[$fieldKey] = $uploadedFile;
-                        $filesToStore[$fieldKey] = $uploadedFile;
-                    }
-                }
-                // Handle multiselect
-                elseif ($fieldType === FormFieldType::MULTI_SELECT) {
-                    $stepData[$fieldKey] = $request->input($fieldKey, []);
-                }
-                // Handle other fields
-                else {
-                    if ($request->has($fieldKey)) {
-                        $stepData[$fieldKey] = $request->input($fieldKey);
-                    }
-                }
-            }
-
-            $storeUploadedFile = function ($fieldKey, $uploadedFile) use (&$registrationData) {
-                $storedPath = $uploadedFile->store('registration-files', 'public');
-
-                $existingPath = $registrationData[$fieldKey] ?? null;
-                if ($existingPath && $existingPath !== $storedPath && Storage::disk('public')->exists($existingPath)) {
-                    Storage::disk('public')->delete($existingPath);
-                }
-
-                $registrationData[$fieldKey] = $storedPath;
-
-                return $storedPath;
-            };
-
-            $fieldsForValidation = $currentStep->formFields->filter(function ($field) use ($request, $registrationData) {
-                $fieldKey = $field->field_key;
-                $fieldType = FormFieldType::tryFrom($field->field_type);
-
-                if ($fieldType?->isFileUpload()) {
-                    if ($request->hasFile($fieldKey)) {
-                        return true;
-                    }
-
-                    return empty($registrationData[$fieldKey]);
-                }
-
-                return true;
-            });
-
-            // Validate current step data if moving forward or submitting
-            if (in_array($action, ['next', 'submit'])) {
-                try {
-                    $validationService = app(FormFieldValidationService::class);
-                    if ($fieldsForValidation->isNotEmpty()) {
-                        $dataForValidation = collect($stepData)
-                            ->only($fieldsForValidation->pluck('field_key')->all())
-                            ->toArray();
-
-                        $validationService->validateFormData($dataForValidation, $fieldsForValidation);
-                    }
-                } catch (ValidationException $e) {
-                    foreach ($filesToStore as $fieldKey => $uploadedFile) {
-                        $fieldErrors = $e->validator->errors()->get($fieldKey);
-                        if (!empty($fieldErrors)) {
-                            continue;
-                        }
-
-                        $registrationData[$fieldKey] = $storeUploadedFile($fieldKey, $uploadedFile);
-                    }
-
-                    session(['registration_data' => $registrationData]);
-
-                    return redirect()->route('registration.index')
-                        ->withErrors($e->validator)
-                        ->withInput()
-                        ->with('validation_step', $currentStepIndex);
-                }
-            }
-
-            // Persist uploaded files only after validation is successful
-            foreach ($filesToStore as $fieldKey => $uploadedFile) {
-                $stepData[$fieldKey] = $storeUploadedFile($fieldKey, $uploadedFile);
-            }
-
-            // Merge step data with existing registration data
-            $registrationData = array_merge($registrationData, $stepData);
+            return redirect()
+                ->route('registration.index')
+                ->with('error', 'Form pendaftaran tidak tersedia saat ini. Silakan coba beberapa saat lagi.');
         }
 
-        // Save to session
-        session(['registration_data' => $registrationData]);
+        $existingData = $this->sessionStore->getData();
 
-        // Determine next step
-        if ($action === 'previous') {
-            $nextStepIndex = max(0, $currentStepIndex - 1);
-        } elseif ($action === 'next') {
-            $nextStepIndex = min($steps->count() - 1, $currentStepIndex + 1);
-        } elseif ($action === 'submit') {
-            return $this->submitRegistration($request);
-        } else {
-            $nextStepIndex = $currentStepIndex;
+        try {
+            $result = $this->saveStepAction->execute($request, $wizard, $existingData, $currentStepIndex, $action);
+        } catch (RegistrationStepValidationException $exception) {
+            $this->sessionStore->putData($exception->getRegistrationData());
+            $this->sessionStore->putCurrentStepIndex($exception->getStepIndex());
+
+            return redirect()->route('registration.index')
+                ->withErrors($exception->getValidationException()->validator)
+                ->withInput()
+                ->with('validation_step', $exception->getStepIndex());
         }
 
-        session(['current_step' => $nextStepIndex]);
+        $this->sessionStore->putData($result->registrationData);
+
+        if ($result->shouldSubmit) {
+            return $this->submitRegistration($wizard, $result->registrationData);
+        }
+
+        $this->sessionStore->putCurrentStepIndex($result->nextStepIndex ?? $result->currentStepIndex);
 
         return redirect()->route('registration.index');
     }
@@ -176,16 +108,27 @@ class RegistrationController extends Controller
      */
     public function jumpToStep(Request $request)
     {
-        $jumpToStep = $request->input('jump_to_step', 0);
+        $jumpToStep = (int) $request->input('jump_to_step', 0);
 
-        // Get form to validate step exists
-        $form = Form::with(['activeFormVersion.formSteps'])->first();
-        $formVersion = $form->activeFormVersion;
-        $steps = $formVersion->formSteps()->where('is_visible_for_public', true)->orderBy('step_order_number')->get();
+        try {
+            $wizard = $this->wizardLoader->load();
+        } catch (ModelNotFoundException $e) {
+            \Log::warning('Registration wizard unavailable on jump step.', ['message' => $e->getMessage()]);
 
-        $jumpToStep = max(0, min($steps->count() - 1, $jumpToStep));
+            return redirect()
+                ->route('registration.index')
+                ->with('error', 'Form pendaftaran tidak tersedia saat ini.');
+        }
 
-        session(['current_step' => $jumpToStep]);
+        if ($wizard->stepCount() <= 0) {
+            $this->sessionStore->putCurrentStepIndex(0);
+
+            return redirect()->route('registration.index');
+        }
+
+        $jumpToStep = max(0, min($wizard->stepCount() - 1, $jumpToStep));
+
+        $this->sessionStore->putCurrentStepIndex($jumpToStep);
 
         return redirect()->route('registration.index');
     }
@@ -193,194 +136,34 @@ class RegistrationController extends Controller
     /**
      * Submit complete registration
      */
-    protected function submitRegistration(Request $request)
+    protected function submitRegistration(RegistrationWizard $wizard, array $registrationData)
     {
-        $form = Form::with(['activeFormVersion.formSteps.formFields'])->first();
-        $formVersion = $form->activeFormVersion;
-        $registrationData = session('registration_data', []);
-
-        // Get active wave
-        $activeWave = Wave::where('is_active', true)
-            ->where('start_datetime', '<=', now())
-            ->where('end_datetime', '>=', now())
-            ->first();
-
-        if (!$activeWave) {
-            return redirect()->route('registration.index')->with('error', 'Gelombang pendaftaran tidak aktif.');
-        }
-
-        // Validate all form data before submission
         try {
-            $allFields = $formVersion->formFields()->where('is_archived', false)->get();
-            $validationService = app(FormFieldValidationService::class);
-            $fileFields = $allFields->filter(fn($field) => FormFieldType::tryFrom($field->field_type)?->isFileUpload());
-            $nonFileFields = $allFields->reject(fn($field) => FormFieldType::tryFrom($field->field_type)?->isFileUpload());
-
-            $nonFileData = collect($registrationData)->only($nonFileFields->pluck('field_key')->all())->toArray();
-            $validatedNonFileData = $validationService->validateFormData($nonFileData, $nonFileFields);
-
-            $fileFieldErrors = [];
-            foreach ($fileFields as $field) {
-                $fieldKey = $field->field_key;
-                $value = $registrationData[$fieldKey] ?? null;
-
-                if ($field->is_required && empty($value)) {
-                    $fileFieldErrors[$fieldKey][] = "{$field->field_label} wajib diunggah.";
-                    continue;
-                }
-
-                if ($value && !Storage::disk('public')->exists($value)) {
-                    $fileFieldErrors[$fieldKey][] = "File untuk {$field->field_label} tidak ditemukan. Silakan unggah ulang.";
-                }
-            }
-
-            if (!empty($fileFieldErrors)) {
-                throw ValidationException::withMessages($fileFieldErrors);
-            }
-
-            $fileData = collect($registrationData)->only($fileFields->pluck('field_key')->all())->toArray();
-            $registrationData = array_merge($validatedNonFileData, $fileData);
-        } catch (ValidationException $e) {
+            $result = $this->submitRegistrationAction->execute($wizard, $registrationData);
+        } catch (RegistrationClosedException $exception) {
             return redirect()->route('registration.index')
-                ->withErrors($e->validator)
+                ->with('error', $exception->getMessage());
+        } catch (RegistrationQuotaExceededException $exception) {
+            return redirect()->route('registration.index')
+                ->with('error', $exception->getMessage());
+        } catch (ValidationException $exception) {
+            return redirect()->route('registration.index')
+                ->withErrors($exception->validator)
                 ->withInput()
                 ->with('error', 'Terdapat kesalahan pada data yang diisi. Silakan periksa kembali.');
-        }
-
-        DB::beginTransaction();
-        try {
-            // Check quota with database lock to prevent race condition
-            if (!$this->checkQuotaAvailability($activeWave)) {
-                DB::rollBack();
-                return redirect()
-                    ->route('registration.index')
-                    ->with('error', 'Kuota pendaftaran untuk gelombang ini sudah penuh.');
-            }
-
-            // Create applicant record
-            $registrationNumber = $this->generateRegistrationNumber();
-
-            // Extract email from form fields (prioritize email field type)
-            $emailValue = $this->extractEmailFromFormData($registrationData, $allFields);
-
-            $applicant = Applicant::create([
-                'registration_number' => $registrationNumber,
-                'applicant_full_name' => $registrationData['nama_lengkap'] ?? $registrationData['full_name'] ?? 'Nama Belum Diisi',
-                'applicant_nisn' => $registrationData['nisn'] ?? '-',
-                'applicant_phone_number' => $registrationData['no_hp'] ?? $registrationData['phone'] ?? '-',
-                'applicant_email_address' => $emailValue,
-                'chosen_major_name' => $registrationData['jurusan'] ?? $registrationData['major'] ?? 'Belum Dipilih',
-                'wave_id' => $activeWave->id,
-                // Note: payment_status is now computed from Payment relation
-                'registered_datetime' => now(),
+        } catch (\Throwable $exception) {
+            \Log::error('Failed to submit registration', [
+                'message' => $exception->getMessage(),
+                'exception' => $exception,
             ]);
-
-            // Create submission
-            $submission = Submission::create([
-                'applicant_id' => $applicant->id,
-                'form_id' => $form->id,
-                'form_version_id' => $formVersion->id,
-                'answers_json' => $registrationData,
-                'submitted_datetime' => now(),
-            ]);
-
-            // Save individual answers and files
-            $allFields = $formVersion->formFields()->get();
-
-            foreach ($allFields as $field) {
-                $fieldKey = $field->field_key;
-                $fieldValue = $registrationData[$fieldKey] ?? null;
-
-                if ($fieldValue === null) {
-                    continue;
-                }
-
-                $fieldType = FormFieldType::tryFrom($field->field_type);
-
-                // Handle file uploads
-                if ($fieldType?->isFileUpload() && is_string($fieldValue)) {
-                    $disk = Storage::disk('public');
-                    $mimeType = 'application/octet-stream';
-                    if ($disk->exists($fieldValue)) {
-                        $extension = pathinfo($fieldValue, PATHINFO_EXTENSION);
-                        $mimeTypes = [
-                            'pdf' => 'application/pdf',
-                            'jpg' => 'image/jpeg',
-                            'jpeg' => 'image/jpeg',
-                            'png' => 'image/png',
-                            'gif' => 'image/gif',
-                            'doc' => 'application/msword',
-                            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        ];
-                        $mimeType = $mimeTypes[strtolower($extension)] ?? $mimeType;
-                    }
-
-                    SubmissionFile::create([
-                        'submission_id' => $submission->id,
-                        'form_field_id' => $field->id,
-                        'stored_disk_name' => 'public',
-                        'stored_file_path' => $fieldValue,
-                        'original_file_name' => basename($fieldValue),
-                        'mime_type_name' => $mimeType,
-                        'file_size_bytes' => $disk->exists($fieldValue) ? $disk->size($fieldValue) : 0,
-                        'uploaded_datetime' => now(),
-                    ]);
-                } else {
-                    // Create submission answer
-                    $answerData = [
-                        'submission_id' => $submission->id,
-                        'form_field_id' => $field->id,
-                        'field_key' => $fieldKey,
-                    ];
-
-                    // Map value to appropriate column based on field type
-                    switch ($fieldType) {
-                        case FormFieldType::NUMBER:
-                            $answerData['answer_value_number'] = $fieldValue;
-                            break;
-                        case FormFieldType::DATE:
-                            $answerData['answer_value_date'] = $fieldValue;
-                            break;
-                        case FormFieldType::BOOLEAN:
-                            $answerData['answer_value_boolean'] = (bool) $fieldValue;
-                            break;
-                        case FormFieldType::MULTI_SELECT:
-                            $answerData['answer_value_text'] = is_array($fieldValue) ? json_encode($fieldValue) : $fieldValue;
-                            break;
-                        case FormFieldType::EMAIL:
-                            // Store email in text field with additional validation marker
-                            $answerData['answer_value_text'] = strtolower(trim($fieldValue));
-                            break;
-                        default:
-                            $answerData['answer_value_text'] = $fieldValue;
-                    }
-
-                    SubmissionAnswer::create($answerData);
-                }
-            }
-
-            DB::commit();
-
-            // Send email notification
-            try {
-                if ($applicant->applicant_email_address && $applicant->applicant_email_address !== '-') {
-                    app(GmailMailableSender::class)->send($applicant->applicant_email_address, new ApplicantRegistered($applicant));
-                }
-            } catch (\Exception $e) {
-                // Log error but don't stop the flow
-                \Log::error('Failed to send registration email: ' . $e->getMessage());
-            }
-
-            // Clear session data
-            session()->forget(['registration_data', 'current_step']);
-
-            return redirect()->route('registration.success', ['registration_number' => $registrationNumber]);
-        } catch (\Exception $e) {
-            DB::rollBack();
 
             return redirect()->route('registration.index')
                 ->with('error', 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
         }
+
+        $this->sessionStore->clear();
+
+        return redirect()->route('registration.success', ['registration_number' => $result->registrationNumber]);
     }
 
     /**
@@ -393,101 +176,22 @@ class RegistrationController extends Controller
         return view('registration-success', compact('applicant'));
     }
 
-    /**
-     * Check if wave quota is available with database lock
-     * 
-     * @param Wave $wave
-     * @return bool
-     * @throws \Exception
-     */
-    protected function checkQuotaAvailability(Wave $wave): bool
+    protected function resolveCurrentStepIndex(int $stepCount): int
     {
-        if (!$wave->quota_limit) {
-            return true; // No quota limit set
+        if ($stepCount <= 0) {
+            $this->sessionStore->putCurrentStepIndex(0);
+
+            return 0;
         }
 
-        // Lock the wave record to prevent concurrent quota checks
-        $lockedWave = Wave::where('id', $wave->id)->lockForUpdate()->first();
+        $currentStepIndex = $this->sessionStore->getCurrentStepIndex();
+        $normalizedIndex = max(0, min($stepCount - 1, $currentStepIndex));
 
-        if (!$lockedWave) {
-            throw new \Exception('Wave not found or locked');
+        if ($normalizedIndex !== $currentStepIndex) {
+            $this->sessionStore->putCurrentStepIndex($normalizedIndex);
         }
 
-        // Count current applicants with lock to ensure accuracy
-        $currentCount = Applicant::where('wave_id', $wave->id)
-            ->lockForUpdate()
-            ->count();
-
-        return $currentCount < $wave->quota_limit;
+        return $normalizedIndex;
     }
 
-    /**
-     * Generate unique registration number with database lock to prevent duplicates
-     */
-    protected function generateRegistrationNumber(): string
-    {
-        $year = now()->year;
-        $prefix = 'PPDB-' . $year . '-';
-
-        // Use database lock to prevent race condition on registration number generation
-        $lastNumber = Applicant::where('registration_number', 'like', $prefix . '%')
-            ->lockForUpdate()
-            ->orderBy('id', 'desc')
-            ->value('registration_number');
-
-        if ($lastNumber) {
-            $lastNum = (int) substr($lastNumber, -5);
-            $newNum = $lastNum + 1;
-        } else {
-            $newNum = 1;
-        }
-
-        $registrationNumber = $prefix . str_pad($newNum, 5, '0', STR_PAD_LEFT);
-
-        // Double check uniqueness (extra safety)
-        $attempts = 0;
-        while (Applicant::where('registration_number', $registrationNumber)->exists() && $attempts < 10) {
-            $newNum++;
-            $registrationNumber = $prefix . str_pad($newNum, 5, '0', STR_PAD_LEFT);
-            $attempts++;
-        }
-
-        if ($attempts >= 10) {
-            throw new \Exception('Unable to generate unique registration number after 10 attempts');
-        }
-
-        return $registrationNumber;
-    }
-
-    /**
-     * Extract email value from form data, prioritizing email field type
-     *
-     * @param array $registrationData
-     * @param \Illuminate\Database\Eloquent\Collection $fields
-     * @return string
-     */
-    protected function extractEmailFromFormData(array $registrationData, $fields): string
-    {
-        // First, look for fields with email type
-        $emailFields = $fields->where('field_type', FormFieldType::EMAIL->value);
-
-        foreach ($emailFields as $field) {
-            $value = $registrationData[$field->field_key] ?? null;
-            if ($value && filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                return strtolower(trim($value));
-            }
-        }
-
-        // Fallback to common email field keys
-        $commonEmailKeys = ['email', 'email_address', 'applicant_email', 'user_email'];
-
-        foreach ($commonEmailKeys as $key) {
-            $value = $registrationData[$key] ?? null;
-            if ($value && filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                return strtolower(trim($value));
-            }
-        }
-
-        return '-';
-    }
 }

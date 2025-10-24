@@ -1,26 +1,8 @@
 @php
-    // Fetch active form version with steps and fields
-    $form = \App\Models\Form::with([
-        'activeFormVersion.formSteps' => function($query) {
-            $query->where('is_visible_for_public', true)
-                  ->orderBy('step_order_number');
-        },
-        'activeFormVersion.formSteps.formFields' => function($query) {
-            $query->where('is_archived', false)
-                  ->orderBy('field_order_number');
-        }
-    ])->first();
-
-    $formVersion = $form?->activeFormVersion;
-    $steps = $formVersion?->formSteps ?? collect();
-    
-    // Get current step from session or default to first step
-    $currentStepIndex = session('current_step', 0);
-    $currentStepIndex = min($currentStepIndex, count($steps) - 1);
-    $currentStep = $steps[$currentStepIndex] ?? null;
-    
-    // Get form data from session
-    $formData = session('registration_data', []);
+    $steps = collect($viewModel->steps());
+    $currentStepIndex = $viewModel->currentStepIndex();
+    $currentStep = $viewModel->currentStep();
+    $formData = $viewModel->registrationData();
 @endphp
 
 <x-layout>
@@ -79,7 +61,7 @@
             <!-- Wizard Progress -->
             @if($steps->count() > 0)
                 <x-wizard-progress 
-                    :steps="$steps->map(fn($s) => ['title' => $s->step_title])->toArray()" 
+                    :steps="$steps->map(fn($s) => ['title' => $s['step_title']])->toArray()" 
                     :currentStep="$currentStepIndex + 1" 
                 />
             @endif
@@ -90,10 +72,10 @@
                     <!-- Step Header -->
                     <div class="mb-4 sm:mb-6">
                         <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                            Langkah {{ $currentStepIndex + 1 }}: {{ $currentStep->step_title }}
+                            Langkah {{ $currentStepIndex + 1 }}: {{ $currentStep['step_title'] }}
                         </h2>
-                        @if($currentStep->step_description)
-                            <p class="text-sm sm:text-base text-gray-600">{{ $currentStep->step_description }}</p>
+                        @if(!empty($currentStep['step_description']))
+                            <p class="text-sm sm:text-base text-gray-600">{{ $currentStep['step_description'] }}</p>
                         @endif
                     </div>
 
@@ -104,96 +86,102 @@
                         
                         <!-- Dynamic Fields -->
                         <div class="space-y-4">
-                            @foreach($currentStep->formFields as $field)
+                            @foreach($currentStep['fields'] as $field)
                                 @php
-                                    $fieldValue = $formData[$field->field_key] ?? '';
-                                    $fieldOptions = $field->field_options_json ?? [];
+                                    $fieldValue = old($field['field_key'], $viewModel->value($field['field_key']));
+                                    $fieldOptions = collect($field['options']);
                                 @endphp
 
-                                @switch($field->field_type)
+                                @switch($field['field_type'])
                                     @case('text')
                                     @case('email')
                                     @case('tel')
                                         <x-form.text-input
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
                                             :value="$fieldValue"
-                                            :placeholder="$field->field_placeholder_text"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
+                                            :placeholder="$field['field_placeholder_text']"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
                                         />
                                         @break
 
                                     @case('textarea')
                                         <x-form.textarea
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
                                             :value="$fieldValue"
-                                            :placeholder="$field->field_placeholder_text"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
+                                            :placeholder="$field['field_placeholder_text']"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
                                         />
                                         @break
 
                                     @case('number')
                                         <x-form.number-input
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
                                             :value="$fieldValue"
-                                            :placeholder="$field->field_placeholder_text"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
+                                            :placeholder="$field['field_placeholder_text']"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
                                         />
                                         @break
 
                                     @case('date')
                                         <x-form.date-input
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
                                             :value="$fieldValue"
-                                            :placeholder="$field->field_placeholder_text"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
+                                            :placeholder="$field['field_placeholder_text']"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
                                         />
                                         @break
 
                                     @case('select')
                                         <x-form.select
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
                                             :value="$fieldValue"
-                                            :placeholder="$field->field_placeholder_text"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
+                                            :placeholder="$field['field_placeholder_text']"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
                                             :options="$fieldOptions"
                                         />
                                         @break
 
                                     @case('multiselect')
+                                        @php
+                                            $oldValue = old($field['field_key']);
+                                            $multiValue = is_null($oldValue)
+                                                ? (array) ($viewModel->value($field['field_key']) ?? [])
+                                                : (array) $oldValue;
+                                        @endphp
                                         <x-form.multi-select
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
-                                            :value="$fieldValue"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
+                                            :value="$multiValue"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
                                             :options="$fieldOptions"
                                         />
                                         @break
 
                                     @case('radio')
                                         <x-form.radio
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
                                             :value="$fieldValue"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
                                             :options="$fieldOptions"
                                         />
                                         @break
@@ -201,25 +189,28 @@
                                     @case('file')
                                     @case('image')
                                         <x-form.file-upload
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
                                             :value="$fieldValue"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
-                                            :accept="$field->field_type === 'image' ? 'image/*' : ''"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
+                                            :accept="$field['field_type'] === 'image' ? 'image/*' : ''"
                                         />
                                         @break
 
                                     @case('boolean')
                                     @case('checkbox')
+                                        @php
+                                            $isChecked = filter_var($fieldValue, FILTER_VALIDATE_BOOLEAN);
+                                        @endphp
                                         <x-form.checkbox
-                                            :label="$field->field_label"
-                                            :name="$field->field_key"
-                                            :checked="$fieldValue"
-                                            :required="$field->is_required"
-                                            :helpText="$field->field_help_text"
-                                            :error="$errors->first($field->field_key)"
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
+                                            :checked="$isChecked"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
                                         />
                                         @break
                                 @endswitch
@@ -273,8 +264,8 @@
                                     onclick="quickJump({{ $index }})"
                                     class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 {{ $index == $currentStepIndex ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
                                 >
-                                    <span class="hidden sm:inline">{{ $step->step_title }}</span>
-                                    <span class="sm:hidden">{{ $index + 1 }}. {{ Str::limit($step->step_title, 15) }}</span>
+                                    <span class="hidden sm:inline">{{ $step['step_title'] }}</span>
+                                    <span class="sm:hidden">{{ $index + 1 }}. {{ Str::limit($step['step_title'], 15) }}</span>
                                 </button>
                             @endforeach
                         </div>

@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\View;
+use App\Registration\Events\ApplicantRegisteredEvent;
+use App\Registration\Listeners\SendApplicantRegisteredEmail;
 use App\View\Composers\SiteSettingComposer;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,5 +32,7 @@ class AppServiceProvider extends ServiceProvider
             'components.requirements',
             'components.faq',
         ], SiteSettingComposer::class);
+
+        Event::listen(ApplicantRegisteredEvent::class, SendApplicantRegisteredEmail::class);
     }
 }
