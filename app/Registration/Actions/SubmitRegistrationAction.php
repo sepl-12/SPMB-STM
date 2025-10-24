@@ -16,7 +16,8 @@ use App\Registration\Support\RegistrationAnswerMapper;
 use App\Registration\Support\RegistrationEmailExtractor;
 use App\Registration\Services\RegistrationNumberGenerator;
 use App\Registration\Services\WaveQuotaGuard;
-use App\Services\FormFieldValidationService;
+use App\Registration\Validators\RegistrationValidationContext;
+use App\Registration\Validators\RegistrationValidator;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -25,7 +26,7 @@ use Illuminate\Validation\ValidationException;
 class SubmitRegistrationAction
 {
     public function __construct(
-        private readonly FormFieldValidationService $validationService,
+        private readonly RegistrationValidator $validator,
         private readonly WaveQuotaGuard $waveQuotaGuard,
         private readonly RegistrationNumberGenerator $registrationNumberGenerator,
         private readonly RegistrationAnswerMapper $answerMapper,
@@ -108,23 +109,33 @@ class SubmitRegistrationAction
     protected function validateRegistrationData(FormVersion $formVersion, array $registrationData): array
     {
         $allFields = $formVersion->formFields()->where('is_archived', false)->get();
-        $fileFields = $allFields->filter(fn($field) => FormFieldType::tryFrom($field->field_type)?->isFileUpload());
-        $nonFileFields = $allFields->reject(fn($field) => FormFieldType::tryFrom($field->field_type)?->isFileUpload());
+        $context = new RegistrationValidationContext(
+            $registrationData,
+            $registrationData,
+            'submit',
+            0,
+            RegistrationValidationContext::SCENARIO_SUBMIT
+        );
 
-        $nonFileData = collect($registrationData)->only($nonFileFields->pluck('field_key')->all())->toArray();
-        $validatedNonFileData = $this->validationService->validateFormData($nonFileData, $nonFileFields);
+        $validatedData = $this->validator->validate($allFields, $context, $registrationData);
+        $validatedData = array_merge(
+            collect($registrationData)->only($allFields->pluck('field_key')->all())->toArray(),
+            $validatedData
+        );
 
         $fileFieldErrors = [];
+        $fileFields = $allFields->filter(fn($field) => FormFieldType::tryFrom($field->field_type)?->isFileUpload());
+
         foreach ($fileFields as $field) {
             $fieldKey = $field->field_key;
-            $value = $registrationData[$fieldKey] ?? null;
+            $value = $validatedData[$fieldKey] ?? null;
 
             if ($field->is_required && empty($value)) {
                 $fileFieldErrors[$fieldKey][] = "{$field->field_label} wajib diunggah.";
                 continue;
             }
 
-            if ($value && !Storage::disk('public')->exists($value)) {
+            if ($value && !Storage::disk('public')->exists((string) $value)) {
                 $fileFieldErrors[$fieldKey][] = "File untuk {$field->field_label} tidak ditemukan. Silakan unggah ulang.";
             }
         }
@@ -133,11 +144,8 @@ class SubmitRegistrationAction
             throw ValidationException::withMessages($fileFieldErrors);
         }
 
-        $fileData = collect($registrationData)->only($fileFields->pluck('field_key')->all())->toArray();
-        $mergedData = array_merge($validatedNonFileData, $fileData);
-
         return [
-            'validatedData' => $mergedData,
+            'validatedData' => $validatedData,
             'allFields' => $allFields,
         ];
     }

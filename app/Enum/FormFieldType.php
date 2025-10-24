@@ -9,6 +9,7 @@ enum FormFieldType: string
     case TEXTAREA = 'textarea';
     case NUMBER = 'number';
     case SELECT = 'select';
+    case RADIO = 'radio';
     case MULTI_SELECT = 'multi_select';
     case DATE = 'date';
     case FILE = 'file';
@@ -26,6 +27,7 @@ enum FormFieldType: string
             self::TEXTAREA => '📄 Textarea - Input teks panjang',
             self::NUMBER => '🔢 Angka - Input numerik',
             self::SELECT => '📋 Select - Pilihan tunggal',
+            self::RADIO => '🔘 Radio - Pilihan tunggal (radio button)',
             self::MULTI_SELECT => '☑️ Multi Select - Pilihan ganda',
             self::DATE => '📅 Tanggal - Pemilih tanggal',
             self::FILE => '📎 File - Upload file',
@@ -45,6 +47,7 @@ enum FormFieldType: string
             self::TEXTAREA => 'Textarea',
             self::NUMBER => 'Angka',
             self::SELECT => 'Select',
+            self::RADIO => 'Radio',
             self::MULTI_SELECT => 'Multi Select',
             self::DATE => 'Tanggal',
             self::FILE => 'File',
@@ -60,7 +63,7 @@ enum FormFieldType: string
     {
         return match ($this) {
             self::TEXT, self::EMAIL, self::TEXTAREA, self::NUMBER => 'primary',
-            self::SELECT, self::MULTI_SELECT => 'warning',
+            self::SELECT, self::RADIO, self::MULTI_SELECT => 'warning',
             self::DATE => 'success',
             self::FILE, self::IMAGE => 'danger',
             self::BOOLEAN => 'info',
@@ -72,7 +75,7 @@ enum FormFieldType: string
      */
     public function requiresOptions(): bool
     {
-        return in_array($this, [self::SELECT, self::MULTI_SELECT]);
+        return in_array($this, [self::SELECT, self::RADIO, self::MULTI_SELECT]);
     }
 
     /**

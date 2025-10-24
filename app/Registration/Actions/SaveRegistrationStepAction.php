@@ -6,7 +6,8 @@ use App\Enum\FormFieldType;
 use App\Registration\Data\RegistrationWizard;
 use App\Registration\Data\SaveStepResult;
 use App\Registration\Exceptions\RegistrationStepValidationException;
-use App\Services\FormFieldValidationService;
+use App\Registration\Validators\RegistrationValidationContext;
+use App\Registration\Validators\RegistrationValidator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +15,9 @@ use Illuminate\Validation\ValidationException;
 
 class SaveRegistrationStepAction
 {
-    public function __construct(private readonly FormFieldValidationService $validationService) {}
+    public function __construct(private readonly RegistrationValidator $validator)
+    {
+    }
 
     /**
      * @param array<string, mixed> $existingData
@@ -76,30 +79,22 @@ class SaveRegistrationStepAction
                 return $storedPath;
             };
 
-            $fieldsForValidation = $currentStep->formFields->filter(function ($field) use ($request, $registrationData) {
-                $fieldKey = $field->field_key;
-                $fieldType = FormFieldType::tryFrom($field->field_type);
+            $validatedStepData = $stepData;
+            $context = new RegistrationValidationContext(
+                $registrationData,
+                $request->all(),
+                $action,
+                $normalizedIndex,
+                RegistrationValidationContext::SCENARIO_STEP
+            );
 
-                if ($fieldType?->isFileUpload()) {
-                    if ($request->hasFile($fieldKey)) {
-                        return true;
-                    }
-
-                    return empty($registrationData[$fieldKey]);
-                }
-
-                return true;
-            });
-
-            if (in_array($action, ['next', 'submit'], true)) {
+            if ($context->shouldValidateFields()) {
                 try {
-                    if ($fieldsForValidation->isNotEmpty()) {
-                        $dataForValidation = collect($stepData)
-                            ->only($fieldsForValidation->pluck('field_key')->all())
-                            ->toArray();
-
-                        $this->validationService->validateFormData($dataForValidation, $fieldsForValidation);
-                    }
+                    $validatedStepData = $this->validator->validate(
+                        $currentStep->formFields,
+                        $context,
+                        $stepData
+                    );
                 } catch (ValidationException $e) {
                     foreach ($filesToStore as $fieldKey => $uploadedFile) {
                         $fieldErrors = $e->validator->errors()->get($fieldKey);
@@ -115,10 +110,10 @@ class SaveRegistrationStepAction
             }
 
             foreach ($filesToStore as $fieldKey => $uploadedFile) {
-                $stepData[$fieldKey] = $storeUploadedFile($fieldKey, $uploadedFile);
+                $validatedStepData[$fieldKey] = $storeUploadedFile($fieldKey, $uploadedFile);
             }
 
-            $registrationData = array_merge($registrationData, $stepData);
+            $registrationData = array_merge($registrationData, $validatedStepData);
         }
 
         if ($action === 'submit') {
