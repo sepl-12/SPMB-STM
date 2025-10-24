@@ -58,6 +58,7 @@ class RegistrationController extends Controller
         // Save current step data
         if ($currentStep) {
             $stepData = [];
+            $filesToStore = [];
 
             foreach ($currentStep->formFields as $field) {
                 $fieldKey = $field->field_key;
@@ -67,9 +68,9 @@ class RegistrationController extends Controller
                 // Handle file uploads
                 if ($fieldType?->isFileUpload()) {
                     if ($request->hasFile($fieldKey)) {
-                        $file = $request->file($fieldKey);
-                        $path = $file->store('registration-files', 'public');
-                        $stepData[$fieldKey] = $path;
+                        $uploadedFile = $request->file($fieldKey);
+                        $stepData[$fieldKey] = $uploadedFile;
+                        $filesToStore[$fieldKey] = $uploadedFile;
                     }
                 }
                 // Handle multiselect
@@ -84,17 +85,67 @@ class RegistrationController extends Controller
                 }
             }
 
+            $storeUploadedFile = function ($fieldKey, $uploadedFile) use (&$registrationData) {
+                $storedPath = $uploadedFile->store('registration-files', 'public');
+
+                $existingPath = $registrationData[$fieldKey] ?? null;
+                if ($existingPath && $existingPath !== $storedPath && Storage::disk('public')->exists($existingPath)) {
+                    Storage::disk('public')->delete($existingPath);
+                }
+
+                $registrationData[$fieldKey] = $storedPath;
+
+                return $storedPath;
+            };
+
+            $fieldsForValidation = $currentStep->formFields->filter(function ($field) use ($request, $registrationData) {
+                $fieldKey = $field->field_key;
+                $fieldType = FormFieldType::tryFrom($field->field_type);
+
+                if ($fieldType?->isFileUpload()) {
+                    if ($request->hasFile($fieldKey)) {
+                        return true;
+                    }
+
+                    return empty($registrationData[$fieldKey]);
+                }
+
+                return true;
+            });
+
             // Validate current step data if moving forward or submitting
             if (in_array($action, ['next', 'submit'])) {
                 try {
                     $validationService = app(FormFieldValidationService::class);
-                    $validationService->validateFormData($stepData, $currentStep->formFields);
+                    if ($fieldsForValidation->isNotEmpty()) {
+                        $dataForValidation = collect($stepData)
+                            ->only($fieldsForValidation->pluck('field_key')->all())
+                            ->toArray();
+
+                        $validationService->validateFormData($dataForValidation, $fieldsForValidation);
+                    }
                 } catch (ValidationException $e) {
+                    foreach ($filesToStore as $fieldKey => $uploadedFile) {
+                        $fieldErrors = $e->validator->errors()->get($fieldKey);
+                        if (!empty($fieldErrors)) {
+                            continue;
+                        }
+
+                        $registrationData[$fieldKey] = $storeUploadedFile($fieldKey, $uploadedFile);
+                    }
+
+                    session(['registration_data' => $registrationData]);
+
                     return redirect()->route('registration.index')
                         ->withErrors($e->validator)
                         ->withInput()
                         ->with('validation_step', $currentStepIndex);
                 }
+            }
+
+            // Persist uploaded files only after validation is successful
+            foreach ($filesToStore as $fieldKey => $uploadedFile) {
+                $stepData[$fieldKey] = $storeUploadedFile($fieldKey, $uploadedFile);
             }
 
             // Merge step data with existing registration data
@@ -162,10 +213,33 @@ class RegistrationController extends Controller
         try {
             $allFields = $formVersion->formFields()->where('is_archived', false)->get();
             $validationService = app(FormFieldValidationService::class);
-            $validatedData = $validationService->validateFormData($registrationData, $allFields);
+            $fileFields = $allFields->filter(fn($field) => FormFieldType::tryFrom($field->field_type)?->isFileUpload());
+            $nonFileFields = $allFields->reject(fn($field) => FormFieldType::tryFrom($field->field_type)?->isFileUpload());
 
-            // Use validated data for submission
-            $registrationData = $validatedData;
+            $nonFileData = collect($registrationData)->only($nonFileFields->pluck('field_key')->all())->toArray();
+            $validatedNonFileData = $validationService->validateFormData($nonFileData, $nonFileFields);
+
+            $fileFieldErrors = [];
+            foreach ($fileFields as $field) {
+                $fieldKey = $field->field_key;
+                $value = $registrationData[$fieldKey] ?? null;
+
+                if ($field->is_required && empty($value)) {
+                    $fileFieldErrors[$fieldKey][] = "{$field->field_label} wajib diunggah.";
+                    continue;
+                }
+
+                if ($value && !Storage::disk('public')->exists($value)) {
+                    $fileFieldErrors[$fieldKey][] = "File untuk {$field->field_label} tidak ditemukan. Silakan unggah ulang.";
+                }
+            }
+
+            if (!empty($fileFieldErrors)) {
+                throw ValidationException::withMessages($fileFieldErrors);
+            }
+
+            $fileData = collect($registrationData)->only($fileFields->pluck('field_key')->all())->toArray();
+            $registrationData = array_merge($validatedNonFileData, $fileData);
         } catch (ValidationException $e) {
             return redirect()->route('registration.index')
                 ->withErrors($e->validator)
