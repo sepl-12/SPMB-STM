@@ -4,18 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\Applicant;
 use App\Models\Payment;
-use App\Enum\PaymentStatus;
+use App\Payment\Exceptions\PaymentEmailMismatchException;
+use App\Payment\Exceptions\PaymentLinkCreationFailed;
+use App\Payment\Exceptions\PaymentNotFoundException;
+use App\Payment\Services\PaymentLinkService;
+use App\Payment\Services\PaymentNotificationService;
+use App\Payment\Services\PaymentStatusService;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    protected $midtransService;
-
-    public function __construct(MidtransService $midtransService)
-    {
-        $this->midtransService = $midtransService;
+    public function __construct(
+        protected readonly MidtransService $midtransService,
+        protected readonly PaymentLinkService $paymentLinkService,
+        protected readonly PaymentStatusService $paymentStatusService,
+        protected readonly PaymentNotificationService $paymentNotificationService
+    ) {
     }
 
     /**
@@ -23,36 +29,30 @@ class PaymentController extends Controller
      */
     public function show($registration_number)
     {
-        $applicant = Applicant::where('registration_number', $registration_number)
-            ->with('wave', 'payments', 'latestPayment')
-            ->firstOrFail();
-
-        // Check if applicant already paid (using computed accessor from latest payment)
-        if ($applicant->hasSuccessfulPayment()) {
-            return redirect()->route('payment.success', $registration_number)
-                ->with('message', 'Pembayaran Anda sudah berhasil.');
+        try {
+            $result = $this->paymentLinkService->showForm($registration_number);
+        } catch (PaymentNotFoundException $e) {
+            abort(404, $e->getMessage());
+        } catch (PaymentLinkCreationFailed $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        // Get or create payment
-        $existingPayment = $applicant->payments()
-            ->withStatus(PaymentStatus::PENDING)
-            ->latest()
-            ->first();
+        if ($result->shouldRedirect()) {
+            $redirect = redirect()->route($result->redirectRoute, $result->redirectParams ?? []);
 
-        if ($existingPayment && isset($existingPayment->gateway_payload_json['snap_token'])) {
-            $snapToken = $existingPayment->gateway_payload_json['snap_token'];
-        } else {
-            // Create new transaction
-            $result = $this->midtransService->createTransaction($applicant);
-
-            if (!$result['success']) {
-                return back()->with('error', 'Gagal membuat transaksi pembayaran: ' . $result['error']);
+            if ($result->flash) {
+                foreach ($result->flash as $key => $message) {
+                    $redirect->with($key, $message);
+                }
             }
 
-            $snapToken = $result['snap_token'];
+            return $redirect;
         }
 
-        return view('payment.show', compact('applicant', 'snapToken'));
+        return view('payment.show', [
+            'applicant' => $result->applicant,
+            'snapToken' => $result->snapToken,
+        ]);
     }
 
     /**
@@ -66,7 +66,7 @@ class PaymentController extends Controller
             Log::info('Midtrans Notification Received', $notification);
 
             // Handle notification
-            $this->midtransService->handleNotification($notification);
+            $this->paymentNotificationService->handle($notification);
 
             return response()->json(['message' => 'Notification handled successfully']);
         } catch (\Exception $e) {
@@ -101,7 +101,7 @@ class PaymentController extends Controller
             $status = $statusCheck['status'];
 
             // Update payment based on status check
-            $this->midtransService->handleNotification((array) $status);
+            $this->paymentNotificationService->handle((array) $status);
         }
 
         return redirect()->route('payment.status', $payment->applicant->registration_number);
@@ -112,13 +112,16 @@ class PaymentController extends Controller
      */
     public function status($registration_number)
     {
-        $applicant = Applicant::where('registration_number', $registration_number)
-            ->with('wave', 'payments')
-            ->firstOrFail();
+        try {
+            $result = $this->paymentStatusService->getStatusPage($registration_number);
+        } catch (PaymentNotFoundException $e) {
+            abort(404, $e->getMessage());
+        }
 
-        $latestPayment = $applicant->payments()->latest()->first();
-
-        return view('payment.status', compact('applicant', 'latestPayment'));
+        return view('payment.status', [
+            'applicant' => $result->applicant,
+            'latestPayment' => $result->latestPayment,
+        ]);
     }
 
     /**
@@ -126,16 +129,16 @@ class PaymentController extends Controller
      */
     public function success($registration_number)
     {
-        $applicant = Applicant::where('registration_number', $registration_number)
-            ->with('wave', 'payments')
-            ->firstOrFail();
+        try {
+            $result = $this->paymentStatusService->getSuccessPage($registration_number);
+        } catch (PaymentNotFoundException $e) {
+            abort(404, $e->getMessage());
+        }
 
-        $latestPayment = $applicant->payments()
-            ->successful()
-            ->latest()
-            ->first();
-
-        return view('payment.success', compact('applicant', 'latestPayment'));
+        return view('payment.success', [
+            'applicant' => $result->applicant,
+            'latestPayment' => $result->latestPayment,
+        ]);
     }
 
     /**
@@ -149,7 +152,7 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Order ID required'], 400);
         }
 
-        $result = $this->midtransService->checkTransactionStatus($orderId);
+        $result = $this->paymentStatusService->checkAjaxStatus($orderId);
 
         return response()->json($result);
     }
@@ -172,39 +175,30 @@ class PaymentController extends Controller
             'email' => 'required|email',
         ]);
 
-        // Find applicant with matching registration number
-        $applicant = Applicant::where('registration_number', $request->registration_number)
-            ->with('wave', 'payments')
-            ->first();
-
-        if (!$applicant) {
-            return back()->with('error', 'Data pendaftaran tidak ditemukan. Periksa kembali nomor pendaftaran Anda.');
+        try {
+            $result = $this->paymentLinkService->findPayment(
+                $request->registration_number,
+                $request->email
+            );
+        } catch (PaymentNotFoundException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (PaymentEmailMismatchException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        // Verify email matches
-        $applicantEmail = $applicant->getLatestAnswerForField('email') ?? '';
-
-        if (strtolower($applicantEmail) !== strtolower($request->email)) {
-            return back()->with('error', 'Email tidak sesuai dengan data pendaftaran.');
+        if (!$result->shouldRedirect()) {
+            return redirect()->route('payment.show', $request->registration_number);
         }
 
-        // Check if payment exists
-        $payment = $applicant->payments()->latest()->first();
+        $redirect = redirect()->route($result->redirectRoute, $result->redirectParams ?? []);
 
-        if (!$payment) {
-            // No payment yet, redirect to payment page to create one
-            return redirect()->route('payment.show', $applicant->registration_number)
-                ->with('info', 'Silakan lanjutkan pembayaran Anda.');
+        if ($result->flash) {
+            foreach ($result->flash as $key => $message) {
+                $redirect->with($key, $message);
+            }
         }
 
-        // Redirect based on payment status
-        if ($payment->payment_status_name === PaymentStatus::SETTLEMENT) {
-            return redirect()->route('payment.success', $applicant->registration_number)
-                ->with('success', 'Pembayaran Anda sudah berhasil!');
-        } else {
-            return redirect()->route('payment.show', $applicant->registration_number)
-                ->with('info', 'Lanjutkan pembayaran Anda.');
-        }
+        return $redirect;
     }
 
     /**
@@ -217,70 +211,37 @@ class PaymentController extends Controller
             'email' => 'required|email',
         ]);
 
-        // Find applicant
-        $applicant = Applicant::where('registration_number', $request->registration_number)
-            ->with('wave', 'payments')
-            ->first();
-
-        if (!$applicant) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data pendaftaran tidak ditemukan'
-            ], 404);
-        }
-
-        // Verify email
-        $applicantEmail = $applicant->getLatestAnswerForField('email') ?? '';
-
-        if (strtolower($applicantEmail) !== strtolower($request->email)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email tidak sesuai dengan data pendaftaran'
-            ], 404);
-        }
-
-        // Get or create payment
-        $payment = $applicant->payments()->latest()->first();
-
-        if (!$payment) {
-            // Create payment if not exists
-            $result = $this->midtransService->createTransaction($applicant);
-
-            if (!$result['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal membuat transaksi pembayaran'
-                ], 500);
-            }
-
-            $payment = Payment::find($result['payment_id']);
-        }
-
-        // Send email (for now, just return success with payment URL)
         try {
-            $paymentUrl = route('payment.show', $applicant->registration_number);
-
-            // TODO: Send actual email when mail is configured
-            // Mail::to($applicantEmail)->send(new PaymentLinkMail($applicant, $payment));
-
-            Log::info('Payment link requested', [
-                'registration_number' => $applicant->registration_number,
-                'email' => $applicantEmail,
-                'payment_url' => $paymentUrl
-            ]);
-
+            $result = $this->paymentLinkService->resendLink(
+                $request->registration_number,
+                $request->email
+            );
+        } catch (PaymentNotFoundException|PaymentEmailMismatchException $e) {
             return response()->json([
-                'success' => true,
-                'message' => 'Link pembayaran: ' . $paymentUrl . ' (Email akan dikirim saat mail dikonfigurasi)',
-                'payment_url' => $paymentUrl
-            ]);
-        } catch (\Exception $e) {
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 404);
+        } catch (PaymentLinkCreationFailed $e) {
             Log::error('Failed to send payment link: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengirim link pembayaran'
+                'message' => 'Gagal membuat transaksi pembayaran'
             ], 500);
         }
+
+        $paymentUrl = route('payment.show', $request->registration_number);
+
+        Log::info('Payment link requested', [
+            'registration_number' => $request->registration_number,
+            'email' => $request->email,
+            'payment_url' => $paymentUrl,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Link pembayaran: ' . $paymentUrl . ' (Email akan dikirim saat mail dikonfigurasi)',
+            'payment_url' => $paymentUrl,
+        ]);
     }
 }

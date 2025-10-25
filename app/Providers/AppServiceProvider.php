@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Payment\Events\PaymentSettled;
+use App\Payment\Listeners\QueuePaymentConfirmationEmail;
 use App\Registration\Events\ApplicantRegisteredEvent;
 use App\Registration\Listeners\SendApplicantRegisteredEmail;
 use App\View\Composers\SiteSettingComposer;
@@ -34,5 +36,6 @@ class AppServiceProvider extends ServiceProvider
         ], SiteSettingComposer::class);
 
         Event::listen(ApplicantRegisteredEvent::class, SendApplicantRegisteredEmail::class);
+        Event::listen(PaymentSettled::class, QueuePaymentConfirmationEmail::class);
     }
 }

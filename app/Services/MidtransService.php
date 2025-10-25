@@ -2,26 +2,18 @@
 
 namespace App\Services;
 
-use App\Mail\PaymentConfirmed;
 use App\Models\Applicant;
 use App\Models\Payment;
-use App\Enum\PaymentStatus;
 use App\Enum\PaymentMethod;
+use App\Enum\PaymentStatus;
 use App\Helpers\PaymentHelper;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Midtrans\Config;
 use Midtrans\Snap;
 
 class MidtransService
 {
     public function __construct()
     {
-        // Set Midtrans configuration
-        Config::$serverKey = config('midtrans.server_key');
-        Config::$isProduction = config('midtrans.is_production');
-        Config::$isSanitized = config('midtrans.is_sanitized');
-        Config::$is3ds = config('midtrans.is_3ds');
+        // Konfigurasi Midtrans kini dilakukan melalui MidtransServiceProvider
     }
 
     /**
@@ -102,83 +94,9 @@ class MidtransService
         }
     }
 
-    /**
-     * Handle notification from Midtrans
-     */
     public function handleNotification(array $notification): void
     {
-        $orderId = $notification['order_id'] ?? null;
-        $transactionStatus = $notification['transaction_status'] ?? null;
-        $fraudStatus = $notification['fraud_status'] ?? null;
-
-        if (!$orderId) {
-            return;
-        }
-
-        // check payment signature key
-        $signatureKey = $notification['signature_key'] ?? '';
-        $statusCode = $notification['status_code'] ?? '';
-        $grossAmount = $notification['gross_amount'] ?? '';
-        $expectedSignature = hash('sha512', $orderId . $statusCode . $grossAmount . config('midtrans.server_key'));
-        if ($signatureKey !== $expectedSignature) {
-            Log::warning('Midtrans Notification: Invalid signature key for order_id ' . $orderId);
-            return;
-        }
-
-        // Find payment by order ID
-        $payment = Payment::where('merchant_order_code', $orderId)->first();
-
-        if (!$payment) {
-            return;
-        }
-
-        // Determine payment status
-        $paymentStatus = $this->determinePaymentStatus($transactionStatus, $fraudStatus);
-
-        // Get payment method from notification
-        $paymentMethod = $this->mapPaymentMethod($notification['payment_type'] ?? 'echannel');
-
-        // Update payment record
-        $payment->update([
-            'payment_status_name' => $paymentStatus->value,
-            'payment_method_name' => $paymentMethod->value,
-            'status_updated_datetime' => now(),
-            'gateway_payload_json' => array_merge(
-                $payment->gateway_payload_json ?? [],
-                ['notification' => $notification]
-            ),
-        ]);
-
-        // Send email notification if payment is successful
-        if ($paymentStatus === PaymentStatus::SETTLEMENT || $paymentStatus === PaymentStatus::CAPTURE) {
-            try {
-                $applicant = $payment->applicant()->with('wave')->first();
-                if ($applicant && $applicant->applicant_email_address && $applicant->applicant_email_address !== '-') {
-                    app(GmailMailableSender::class)->send($applicant->applicant_email_address, new PaymentConfirmed($payment));
-                }
-            } catch (\Exception $e) {
-                Log::error('Failed to send payment confirmation email: ' . $e->getMessage());
-            }
-        }
-
-        // Note: Applicant payment_status is now computed from Payment automatically
-        // No manual update needed - Single Source of Truth pattern
-    }
-
-    /**
-     * Determine payment status from Midtrans notification
-     */
-    protected function determinePaymentStatus(string $transactionStatus, ?string $fraudStatus): PaymentStatus
-    {
-        return PaymentHelper::mapMidtransStatus($transactionStatus, $fraudStatus);
-    }
-
-    /**
-     * Map Midtrans payment type to PaymentMethod enum
-     */
-    protected function mapPaymentMethod(string $paymentType): PaymentMethod
-    {
-        return PaymentHelper::mapMidtransPaymentType($paymentType);
+        app(\App\Payment\Services\PaymentNotificationService::class)->handle($notification);
     }
 
     /**
