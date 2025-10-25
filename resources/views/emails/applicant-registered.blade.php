@@ -68,13 +68,19 @@
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
                                 <tr>
                                     <td align="center">
-                                        <a href="{{ config('app.url') }}/payment/{{ $applicant->id }}" 
+                                        <a href="{{ $applicant->getPaymentUrl() }}" 
                                            style="display: inline-block; padding: 14px 32px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">
-                                            Bayar Sekarang
+                                            💳 Bayar Sekarang
                                         </a>
                                     </td>
                                 </tr>
                             </table>
+
+                            <div style="background-color: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px; margin: 20px 0; border-radius: 4px;">
+                                <p style="margin: 0; font-size: 12px; color: #0c4a6e; line-height: 1.5;">
+                                    <strong>🔒 Keamanan:</strong> Link pembayaran di atas adalah link aman yang khusus dibuat untuk Anda dan akan kedaluarsa dalam 7 hari. Jangan bagikan link ini kepada orang lain.
+                                </p>
+                            </div>
 
                             <p style="margin: 30px 0 0; font-size: 14px; line-height: 1.6; color: #64748b;">
                                 Jika Anda memiliki pertanyaan, silakan hubungi kami di:<br>

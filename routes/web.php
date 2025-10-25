@@ -17,12 +17,28 @@ Route::post('/daftar/jump-to-step', [RegistrationController::class, 'jumpToStep'
 Route::get('/daftar/success/{registration_number}', [RegistrationController::class, 'success'])->name('registration.success');
 
 // Payment routes
-Route::get('/pembayaran/{registration_number}', [PaymentController::class, 'show'])->name('payment.show');
+// Legacy unsecured routes - kept for backward compatibility but should be phased out
+// Route::get('/pembayaran/{registration_number}', [PaymentController::class, 'show'])->name('payment.show');
+Route::get('/pembayaran/status/{registration_number}', [PaymentController::class, 'status'])->name('payment.status');
+
+// Secured payment routes with signed URLs
+Route::middleware('signed')->group(function () {
+    Route::get('/secure/pembayaran/{registration_number}', [PaymentController::class, 'showSecure'])->name('payment.show-secure');
+    Route::get('/secure/pembayaran/success/{registration_number}', [PaymentController::class, 'successSecure'])->name('payment.success-secure');
+    Route::get('/secure/status/{registration_number}', [PaymentController::class, 'statusSecure'])->name('applicant.status-secure');
+    Route::get('/secure/kartu-ujian/{registration_number}', [PaymentController::class, 'examCard'])->name('exam-card.show');
+});
+
+// Payment notification and callbacks (unsecured - required for Midtrans)
 Route::post('/pembayaran/notification', [PaymentController::class, 'notification'])->name('payment.notification');
 Route::get('/pembayaran/finish', [PaymentController::class, 'finish'])->name('payment.finish');
-Route::get('/pembayaran/status/{registration_number}', [PaymentController::class, 'status'])->name('payment.status');
-Route::get('/pembayaran/success/{registration_number}', [PaymentController::class, 'success'])->name('payment.success');
 Route::post('/pembayaran/check-status', [PaymentController::class, 'checkStatus'])->name('payment.check-status');
+
+// DEPRECATED: Legacy payment success route - redirect to secure version
+// Route::get('/pembayaran/success/{registration_number}', function (string $registration_number) {
+//     $applicant = \App\Models\Applicant::where('registration_number', $registration_number)->firstOrFail();
+//     return redirect($applicant->getPaymentSuccessUrl());
+// })->name('payment.success');
 
 // Payment Recovery routes
 Route::get('/cek-pembayaran', [PaymentController::class, 'checkPaymentForm'])->name('payment.check-form');

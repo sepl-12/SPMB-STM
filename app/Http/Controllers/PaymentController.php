@@ -21,8 +21,7 @@ class PaymentController extends Controller
         protected readonly PaymentLinkService $paymentLinkService,
         protected readonly PaymentStatusService $paymentStatusService,
         protected readonly PaymentNotificationService $paymentNotificationService
-    ) {
-    }
+    ) {}
 
     /**
      * Show payment page
@@ -142,6 +141,35 @@ class PaymentController extends Controller
     }
 
     /**
+     * Show payment success page via signed URL (SECURE)
+     * This method is for secure access via email links
+     */
+    public function successSecure(Request $request, string $registration_number)
+    {
+        // Laravel sudah validasi signed URL di middleware
+        // Jika sampai sini, berarti URL valid dan belum expired
+
+        try {
+            $result = $this->paymentStatusService->getSuccessPage($registration_number);
+        } catch (PaymentNotFoundException $e) {
+            abort(404, $e->getMessage());
+        }
+
+        // Optional: Log access untuk security monitoring
+        Log::channel('stack')->info('Payment success page accessed via signed URL', [
+            'registration_number' => $registration_number,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now(),
+        ]);
+
+        return view('payment.success', [
+            'applicant' => $result->applicant,
+            'latestPayment' => $result->latestPayment,
+        ]);
+    }
+
+    /**
      * Check payment status via AJAX
      */
     public function checkStatus(Request $request)
@@ -216,7 +244,7 @@ class PaymentController extends Controller
                 $request->registration_number,
                 $request->email
             );
-        } catch (PaymentNotFoundException|PaymentEmailMismatchException $e) {
+        } catch (PaymentNotFoundException | PaymentEmailMismatchException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -242,6 +270,84 @@ class PaymentController extends Controller
             'success' => true,
             'message' => 'Link pembayaran: ' . $paymentUrl . ' (Email akan dikirim saat mail dikonfigurasi)',
             'payment_url' => $paymentUrl,
+        ]);
+    }
+
+    /**
+     * Show payment details via signed URL
+     * This method is for secure access via email links
+     */
+    public function showSecure(Request $request, string $registration_number)
+    {
+        // Laravel sudah validasi signed URL di middleware
+        // Jika sampai sini, berarti URL valid dan belum expired
+
+        $applicant = Applicant::where('registration_number', $registration_number)->firstOrFail();
+
+        // Reuse existing show logic
+        try {
+            $result = $this->paymentLinkService->showForm($registration_number);
+        } catch (PaymentNotFoundException $e) {
+            abort(404, $e->getMessage());
+        } catch (PaymentLinkCreationFailed $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        if ($result->shouldRedirect()) {
+            $redirect = redirect()->route($result->redirectRoute, $result->redirectParams ?? []);
+
+            if ($result->flash) {
+                foreach ($result->flash as $key => $message) {
+                    $redirect->with($key, $message);
+                }
+            }
+
+            return $redirect;
+        }
+
+        return view('payment.show', [
+            'applicant' => $result->applicant,
+            'snapToken' => $result->snapToken,
+        ]);
+    }
+
+    /**
+     * Show exam card via signed URL
+     * This method is for secure access via email links
+     */
+    public function examCard(Request $request, string $registration_number)
+    {
+        $applicant = Applicant::where('registration_number', $registration_number)->firstOrFail();
+        $applicant->load(['wave', 'latestPayment']);
+
+        // Validasi applicant sudah bayar
+        if (!$applicant->hasSuccessfulPayment()) {
+            return response()->view('errors.payment-required', [
+                'message' => 'Pembayaran belum dikonfirmasi. Silakan selesaikan pembayaran terlebih dahulu.',
+                'applicant' => $applicant,
+            ], 403);
+        }
+
+        return view('exam-card.show', [
+            'applicant' => $applicant,
+            'wave' => $applicant->wave,
+        ]);
+    }
+
+    /**
+     * Show applicant status via signed URL
+     * This method is for secure access via email links
+     */
+    public function statusSecure(Request $request, string $registration_number)
+    {
+        $applicant = Applicant::where('registration_number', $registration_number)->firstOrFail();
+        $applicant->load(['wave', 'latestPayment', 'latestSubmission']);
+
+        return view('applicant.status-secure', [
+            'applicant' => $applicant,
+            'payment' => $applicant->latestPayment,
+            'submission' => $applicant->latestSubmission,
+            'wave' => $applicant->wave,
         ]);
     }
 }

@@ -82,17 +82,31 @@
                                 </p>
                             </div>
 
-                            <!-- CTA Button -->
+                            <!-- CTA Buttons -->
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
                                 <tr>
+                                    <td align="center" style="padding-bottom: 10px;">
+                                        <a href="{{ $applicant->getExamCardUrl() }}" 
+                                           style="display: inline-block; padding: 14px 32px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">
+                                            📄 Download Kartu Ujian
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <td align="center">
-                                        <a href="{{ config('app.url') }}/status/{{ $applicant->id }}" 
+                                        <a href="{{ $applicant->getStatusUrl() }}" 
                                            style="display: inline-block; padding: 14px 32px; background-color: #0284c7; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">
-                                            Cek Status Pendaftaran
+                                            🔍 Cek Status Pendaftaran
                                         </a>
                                     </td>
                                 </tr>
                             </table>
+
+                            <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin: 20px 0; border-radius: 4px;">
+                                <p style="margin: 0; font-size: 12px; color: #92400e; line-height: 1.5;">
+                                    <strong>🔒 Keamanan:</strong> Link di atas adalah link aman yang khusus dibuat untuk Anda dan akan kedaluarsa dalam waktu tertentu. Jangan bagikan link ini kepada orang lain.
+                                </p>
+                            </div>
 
                             <p style="margin: 30px 0 0; font-size: 14px; line-height: 1.6; color: #64748b;">
                                 Jika Anda memiliki pertanyaan, silakan hubungi kami di:<br>

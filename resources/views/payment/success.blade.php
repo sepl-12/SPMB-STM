@@ -4,6 +4,22 @@
     <div class="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-6 sm:py-12">
         <div class="max-w-3xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
             
+            <!-- Security Notice -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-semibold text-yellow-800 mb-1">🔒 Link Aman</p>
+                        <p class="text-xs text-yellow-700">
+                            Halaman ini dilindungi dengan enkripsi. Link akan kadaluarsa dalam 7 hari untuk keamanan data Anda. 
+                            Jangan bagikan link ini kepada orang lain.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Success Card -->
             <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-6 sm:p-8 text-center">
                 

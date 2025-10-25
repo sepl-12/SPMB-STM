@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\URL;
 
 class Applicant extends Model
 {
@@ -142,5 +143,109 @@ class Applicant extends Model
     public function hasFailedPayment(): bool
     {
         return $this->payment_status_computed?->isFailed() ?? false;
+    }
+
+    /**
+     * Generate secure signed URL untuk payment page
+     * 
+     * @param int|null $expiresInDays Jumlah hari sebelum URL expired (default: 7)
+     * @return string Signed URL dengan signature dan expiration
+     */
+    public function getPaymentUrl(?int $expiresInDays = 7): string
+    {
+        return URL::temporarySignedRoute(
+            'payment.show-secure',  // ✅ FIXED: Gunakan route yang benar
+            now()->addDays($expiresInDays),
+            ['registration_number' => $this->registration_number]
+        );
+    }
+
+    /**
+     * Generate secure signed URL untuk status page
+     * 
+     * @param int|null $expiresInDays Jumlah hari sebelum URL expired (default: 30)
+     * @return string Signed URL dengan signature dan expiration
+     */
+    public function getStatusUrl(?int $expiresInDays = 30): string
+    {
+        return URL::temporarySignedRoute(
+            'applicant.status-secure',  // ✅ Route yang benar
+            now()->addDays($expiresInDays),
+            ['registration_number' => $this->registration_number]
+        );
+    }
+
+    /**
+     * Generate secure signed URL untuk exam card
+     * 
+     * @param int|null $expiresInDays Jumlah hari sebelum URL expired (default: 60)
+     * @return string Signed URL dengan signature dan expiration
+     */
+    public function getExamCardUrl(?int $expiresInDays = 60): string
+    {
+        return URL::temporarySignedRoute(
+            'exam-card.show',  // ✅ Route yang benar
+            now()->addDays($expiresInDays),
+            ['registration_number' => $this->registration_number]
+        );
+    }
+
+    /**
+     * Generate secure signed URL untuk payment success page
+     * 
+     * @param int|null $expiresInDays Jumlah hari sebelum URL expired (default: 7)
+     * @return string Signed URL dengan signature dan expiration
+     */
+    public function getPaymentSuccessUrl(?int $expiresInDays = 7): string
+    {
+        return URL::temporarySignedRoute(
+            'payment.success-secure',
+            now()->addDays($expiresInDays),
+            ['registration_number' => $this->registration_number]
+        );
+    }
+
+    /**
+     * Accessor untuk payment_url attribute
+     * Bisa dipanggil dengan: $applicant->payment_url
+     */
+    protected function paymentUrl(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn() => $this->getPaymentUrl(),
+        );
+    }
+
+    /**
+     * Accessor untuk status_url attribute
+     * Bisa dipanggil dengan: $applicant->status_url
+     */
+    protected function statusUrl(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn() => $this->getStatusUrl(),
+        );
+    }
+
+    /**
+     * Accessor untuk exam_card_url attribute
+     * Bisa dipanggil dengan: $applicant->exam_card_url
+     */
+    protected function examCardUrl(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn() => $this->getExamCardUrl(),
+        );
+    }
+
+    /**
+     * Accessor untuk payment_success_url attribute
+     * Bisa dipanggil dengan: $applicant->payment_success_url
+     */
+    protected function paymentSuccessUrl(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn() => $this->getPaymentSuccessUrl(),
+        );
     }
 }
