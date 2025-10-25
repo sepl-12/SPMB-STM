@@ -10,7 +10,7 @@ use App\Mail\PaymentConfirmed;
 use App\Models\Applicant;
 use App\Models\ExportTemplate;
 use App\Models\FormField;
-use App\Services\GmailMailableSender;
+use App\Services\Email\EmailServiceInterface;
 use Filament\Forms;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Form;
@@ -44,9 +44,9 @@ class ApplicantResource extends Resource
     protected static ?string $navigationLabel = 'Calon Siswa';
 
     protected static ?string $slug = 'applicants';
-    
+
     protected static ?string $modelLabel = 'Calon Siswa';
-    
+
     protected static ?string $pluralModelLabel = 'Calon Siswa';
 
     public static function form(Form $form): Form
@@ -57,7 +57,7 @@ class ApplicantResource extends Resource
     public static function table(Table $table): Table
     {
         $table = $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['wave', 'latestSubmission', 'latestPayment']))
+            ->modifyQueryUsing(fn(Builder $query) => $query->with(['wave', 'latestSubmission', 'latestPayment']))
             ->defaultSort('registered_datetime', 'desc');
 
         $columns = [
@@ -81,8 +81,8 @@ class ApplicantResource extends Resource
                 ->sortable(),
             BadgeColumn::make('latestPayment.payment_status_name')
                 ->label('Status Bayar')
-                ->formatStateUsing(fn ($state) => $state?->label() ?? 'Belum Bayar')
-                ->color(fn ($state): string => $state?->color() ?? 'warning')
+                ->formatStateUsing(fn($state) => $state?->label() ?? 'Belum Bayar')
+                ->color(fn($state): string => $state?->color() ?? 'warning')
                 ->sortable()
                 ->placeholder('Belum Bayar'),
             TextColumn::make('registered_datetime')
@@ -94,7 +94,7 @@ class ApplicantResource extends Resource
         foreach (self::getExportableFields() as $field) {
             $columns[] = TextColumn::make('answers.' . $field->field_key)
                 ->label($field->field_label)
-                ->state(fn (Applicant $record) => self::formatAnswerValue($record->getLatestAnswerForField($field->field_key)))
+                ->state(fn(Applicant $record) => self::formatAnswerValue($record->getLatestAnswerForField($field->field_key)))
                 ->toggleable(isToggledHiddenByDefault: true)
                 ->wrap();
         }
@@ -122,7 +122,7 @@ class ApplicantResource extends Resource
                 ->relationship('wave', 'wave_name'),
             SelectFilter::make('chosen_major_name')
                 ->label('Jurusan')
-                ->options(fn () => Applicant::query()
+                ->options(fn() => Applicant::query()
                     ->orderBy('chosen_major_name')
                     ->distinct()
                     ->pluck('chosen_major_name', 'chosen_major_name')
@@ -130,8 +130,8 @@ class ApplicantResource extends Resource
                     ->all()),
             SelectFilter::make('latestPayment.payment_status_name')
                 ->label('Status Bayar')
-                ->options(fn () => collect(\App\Enum\PaymentStatus::cases())
-                    ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
+                ->options(fn() => collect(\App\Enum\PaymentStatus::cases())
+                    ->mapWithKeys(fn($status) => [$status->value => $status->label()])
                     ->all())
                 ->query(function ($query, $data) {
                     if (filled($data['value'])) {
@@ -149,8 +149,8 @@ class ApplicantResource extends Resource
                 ->form([
                     self::buildFieldFilterComponent($field),
                 ])
-                ->query(fn (Builder $query, array $data) => self::applyFieldFilter($query, $field, $data['value'] ?? null))
-                ->indicateUsing(fn (array $data) => self::formatFilterIndicator($field->field_label, $data['value'] ?? null));
+                ->query(fn(Builder $query, array $data) => self::applyFieldFilter($query, $field, $data['value'] ?? null))
+                ->indicateUsing(fn(array $data) => self::formatFilterIndicator($field->field_label, $data['value'] ?? null));
         }
 
         return $filters;
@@ -161,11 +161,11 @@ class ApplicantResource extends Resource
         return Action::make('export')
             ->label('Export')
             ->icon('heroicon-o-arrow-down-tray')
-            ->visible(fn () => ExportTemplate::query()->exists())
+            ->visible(fn() => ExportTemplate::query()->exists())
             ->form([
                 Forms\Components\Select::make('template_id')
                     ->label('Template Ekspor')
-                    ->options(fn () => ExportTemplate::query()
+                    ->options(fn() => ExportTemplate::query()
                         ->orderByDesc('is_default')
                         ->orderBy('template_name')
                         ->pluck('template_name', 'id')
@@ -174,7 +174,7 @@ class ApplicantResource extends Resource
             ])
             ->action(function (Applicant $record, array $data) {
                 $template = ExportTemplate::find($data['template_id']);
-                
+
                 if (!$template) {
                     Notification::make()
                         ->title('Template tidak ditemukan')
@@ -210,7 +210,7 @@ class ApplicantResource extends Resource
             ->form([
                 Forms\Components\Select::make('template_id')
                     ->label('Template Ekspor')
-                    ->options(fn () => ExportTemplate::query()
+                    ->options(fn() => ExportTemplate::query()
                         ->orderByDesc('is_default')
                         ->orderBy('template_name')
                         ->pluck('template_name', 'id')
@@ -219,7 +219,7 @@ class ApplicantResource extends Resource
             ])
             ->action(function (Collection $records, array $data) {
                 $template = ExportTemplate::find($data['template_id']);
-                
+
                 if (!$template) {
                     Notification::make()
                         ->title('Template tidak ditemukan')
@@ -282,10 +282,10 @@ class ApplicantResource extends Resource
                     }
                     $recipient = $applicant->applicant_email_address;
                     try {
-                        match($emailType) {
-                            'registration' => app(GmailMailableSender::class)->send($recipient, new ApplicantRegistered($applicant)),
-                            'payment' => app(GmailMailableSender::class)->send($recipient, new PaymentConfirmed($applicant->latestPayment)),
-                            'exam_card' => app(GmailMailableSender::class)->send($recipient, new ExamCardReady($applicant)),
+                        match ($emailType) {
+                            'registration' => app(EmailServiceInterface::class)->send($recipient, new ApplicantRegistered($applicant)),
+                            'payment' => app(EmailServiceInterface::class)->send($recipient, new PaymentConfirmed($applicant->latestPayment)),
+                            'exam_card' => app(EmailServiceInterface::class)->send($recipient, new ExamCardReady($applicant)),
                         };
                         $successCount++;
                     } catch (\Exception $e) {
@@ -316,7 +316,7 @@ class ApplicantResource extends Resource
         return FormField::query()
             ->where('is_exportable', true)
             ->where('is_archived', false)
-            ->whereHas('formVersion', fn (Builder $query) => $query->where('is_active', true))
+            ->whereHas('formVersion', fn(Builder $query) => $query->where('is_active', true))
             ->orderBy('field_order_number')
             ->get();
     }
@@ -326,7 +326,7 @@ class ApplicantResource extends Resource
         return FormField::query()
             ->where('is_filterable', true)
             ->where('is_archived', false)
-            ->whereHas('formVersion', fn (Builder $query) => $query->where('is_active', true))
+            ->whereHas('formVersion', fn(Builder $query) => $query->where('is_active', true))
             ->orderBy('field_order_number')
             ->get();
     }
@@ -369,7 +369,7 @@ class ApplicantResource extends Resource
 
                 return [$key => $option];
             })
-            ->filter(fn ($label, $value) => filled($value))
+            ->filter(fn($label, $value) => filled($value))
             ->all();
     }
 
@@ -383,7 +383,7 @@ class ApplicantResource extends Resource
             $answers->where('form_field_id', $field->id);
 
             if (is_array($value)) {
-                $values = array_filter($value, fn ($item) => filled($item));
+                $values = array_filter($value, fn($item) => filled($item));
 
                 if ($values === []) {
                     return;
@@ -418,7 +418,7 @@ class ApplicantResource extends Resource
         }
 
         $display = is_array($value)
-            ? implode(', ', array_filter($value, fn ($item) => filled($item)))
+            ? implode(', ', array_filter($value, fn($item) => filled($item)))
             : (string) $value;
 
         if ($display === '') {
@@ -432,7 +432,7 @@ class ApplicantResource extends Resource
     {
         if (is_array($value)) {
             $flattened = Arr::flatten($value);
-            $display = implode(', ', array_filter($flattened, fn ($item) => filled($item)));
+            $display = implode(', ', array_filter($flattened, fn($item) => filled($item)));
 
             return $display === '' ? null : $display;
         }
@@ -471,11 +471,11 @@ class ApplicantResource extends Resource
         return false;
     }
 
-     public static function getNavigationBadge(): ?string
+    public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }
-    
+
     public static function getNavigationBadgeColor(): ?string
     {
         return static::getModel()::count() > 0 ? 'success' : 'gray';

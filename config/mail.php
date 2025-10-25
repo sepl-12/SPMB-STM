@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Default Mailer
@@ -36,7 +35,6 @@ return [
     */
 
     'mailers' => [
-
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
@@ -96,7 +94,6 @@ return [
             ],
             'retry_after' => 60,
         ],
-
     ],
 
     /*
@@ -115,4 +112,20 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Preferred Email Service
+    |--------------------------------------------------------------------------
+    |
+    | This application primarily uses Gmail API for email delivery.
+    | LaravelEmailService is kept as emergency fallback only.
+    | 
+    | The system will automatically use Gmail API if healthy,
+    | otherwise fallback to Laravel Mail service.
+    |
+    | Note: Configuration is handled automatically in AppServiceProvider
+    |
+    */
+
+    'preferred_service' => 'gmail', // Always Gmail API (with automatic fallback)
 ];

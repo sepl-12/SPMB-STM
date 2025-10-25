@@ -9,7 +9,7 @@ use App\Mail\ExamCardReady;
 use App\Mail\PaymentConfirmed;
 use App\Models\Applicant;
 use App\Models\FormField;
-use App\Services\GmailMailableSender;
+use App\Services\Email\EmailServiceInterface;
 use Filament\Actions\Action as HeaderAction;
 use Filament\Infolists\Components\Actions\Action;
 use Filament\Infolists\Components\Grid;
@@ -74,7 +74,7 @@ class ViewApplicant extends ViewRecord
                         ->required()
                         ->default('registration')
                         ->native(false),
-                    
+
                     \Filament\Forms\Components\TextInput::make('custom_email')
                         ->label('Email Tujuan (Opsional)')
                         ->email()
@@ -95,10 +95,10 @@ class ViewApplicant extends ViewRecord
                     }
 
                     try {
-                        match($emailType) {
-                            'registration' => app(GmailMailableSender::class)->send($recipient, new ApplicantRegistered($this->record)),
-                            'payment' => app(GmailMailableSender::class)->send($recipient, new PaymentConfirmed($this->record->latestPayment)),
-                            'exam_card' => app(GmailMailableSender::class)->send($recipient, new ExamCardReady($this->record)),
+                        match ($emailType) {
+                            'registration' => app(EmailServiceInterface::class)->send($recipient, new ApplicantRegistered($this->record)),
+                            'payment' => app(EmailServiceInterface::class)->send($recipient, new PaymentConfirmed($this->record->latestPayment)),
+                            'exam_card' => app(EmailServiceInterface::class)->send($recipient, new ExamCardReady($this->record)),
                         };
 
                         Notification::make()
@@ -114,7 +114,7 @@ class ViewApplicant extends ViewRecord
                             ->send();
                     }
                 }),
-            
+
             PreviousRecordAction::make(),
             NextRecordAction::make()
         ];
@@ -142,8 +142,8 @@ class ViewApplicant extends ViewRecord
                                                 TextEntry::make('latestPayment.payment_status_name')
                                                     ->label('Status Bayar')
                                                     ->badge()
-                                                    ->formatStateUsing(fn ($state) => $state?->label() ?? 'Belum Bayar')
-                                                    ->color(fn ($state): string => $state?->color() ?? 'warning')
+                                                    ->formatStateUsing(fn($state) => $state?->label() ?? 'Belum Bayar')
+                                                    ->color(fn($state): string => $state?->color() ?? 'warning')
                                                     ->placeholder('Belum Bayar'),
                                             ]),
                                     ]),
@@ -155,145 +155,145 @@ class ViewApplicant extends ViewRecord
                                                 TextEntry::make('applicant_phone_number')->label('Nomor Telepon'),
                                                 TextEntry::make('applicant_email_address')->label('Email'),
                                             ]),
-                        ]),
-                    ]),
-                Tab::make('Jawaban Form')
-                    ->icon('heroicon-o-document-text')
-                    ->badge(fn (Applicant $record) => $this->getFormAnswersCount($record) ?: null)
-                    ->schema([
-                        Section::make('Ringkasan Jawaban')
-                            ->description('Semua jawaban yang telah diisi oleh pendaftar')
-                            ->headerActions([
-                                \Filament\Infolists\Components\Actions\Action::make('expand_all')
-                                    ->label('Expand Semua')
-                                    ->icon('heroicon-o-arrows-pointing-out')
-                                    ->color('gray')
-                                    ->hidden(fn (Applicant $record) => empty($this->getFormAnswerGroups($record))),
-                            ])
-                            ->schema(function (Applicant $record) {
-                                $answerGroups = $this->getFormAnswerGroups($record);
-
-                                if (empty($answerGroups)) {
-                                    return [
-                                        TextEntry::make('no_answers_message')
-                                            ->label('')
-                                            ->state('Belum ada jawaban formulir yang tersimpan.')
+                                    ]),
+                            ]),
+                        Tab::make('Jawaban Form')
+                            ->icon('heroicon-o-document-text')
+                            ->badge(fn(Applicant $record) => $this->getFormAnswersCount($record) ?: null)
+                            ->schema([
+                                Section::make('Ringkasan Jawaban')
+                                    ->description('Semua jawaban yang telah diisi oleh pendaftar')
+                                    ->headerActions([
+                                        \Filament\Infolists\Components\Actions\Action::make('expand_all')
+                                            ->label('Expand Semua')
+                                            ->icon('heroicon-o-arrows-pointing-out')
                                             ->color('gray')
-                                            ->icon('heroicon-o-information-circle'),
-                                    ];
-                                }
+                                            ->hidden(fn(Applicant $record) => empty($this->getFormAnswerGroups($record))),
+                                    ])
+                                    ->schema(function (Applicant $record) {
+                                        $answerGroups = $this->getFormAnswerGroups($record);
 
-                                $sections = [];
+                                        if (empty($answerGroups)) {
+                                            return [
+                                                TextEntry::make('no_answers_message')
+                                                    ->label('')
+                                                    ->state('Belum ada jawaban formulir yang tersimpan.')
+                                                    ->color('gray')
+                                                    ->icon('heroicon-o-information-circle'),
+                                            ];
+                                        }
 
-                                foreach ($answerGroups as $group) {
-                                    /** @var \Illuminate\Support\Collection $fields */
-                                    $fields = $group['fields'];
+                                        $sections = [];
 
-                                    if ($fields->isEmpty()) {
-                                        continue;
-                                    }
+                                        foreach ($answerGroups as $group) {
+                                            /** @var \Illuminate\Support\Collection $fields */
+                                            $fields = $group['fields'];
 
-                                    $fieldSections = $fields->map(function (array $field) use ($record) {
-                                        $meta = $this->getAnswerDisplayMeta($field['label'], $field['value']);
-                                        $fieldKey = 'answer_value_' . md5(($field['field_key'] ?? $field['label']));
-                                        
-                                        // Check if field is an image type
-                                        if ($field['field']?->field_type === 'image') {
-                                            $rawValue = $field['raw_value'];
-                                            
-                                            // Handle different image value formats
-                                            if (is_string($rawValue) && !empty($rawValue)) {
-                                                // Single image path
-                                                return ImageEntry::make($fieldKey)
+                                            if ($fields->isEmpty()) {
+                                                continue;
+                                            }
+
+                                            $fieldSections = $fields->map(function (array $field) use ($record) {
+                                                $meta = $this->getAnswerDisplayMeta($field['label'], $field['value']);
+                                                $fieldKey = 'answer_value_' . md5(($field['field_key'] ?? $field['label']));
+
+                                                // Check if field is an image type
+                                                if ($field['field']?->field_type === 'image') {
+                                                    $rawValue = $field['raw_value'];
+
+                                                    // Handle different image value formats
+                                                    if (is_string($rawValue) && !empty($rawValue)) {
+                                                        // Single image path
+                                                        return ImageEntry::make($fieldKey)
+                                                            ->label($field['label'])
+                                                            ->state($rawValue)
+                                                            ->disk('public')
+                                                            ->height(200)
+                                                            ->width('auto')
+                                                            ->extraAttributes([
+                                                                'class' => 'rounded-lg'
+                                                            ]);
+                                                    } elseif (is_array($rawValue)) {
+                                                        // Handle array of images (if format is [['url' => '...', 'name' => '...']])
+                                                        $imageUrls = collect($rawValue)
+                                                            ->map(fn($file) => is_array($file) ? ($file['url'] ?? $file['path'] ?? null) : $file)
+                                                            ->filter()
+                                                            ->toArray();
+
+                                                        if (!empty($imageUrls)) {
+                                                            return ImageEntry::make($fieldKey)
+                                                                ->label($field['label'])
+                                                                ->state($imageUrls)
+                                                                ->disk('public')
+                                                                ->height(200)
+                                                                ->width('auto')
+                                                                ->extraAttributes([
+                                                                    'class' => 'rounded-lg'
+                                                                ]);
+                                                        }
+                                                    }
+                                                }
+
+                                                // Check if field is a file/document type
+                                                if ($field['field']?->field_type === 'file' && $field['field']?->id) {
+                                                    $fileData = $this->getFileDataForField($record, $field['field']->id);
+
+                                                    if ($fileData) {
+                                                        return FileViewerEntry::make($fieldKey)
+                                                            ->label($field['label'])
+                                                            ->fileName($fileData['original_file_name'])
+                                                            ->fileSize($fileData['file_size'])
+                                                            ->mimeType($fileData['mime_type_name'])
+                                                            ->downloadUrl($fileData['download_url'])
+                                                            ->previewUrl($fileData['preview_url']);
+                                                    }
+                                                }
+
+                                                // Default to TextEntry for non-image or if image not found
+                                                return TextEntry::make($fieldKey)
                                                     ->label($field['label'])
-                                                    ->state($rawValue)
-                                                    ->disk('public')
-                                                    ->height(200)
-                                                    ->width('auto')
+                                                    ->weight('bold')
+                                                    ->fontFamily(FontFamily::Mono)
+                                                    ->size(TextEntrySize::Medium)
+                                                    ->state($field['value'])
+                                                    ->copyable()
+                                                    ->copyMessage('Tersalin!')
+                                                    ->copyMessageDuration(1500)
+                                                    ->placeholder('(belum diisi)')
+                                                    ->formatStateUsing(function ($state) {
+                                                        if ($state === null || $state === '') {
+                                                            return null;
+                                                        }
+
+                                                        if (is_string($state) && strlen($state) > 500) {
+                                                            return substr($state, 0, 500) . '... (klik copy untuk lihat lengkap)';
+                                                        }
+
+                                                        return $state;
+                                                    })
+                                                    ->color('blue')
                                                     ->extraAttributes([
-                                                        'class' => 'rounded-lg'
+                                                        'class' => 'break-words'
                                                     ]);
-                                            } elseif (is_array($rawValue)) {
-                                                // Handle array of images (if format is [['url' => '...', 'name' => '...']])
-                                                $imageUrls = collect($rawValue)
-                                                    ->map(fn($file) => is_array($file) ? ($file['url'] ?? $file['path'] ?? null) : $file)
-                                                    ->filter()
-                                                    ->toArray();
-                                                
-                                                if (!empty($imageUrls)) {
-                                                    return ImageEntry::make($fieldKey)
-                                                        ->label($field['label'])
-                                                        ->state($imageUrls)
-                                                        ->disk('public')
-                                                        ->height(200)
-                                                        ->width('auto')
-                                                        ->extraAttributes([
-                                                            'class' => 'rounded-lg'
-                                                        ]);
-                                                }
+                                            })->all();
+
+                                            if (empty($fieldSections)) {
+                                                continue;
                                             }
+
+                                            $sections[] = Section::make($group['title'])
+                                                ->description($group['description'])
+                                                ->schema($fieldSections)
+                                                ->icon('heroicon-o-rectangle-group')
+                                                ->collapsible()
+                                                ->collapsed(false)
+                                                ->compact()
+                                                ->columns(2);
                                         }
-                                        
-                                        // Check if field is a file/document type
-                                        if ($field['field']?->field_type === 'file' && $field['field']?->id) {
-                                            $fileData = $this->getFileDataForField($record, $field['field']->id);
-                                            
-                                            if ($fileData) {
-                                                return FileViewerEntry::make($fieldKey)
-                                                    ->label($field['label'])
-                                                    ->fileName($fileData['original_file_name'])
-                                                    ->fileSize($fileData['file_size'])
-                                                    ->mimeType($fileData['mime_type_name'])
-                                                    ->downloadUrl($fileData['download_url'])
-                                                    ->previewUrl($fileData['preview_url']);
-                                            }
-                                        }
-                                        
-                                        // Default to TextEntry for non-image or if image not found
-                                        return TextEntry::make($fieldKey)
-                                            ->label($field['label'])
-                                            ->weight('bold')
-                                            ->fontFamily(FontFamily::Mono)
-                                            ->size(TextEntrySize::Medium)
-                                            ->state($field['value'])
-                                            ->copyable()
-                                            ->copyMessage('Tersalin!')
-                                            ->copyMessageDuration(1500)
-                                            ->placeholder('(belum diisi)')
-                                            ->formatStateUsing(function ($state) {
-                                                if ($state === null || $state === '') {
-                                                    return null;
-                                                }
 
-                                                if (is_string($state) && strlen($state) > 500) {
-                                                    return substr($state, 0, 500) . '... (klik copy untuk lihat lengkap)';
-                                                }
-
-                                                return $state;
-                                            })
-                                            ->color('blue')
-                                            ->extraAttributes([
-                                                'class' => 'break-words'
-                                            ]);
-                                    })->all();
-
-                                    if (empty($fieldSections)) {
-                                        continue;
-                                    }
-
-                                    $sections[] = Section::make($group['title'])
-                                        ->description($group['description'])
-                                        ->schema($fieldSections)
-                                        ->icon('heroicon-o-rectangle-group')
-                                        ->collapsible()
-                                        ->collapsed(false)
-                                        ->compact()
-                                        ->columns(2);
-                                }
-
-                                return $sections;
-                            })
-                            ->columnSpan('full'),
+                                        return $sections;
+                                    })
+                                    ->columnSpan('full'),
                             ]),
                         Tab::make('Pembayaran')
                             ->icon('heroicon-o-banknotes')
@@ -304,8 +304,8 @@ class ViewApplicant extends ViewRecord
                                     ->schema([
                                         RepeatableEntry::make('payments')
                                             ->label('')
-                                            ->state(fn (Applicant $record) => $this->getPaymentsState($record)->values()->all())
-                                            ->visible(fn (Applicant $record) => $this->getPaymentsState($record)->isNotEmpty())
+                                            ->state(fn(Applicant $record) => $this->getPaymentsState($record)->values()->all())
+                                            ->visible(fn(Applicant $record) => $this->getPaymentsState($record)->isNotEmpty())
                                             ->schema([
                                                 Grid::make(2)
                                                     ->schema([
@@ -313,10 +313,10 @@ class ViewApplicant extends ViewRecord
                                                         TextEntry::make('payment_status_name')
                                                             ->label('Status')
                                                             ->badge()
-                                                            ->formatStateUsing(fn ($state) => $state?->label() ?? ucfirst($state))
-                                                            ->color(fn ($state): string => $state?->color() ?? 'gray'),
+                                                            ->formatStateUsing(fn($state) => $state?->label() ?? ucfirst($state))
+                                                            ->color(fn($state): string => $state?->color() ?? 'gray'),
                                                         TextEntry::make('payment_method_name')->label('Metode')
-                                                            ->formatStateUsing(fn ($state) => $state?->label() ?? ucfirst($state)),
+                                                            ->formatStateUsing(fn($state) => $state?->label() ?? ucfirst($state)),
                                                         TextEntry::make('paid_amount_total')->label('Jumlah')->money('IDR'),
                                                         TextEntry::make('status_updated_datetime')->label('Diupdate')->dateTime('d M Y H:i'),
                                                     ]),
@@ -324,7 +324,7 @@ class ViewApplicant extends ViewRecord
                                         TextEntry::make('no_payments_message')
                                             ->label('')
                                             ->state('Belum ada transaksi pembayaran.')
-                                            ->visible(fn (Applicant $record) => $this->getPaymentsState($record)->isEmpty())
+                                            ->visible(fn(Applicant $record) => $this->getPaymentsState($record)->isEmpty())
                                             ->color('gray'),
                                     ]),
                             ]),
@@ -335,14 +335,14 @@ class ViewApplicant extends ViewRecord
     protected function getFormAnswersCount(Applicant $record): int
     {
         return collect($this->getFormAnswerGroups($record))
-            ->sum(fn (array $group) => $group['fields']->count());
+            ->sum(fn(array $group) => $group['fields']->count());
     }
 
     protected function getAnswersWithLabels(Applicant $record): array
     {
         return collect($this->getFormAnswerGroups($record))
             ->flatMap(function (array $group) {
-                return $group['fields']->mapWithKeys(fn (array $field) => [$field['label'] => $field['value']]);
+                return $group['fields']->mapWithKeys(fn(array $field) => [$field['label'] => $field['value']]);
             })
             ->all();
     }
@@ -362,12 +362,12 @@ class ViewApplicant extends ViewRecord
             ->get();
 
         $sortedFields = $fields->sortBy([
-            fn (FormField $field) => $field->formStep?->step_order_number ?? PHP_INT_MAX,
-            fn (FormField $field) => $field->field_order_number,
+            fn(FormField $field) => $field->formStep?->step_order_number ?? PHP_INT_MAX,
+            fn(FormField $field) => $field->field_order_number,
         ]);
 
         $groups = $sortedFields
-            ->groupBy(fn (FormField $field) => $field->form_step_id ?? 'ungrouped')
+            ->groupBy(fn(FormField $field) => $field->form_step_id ?? 'ungrouped')
             ->map(function (Collection $fields) use ($answers) {
                 $step = $fields->first()->formStep;
                 $items = $fields->map(function (FormField $field) use ($answers) {
@@ -394,7 +394,7 @@ class ViewApplicant extends ViewRecord
                     'fields' => $items,
                 ];
             })
-            ->filter(fn (array $group) => $group['fields']->isNotEmpty())
+            ->filter(fn(array $group) => $group['fields']->isNotEmpty())
             ->sortBy('order')
             ->values()
             ->all();
@@ -546,7 +546,7 @@ class ViewApplicant extends ViewRecord
     {
         return $record->payments
             ->sortByDesc('status_updated_datetime')
-            ->map(fn ($payment) => [
+            ->map(fn($payment) => [
                 'merchant_order_code' => $payment->merchant_order_code,
                 'payment_status_name' => $payment->payment_status_name,
                 'payment_method_name' => $payment->payment_method_name,
