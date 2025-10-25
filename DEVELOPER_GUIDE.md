@@ -394,14 +394,19 @@ TextInput::make('applicant_full_name')
 php artisan test
 
 # Test specific file
-php artisan test tests/Feature/RegistrationTest.php
+php artisan test tests/Feature/Registration/RegistrationWizardFlowTest.php
 
 # With coverage
 php artisan test --coverage
+
+# Via composer shortcut
+composer test
 ```
 
+Panduan lengkap cakupan & prioritas pengujian ada di `docs/registration-testing-strategy.md`.
+
 **Key Test Areas:**
-- Registration flow
+- Registration flow (wizard & submit)
 - Payment webhook handling
 - File upload
 - Export functionality

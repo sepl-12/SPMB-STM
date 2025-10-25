@@ -20,8 +20,7 @@ class FormFieldValidationServiceTest extends TestCase
         parent::setUp();
         $this->validationService = new FormFieldValidationService();
     }
-
-    /** @test */
+    #[\PHPUnit\Framework\Attributes\Test]
     public function it_validates_valid_email_addresses()
     {
         $field = new FormField([
@@ -48,8 +47,7 @@ class FormFieldValidationServiceTest extends TestCase
             }
         }
     }
-
-    /** @test */
+    #[\PHPUnit\Framework\Attributes\Test]
     public function it_rejects_invalid_email_addresses()
     {
         $field = new FormField([
@@ -76,8 +74,7 @@ class FormFieldValidationServiceTest extends TestCase
             $this->validationService->validateSingleField($email, $field);
         }
     }
-
-    /** @test */
+    #[\PHPUnit\Framework\Attributes\Test]
     public function it_rejects_disposable_email_domains()
     {
         $field = new FormField([
@@ -98,8 +95,7 @@ class FormFieldValidationServiceTest extends TestCase
             $this->validationService->validateSingleField($email, $field);
         }
     }
-
-    /** @test */
+    #[\PHPUnit\Framework\Attributes\Test]
     public function it_validates_required_fields()
     {
         $requiredField = new FormField([
@@ -124,8 +120,7 @@ class FormFieldValidationServiceTest extends TestCase
         $result = $this->validationService->validateSingleField('', $optionalField);
         $this->assertEmpty($result);
     }
-
-    /** @test */
+    #[\PHPUnit\Framework\Attributes\Test]
     public function it_validates_text_fields()
     {
         $textField = new FormField([
@@ -144,8 +139,7 @@ class FormFieldValidationServiceTest extends TestCase
         $this->expectException(ValidationException::class);
         $this->validationService->validateSingleField($longText, $textField);
     }
-
-    /** @test */
+    #[\PHPUnit\Framework\Attributes\Test]
     public function it_validates_number_fields()
     {
         $numberField = new FormField([
