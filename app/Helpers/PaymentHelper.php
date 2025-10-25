@@ -52,11 +52,9 @@ class PaymentHelper
      */
     public static function getMethodOptions(): array
     {
-        $options = [];
-        foreach (PaymentMethod::cases() as $method) {
-            $options[$method->value] = $method->label();
-        }
-        return $options;
+        return collect(config('payment.payment_methods', []))
+            ->mapWithKeys(fn($meta, $key) => [$key => $meta['label'] ?? $key])
+            ->toArray();
     }
 
     /**
@@ -64,14 +62,14 @@ class PaymentHelper
      */
     public static function getMethodsByCategory(): array
     {
+        $methods = config('payment.payment_methods', []);
+
         $categories = [];
-        foreach (PaymentMethod::cases() as $method) {
-            $category = $method->category();
-            if (!isset($categories[$category])) {
-                $categories[$category] = [];
-            }
-            $categories[$category][$method->value] = $method->label();
+        foreach ($methods as $method => $meta) {
+            $category = $meta['category'] ?? 'other';
+            $categories[$category][$method] = $meta['label'] ?? $method;
         }
+
         return $categories;
     }
 
@@ -104,16 +102,21 @@ class PaymentHelper
      */
     public static function mapMidtransStatus(string $transactionStatus, ?string $fraudStatus = null): PaymentStatus
     {
-        return match (strtolower($transactionStatus)) {
-            'capture' => $fraudStatus === 'accept' ? PaymentStatus::SETTLEMENT : PaymentStatus::CAPTURE,
-            'settlement' => PaymentStatus::SETTLEMENT,
-            'pending' => PaymentStatus::PENDING,
-            'cancel' => PaymentStatus::CANCEL,
-            'deny' => PaymentStatus::DENY,
-            'expire' => PaymentStatus::EXPIRE,
-            'failure', 'failed' => PaymentStatus::FAILURE,
-            default => PaymentStatus::PENDING,
-        };
+        $mapping = config('payment.status_mapping', []);
+        $statusKey = strtolower($transactionStatus);
+
+        $value = $mapping[$statusKey] ?? PaymentStatus::PENDING;
+
+        if (is_array($value)) {
+            $fraudKey = strtolower((string) $fraudStatus);
+            $value = $value[$fraudKey] ?? PaymentStatus::CAPTURE;
+        }
+
+        if ($value instanceof PaymentStatus) {
+            return $value;
+        }
+
+        return PaymentStatus::from($value);
     }
     
     /**
@@ -121,7 +124,14 @@ class PaymentHelper
      */
     public static function mapMidtransPaymentType(string $paymentType): PaymentMethod
     {
-        return match (strtolower($paymentType)) {
+        $type = strtolower($paymentType);
+        $methods = config('payment.payment_methods', []);
+
+        if (array_key_exists($type, $methods)) {
+            return PaymentMethod::from($type);
+        }
+
+        return match ($type) {
             'credit_card' => PaymentMethod::CREDIT_CARD,
             'bank_transfer' => PaymentMethod::BANK_TRANSFER,
             'bca_va', 'bca_klikbca', 'bca_klikpay' => PaymentMethod::BCA_VA,
@@ -152,12 +162,19 @@ class PaymentHelper
      */
     public static function getExpiryTime(PaymentMethod $method): int
     {
-        return match ($method->category()) {
-            'virtual_account' => 24 * 60, // 24 hours
-            'ewallet' => 15, // 15 minutes
-            'qr_code' => 30, // 30 minutes
-            'convenience_store' => 3 * 24 * 60, // 3 days
-            default => 60, // 1 hour
+        $meta = config('payment.payment_methods.' . $method->value, []);
+        $configured = $meta['expiry'] ?? null;
+
+        if ($configured !== null) {
+            return (int) $configured;
+        }
+
+        return match ($meta['category'] ?? $method->category()) {
+            'virtual_account' => 24 * 60,
+            'ewallet' => 15,
+            'qr_code' => 30,
+            'convenience_store' => 3 * 24 * 60,
+            default => 60,
         };
     }
 
@@ -167,16 +184,18 @@ class PaymentHelper
     public static function calculateFees(float $amount, PaymentMethod $method): float
     {
         // Define fee structure - this should ideally come from config or database
-        $fees = match ($method) {
-            PaymentMethod::CREDIT_CARD => $amount * 0.029 + 2000, // 2.9% + Rp 2,000
-            PaymentMethod::BCA_VA, PaymentMethod::BNI_VA, PaymentMethod::BRI_VA => 4000, // Flat fee
-            PaymentMethod::GOPAY, PaymentMethod::OVO, PaymentMethod::DANA => $amount * 0.02, // 2%
-            PaymentMethod::QRIS => $amount * 0.007, // 0.7%
-            PaymentMethod::ALFAMART, PaymentMethod::INDOMARET => 5000, // Flat fee
-            default => 0,
-        };
+        $meta = config('payment.payment_methods.' . $method->value, []);
+        $fee = 0;
 
-        return round($fees);
+        if ($percentage = $meta['fee']['percentage'] ?? null) {
+            $fee += $amount * (float) $percentage;
+        }
+
+        if ($flat = $meta['fee']['flat'] ?? null) {
+            $fee += (float) $flat;
+        }
+
+        return round($fee);
     }
 
     /**
@@ -184,47 +203,23 @@ class PaymentHelper
      */
     public static function getPaymentInstructions(PaymentMethod $method): array
     {
-        return match ($method) {
-            PaymentMethod::BCA_VA => [
-                'title' => 'Cara Pembayaran BCA Virtual Account',
-                'steps' => [
-                    'Buka aplikasi BCA Mobile atau datang ke ATM BCA',
-                    'Pilih menu "Transfer" atau "m-Transfer"',
-                    'Pilih "ke BCA Virtual Account"',
-                    'Masukkan nomor Virtual Account yang tertera',
-                    'Masukkan jumlah pembayaran sesuai tagihan',
-                    'Ikuti instruksi hingga transaksi selesai',
-                ]
-            ],
-            PaymentMethod::GOPAY => [
-                'title' => 'Cara Pembayaran dengan GoPay',
-                'steps' => [
-                    'Buka aplikasi Gojek atau GoPay',
-                    'Scan QR Code yang ditampilkan',
-                    'Atau klik tombol "Bayar dengan GoPay"',
-                    'Masukkan PIN GoPay Anda',
-                    'Pembayaran akan diproses secara otomatis',
-                ]
-            ],
-            PaymentMethod::QRIS => [
-                'title' => 'Cara Pembayaran dengan QRIS',
-                'steps' => [
-                    'Buka aplikasi e-wallet atau mobile banking',
-                    'Pilih menu "Scan QR" atau "QRIS"',
-                    'Scan QR Code yang ditampilkan',
-                    'Periksa detail pembayaran',
-                    'Konfirmasi pembayaran',
-                ]
-            ],
-            default => [
-                'title' => 'Instruksi Pembayaran',
-                'steps' => [
-                    'Ikuti instruksi yang ditampilkan di halaman pembayaran',
-                    'Pastikan jumlah pembayaran sesuai dengan tagihan',
-                    'Simpan bukti pembayaran untuk referensi',
-                ]
-            ]
-        };
+        $methods = config('payment.payment_methods', []);
+        $meta = $methods[$method->value] ?? [];
+
+        $instructions = $meta['instructions'] ?? null;
+
+        if ($instructions) {
+            return $instructions;
+        }
+
+        $category = $meta['category'] ?? 'default';
+        $categoryInstructions = config('payment.instructions.' . $category)
+            ?? config('payment.instructions.default');
+
+        return $categoryInstructions ?? [
+            'title' => 'Instruksi Pembayaran',
+            'steps' => ['Ikuti instruksi yang ditampilkan pada halaman pembayaran.'],
+        ];
     }
 
     /**
