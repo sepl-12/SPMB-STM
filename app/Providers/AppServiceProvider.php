@@ -6,6 +6,8 @@ use App\Payment\Events\PaymentSettled;
 use App\Payment\Listeners\QueuePaymentConfirmationEmail;
 use App\Registration\Events\ApplicantRegisteredEvent;
 use App\Registration\Listeners\SendApplicantRegisteredEmail;
+use App\Settings\CacheSettingsRepository;
+use App\Settings\SettingsRepositoryInterface;
 use App\View\Composers\SiteSettingComposer;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
@@ -18,8 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(SettingsRepositoryInterface::class, CacheSettingsRepository::class);
     }
+
 
     /**
      * Bootstrap any application services.

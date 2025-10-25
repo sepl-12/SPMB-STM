@@ -2,7 +2,7 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\AppSetting;
+use App\Settings\SettingsRepositoryInterface;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Repeater;
@@ -32,9 +32,16 @@ class SiteSettings extends Page implements HasForms
 
     public ?array $data = [];
 
+    protected ?SettingsRepositoryInterface $settingsRepo = null;
+
     public function mount(): void
     {
         $this->form->fill($this->getSettingsData());
+    }
+
+    protected function settings(): SettingsRepositoryInterface
+    {
+        return $this->settingsRepo ??= app(SettingsRepositoryInterface::class);
     }
 
     public function form(Form $form): Form
@@ -246,32 +253,25 @@ class SiteSettings extends Page implements HasForms
 
     protected function getSettingsData(): array
     {
+        $repo = $this->settings();
+
         return [
-            // Hero
-            'hero_title' => AppSetting::get('hero_title', ''),
-            'hero_subtitle' => AppSetting::get('hero_subtitle', ''),
-            'hero_image' => AppSetting::get('hero_image', ''),
-
-            // CTA
-            'cta_button_label' => AppSetting::get('cta_button_label', ''),
-            'cta_button_url' => AppSetting::get('cta_button_url', ''),
-
-            // Content
-            'requirements_text' => AppSetting::get('requirements_text', ''),
-            'faq_items' => json_decode(AppSetting::get('faq_items', '[]'), true) ?: [],
-            'timeline_items' => json_decode(AppSetting::get('timeline_items', '[]'), true) ?: [],
-
-            // Contact
-            'contact_email' => AppSetting::get('contact_email', ''),
-            'contact_whatsapp' => AppSetting::get('contact_whatsapp', ''),
-            'contact_phone' => AppSetting::get('contact_phone', ''),
-            'contact_address' => AppSetting::get('contact_address', ''),
-
-            // Social
-            'social_facebook_url' => AppSetting::get('social_facebook_url', ''),
-            'social_instagram_handle' => AppSetting::get('social_instagram_handle', ''),
-            'social_twitter_handle' => AppSetting::get('social_twitter_handle', ''),
-            'social_youtube_url' => AppSetting::get('social_youtube_url', ''),
+            'hero_title' => $repo->get('hero_title', ''),
+            'hero_subtitle' => $repo->get('hero_subtitle', ''),
+            'hero_image' => $repo->get('hero_image', ''),
+            'cta_button_label' => $repo->get('cta_button_label', ''),
+            'cta_button_url' => $repo->get('cta_button_url', ''),
+            'requirements_text' => $repo->get('requirements_text', ''),
+            'faq_items' => json_decode($repo->get('faq_items', '[]'), true) ?: [],
+            'timeline_items' => json_decode($repo->get('timeline_items', '[]'), true) ?: [],
+            'contact_email' => $repo->get('contact_email', ''),
+            'contact_whatsapp' => $repo->get('contact_whatsapp', ''),
+            'contact_phone' => $repo->get('contact_phone', ''),
+            'contact_address' => $repo->get('contact_address', ''),
+            'social_facebook_url' => $repo->get('social_facebook_url', ''),
+            'social_instagram_handle' => $repo->get('social_instagram_handle', ''),
+            'social_twitter_handle' => $repo->get('social_twitter_handle', ''),
+            'social_youtube_url' => $repo->get('social_youtube_url', ''),
         ];
     }
 
@@ -280,18 +280,15 @@ class SiteSettings extends Page implements HasForms
         try {
             $data = $this->form->getState();
 
-            // Save each setting
+            $repo = $this->settings();
+
             foreach ($data as $key => $value) {
-                // Handle JSON fields
                 if (in_array($key, ['faq_items', 'timeline_items'])) {
-                    AppSetting::set($key, json_encode(array_values($value ?? [])));
+                    $repo->set($key, json_encode(array_values($value ?? [])));
                 } else {
-                    AppSetting::set($key, $value ?? '');
+                    $repo->set($key, $value ?? '');
                 }
             }
-
-            // Clear cache after save
-            AppSetting::clearCache();
 
             Notification::make()
                 ->success()

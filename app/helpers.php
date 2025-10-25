@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\AppSetting;
+use App\Settings\SettingsRepositoryInterface;
 
 if (!function_exists('setting')) {
     /**
@@ -12,7 +12,7 @@ if (!function_exists('setting')) {
      */
     function setting(string $key, $default = null)
     {
-        return AppSetting::get($key, $default);
+        return app(SettingsRepositoryInterface::class)->get($key, $default);
     }
 }
 
@@ -25,6 +25,6 @@ if (!function_exists('setting_group')) {
      */
     function setting_group(string $prefix): array
     {
-        return AppSetting::getGroup($prefix);
+        return app(SettingsRepositoryInterface::class)->getGroup($prefix);
     }
 }

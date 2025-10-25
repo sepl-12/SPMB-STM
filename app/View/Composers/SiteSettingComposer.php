@@ -2,12 +2,16 @@
 
 namespace App\View\Composers;
 
-use App\Models\AppSetting;
+use App\Settings\SettingsRepositoryInterface;
 use App\Models\Wave;
 use Illuminate\View\View;
 
 class SiteSettingComposer
 {
+    public function __construct(private readonly SettingsRepositoryInterface $settings)
+    {
+    }
+
     /**
      * Bind data to the view.
      *
@@ -16,16 +20,17 @@ class SiteSettingComposer
      */
     public function compose(View $view)
     {
-        // Get settings from app_settings table
+        $settingsRepo = $this->settings;
+
         $settings = (object) [
-            'hero_title_text' => AppSetting::get('hero_title', 'Penerimaan Peserta Didik Baru Online 2025/2026'),
-            'hero_subtitle_text' => AppSetting::get('hero_subtitle', 'Membuka pendaftaran siswa baru tahun ajaran 2025/2026'),
-            'hero_image_path' => AppSetting::get('hero_image', ''),
-            'cta_button_label' => AppSetting::get('cta_button_label', 'Daftar Sekarang'),
-            'cta_button_url' => AppSetting::get('cta_button_url', '/daftar'),
-            'requirements_markdown' => AppSetting::get('requirements_text', "1. Mengisi formulir pendaftaran\n2. Pas foto ukuran 3x4 (2 lembar)"),
-            'faq_items_json' => json_decode(AppSetting::get('faq_items', '[]'), true) ?: [],
-            'timeline_items_json' => json_decode(AppSetting::get('timeline_items', '[]'), true) ?: [],
+            'hero_title_text' => $settingsRepo->get('hero_title', 'Penerimaan Peserta Didik Baru Online 2025/2026'),
+            'hero_subtitle_text' => $settingsRepo->get('hero_subtitle', 'Membuka pendaftaran siswa baru tahun ajaran 2025/2026'),
+            'hero_image_path' => $settingsRepo->get('hero_image', ''),
+            'cta_button_label' => $settingsRepo->get('cta_button_label', 'Daftar Sekarang'),
+            'cta_button_url' => $settingsRepo->get('cta_button_url', '/daftar'),
+            'requirements_markdown' => $settingsRepo->get('requirements_text', "1. Mengisi formulir pendaftaran\n2. Pas foto ukuran 3x4 (2 lembar)"),
+            'faq_items_json' => json_decode($settingsRepo->get('faq_items', '[]'), true) ?: [],
+            'timeline_items_json' => json_decode($settingsRepo->get('timeline_items', '[]'), true) ?: [],
         ];
         
         // Get all waves and categorize them
