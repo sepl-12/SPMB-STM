@@ -23,9 +23,12 @@ class Applicant extends Model
     protected ?array $latestSubmissionAnswersCache = null;
 
     /**
-     * Appends - automatically include these when converting to array/json
+     * Appends - REMOVED untuk avoid N+1 queries
+     * Use services explicitly in controllers/views instead
+     * 
+     * @deprecated Use ApplicantPaymentStatusResolver service instead
      */
-    protected $appends = ['payment_status_computed', 'payment_status_badge'];
+    // protected $appends = ['payment_status_computed', 'payment_status_badge'];
 
     public function wave(): BelongsTo
     {
@@ -75,134 +78,118 @@ class Applicant extends Model
     }
 
     /**
-     * Accessor: Get payment status from latest payment (Single Source of Truth)
-     * This replaces the old payment_status column
+     * ============================================================
+     * DEPRECATED METHODS
+     * ============================================================
+     * 
+     * Use dedicated services instead:
+     * - ApplicantPaymentStatusResolver for payment status logic
+     * - ApplicantUrlGenerator for URL generation
+     * 
+     * These methods are kept for backward compatibility but will
+     * be removed in future versions.
+     */
+
+    /**
+     * @deprecated Use ApplicantPaymentStatusResolver::getLatestStatus() instead
      */
     public function getPaymentStatusComputedAttribute(): ?PaymentStatus
     {
-        // Use eager loaded relation if available
-        if ($this->relationLoaded('latestPayment')) {
-            return $this->latestPayment?->payment_status_name;
-        }
-
-        // Otherwise query it
-        $latestPayment = $this->latestPayment;
-        return $latestPayment?->payment_status_name;
+        return app(\App\Services\Applicant\ApplicantPaymentStatusResolver::class)
+            ->getLatestStatus($this);
     }
 
     /**
-     * Accessor: Get payment status as string value (for compatibility)
+     * @deprecated Use ApplicantPaymentStatusResolver::getStatusValue() instead
      */
     public function getPaymentStatusAttribute(): ?string
     {
-        $status = $this->payment_status_computed;
-        return $status?->value;
+        return app(\App\Services\Applicant\ApplicantPaymentStatusResolver::class)
+            ->getStatusValue($this);
     }
 
     /**
-     * Accessor: Get payment status badge data for UI
+     * @deprecated Use ApplicantPaymentStatusResolver::getStatusBadge() instead
      */
     public function getPaymentStatusBadgeAttribute(): array
     {
-        $status = $this->payment_status_computed;
-
-        if (!$status) {
-            return [
-                'label' => 'Belum Bayar',
-                'color' => 'warning',
-                'value' => 'unpaid',
-            ];
-        }
-
-        return [
-            'label' => $status->label(),
-            'color' => $status->color(),
-            'value' => $status->value,
-        ];
+        return app(\App\Services\Applicant\ApplicantPaymentStatusResolver::class)
+            ->getStatusBadge($this);
     }
 
     /**
-     * Check if payment is successful
+     * @deprecated Use ApplicantPaymentStatusResolver::hasSuccessfulPayment() instead
      */
     public function hasSuccessfulPayment(): bool
     {
-        return $this->payment_status_computed?->isSuccess() ?? false;
+        return app(\App\Services\Applicant\ApplicantPaymentStatusResolver::class)
+            ->hasSuccessfulPayment($this);
     }
 
     /**
-     * Check if payment is pending
+     * @deprecated Use ApplicantPaymentStatusResolver::hasPendingPayment() instead
      */
     public function hasPendingPayment(): bool
     {
-        return $this->payment_status_computed?->isPending() ?? true;
+        return app(\App\Services\Applicant\ApplicantPaymentStatusResolver::class)
+            ->hasPendingPayment($this);
     }
 
     /**
-     * Check if payment is failed
+     * @deprecated Use ApplicantPaymentStatusResolver::hasFailedPayment() instead
      */
     public function hasFailedPayment(): bool
     {
-        return $this->payment_status_computed?->isFailed() ?? false;
+        return app(\App\Services\Applicant\ApplicantPaymentStatusResolver::class)
+            ->hasFailedPayment($this);
     }
 
     /**
-     * Generate secure signed URL untuk payment page
+     * @deprecated Use ApplicantUrlGenerator::getPaymentUrl() instead
      * 
      * @param int|null $expiresInDays Jumlah hari sebelum URL expired (default: 7)
      * @return string Signed URL dengan signature dan expiration
      */
     public function getPaymentUrl(?int $expiresInDays = 7): string
     {
-        return URL::temporarySignedRoute(
-            'payment.show-secure',  // ✅ FIXED: Gunakan route yang benar
-            now()->addDays($expiresInDays),
-            ['registration_number' => $this->registration_number]
-        );
+        return app(\App\Services\Applicant\ApplicantUrlGenerator::class)
+            ->getPaymentUrl($this, $expiresInDays);
     }
 
     /**
-     * Generate secure signed URL untuk status page
+     * @deprecated Use ApplicantUrlGenerator::getStatusUrl() instead
      * 
      * @param int|null $expiresInDays Jumlah hari sebelum URL expired (default: 30)
      * @return string Signed URL dengan signature dan expiration
      */
     public function getStatusUrl(?int $expiresInDays = 30): string
     {
-        return URL::temporarySignedRoute(
-            'applicant.status-secure',  // ✅ Route yang benar
-            now()->addDays($expiresInDays),
-            ['registration_number' => $this->registration_number]
-        );
+        return app(\App\Services\Applicant\ApplicantUrlGenerator::class)
+            ->getStatusUrl($this, $expiresInDays);
     }
 
     /**
-     * Generate secure signed URL untuk exam card
+     * @deprecated Use ApplicantUrlGenerator::getExamCardUrl() instead
      * 
      * @param int|null $expiresInDays Jumlah hari sebelum URL expired (default: 60)
      * @return string Signed URL dengan signature dan expiration
      */
     public function getExamCardUrl(?int $expiresInDays = 60): string
     {
-        return URL::temporarySignedRoute(
-            'exam-card.show',  // ✅ Route yang benar
-            now()->addDays($expiresInDays),
-            ['registration_number' => $this->registration_number]
-        );
+        return app(\App\Services\Applicant\ApplicantUrlGenerator::class)
+            ->getExamCardUrl($this, $expiresInDays);
     }
 
     /**
-     * Generate secure signed URL untuk payment success page
+     * @deprecated Use ApplicantUrlGenerator::getPaymentSuccessUrl() instead
      * 
      * @param int|null $expiresInDays Jumlah hari sebelum URL expired (default: 7)
      * @return string Signed URL dengan signature dan expiration
      */
     public function getPaymentSuccessUrl(?int $expiresInDays = 7): string
     {
-        return URL::temporarySignedRoute(
-            'payment.success-secure',
-            now()->addDays($expiresInDays),
-            ['registration_number' => $this->registration_number]
-        );
+        return app(\App\Services\Applicant\ApplicantUrlGenerator::class)
+            ->getPaymentSuccessUrl($this, $expiresInDays);
     }
 
     /**
