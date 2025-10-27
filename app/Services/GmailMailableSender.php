@@ -11,7 +11,15 @@ use App\Services\GmailApiService as GmailApiMailer;
 
 class GmailMailableSender
 {
-    public function __construct(private GmailApiMailer $gmail) {}
+    private readonly array $googleConfig;
+
+    public function __construct(
+        private GmailApiMailer $gmail,
+        array $config = []
+    ) {
+        // Use injected config or fallback to config helper
+        $this->googleConfig = !empty($config) ? $config : config('google', []);
+    }
 
     /**
      * Kirim Mailable Laravel (modern) via Gmail API (tanpa SMTP).
@@ -28,7 +36,7 @@ class GmailMailableSender
         $subject  = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 
         // Alamat FROM = akun yang sudah OAuth (harus sama pemilik refresh token)
-        $from = env('GOOGLE_SENDER');
+        $from = $this->googleConfig['sender_email'] ?? env('GOOGLE_SENDER');
 
         // ---- 2) Ambil konten dari Content (modern) ----
         $content = method_exists($mailable, 'content') ? $mailable->content() : null;

@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Log;
 
 class GmailApiService
 {
+    /**
+     * Google OAuth configuration
+     */
+    public function __construct(
+        private readonly array $config
+    ) {}
+
     private function clean(string $s): string
     {
         // hilangkan whitespace tersembunyi (spasi/newline/kutip)
@@ -20,9 +27,9 @@ class GmailApiService
 
     private function googleClient(): Client
     {
-        $clientId     = env('GOOGLE_CLIENT_ID');
-        $clientSecret = env('GOOGLE_CLIENT_SECRET');
-        $refreshToken = $this->clean((string) env('GOOGLE_REFRESH_TOKEN', ''));
+        $clientId     = $this->config['client_id'];
+        $clientSecret = $this->config['client_secret'];
+        $refreshToken = $this->clean((string) ($this->config['refresh_token'] ?? ''));
 
         if ($refreshToken === '') {
             throw new \RuntimeException('GOOGLE_REFRESH_TOKEN kosong/tidak di-set.');
@@ -32,7 +39,11 @@ class GmailApiService
         $client->setClientId($clientId);
         $client->setClientSecret($clientSecret);
         $client->setAccessType('offline');
-        $client->addScope('https://www.googleapis.com/auth/gmail.send');
+
+        // Use scopes from config
+        foreach ($this->config['scopes'] ?? ['https://www.googleapis.com/auth/gmail.send'] as $scope) {
+            $client->addScope($scope);
+        }
 
         // mint access_token baru dari refresh_token
         $token = $client->fetchAccessTokenWithRefreshToken($refreshToken);

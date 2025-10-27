@@ -27,9 +27,26 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SettingsRepositoryInterface::class, CacheSettingsRepository::class);
 
+        // Register Google services with config injection
+        $this->app->singleton(\App\Services\GmailApiService::class, function ($app) {
+            return new \App\Services\GmailApiService(
+                config('google')
+            );
+        });
+
+        $this->app->singleton(GmailMailableSender::class, function ($app) {
+            return new GmailMailableSender(
+                $app->make(\App\Services\GmailApiService::class),
+                config('google')
+            );
+        });
+
         // Register email services
         $this->app->singleton(GmailEmailService::class, function ($app) {
-            return new GmailEmailService($app->make(GmailMailableSender::class));
+            return new GmailEmailService(
+                $app->make(GmailMailableSender::class),
+                config('google')
+            );
         });
 
         $this->app->singleton(LaravelEmailService::class);
@@ -48,6 +65,11 @@ class AppServiceProvider extends ServiceProvider
             Log::warning('Gmail API not healthy, falling back to Laravel Mail');
             return $app->make(LaravelEmailService::class);
         });
+
+        // Register GoogleOauthController with config injection
+        $this->app->when(\App\Http\Controllers\GoogleOauthController::class)
+            ->needs('$config')
+            ->give(fn() => config('google'));
     }
 
 

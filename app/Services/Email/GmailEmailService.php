@@ -9,9 +9,15 @@ use Illuminate\Support\Facades\Log;
 
 class GmailEmailService implements EmailServiceInterface
 {
+    private readonly array $googleConfig;
+
     public function __construct(
-        private readonly GmailMailableSender $gmailSender
-    ) {}
+        private readonly GmailMailableSender $gmailSender,
+        array $config = []
+    ) {
+        // Use injected config or fallback to config helper
+        $this->googleConfig = !empty($config) ? $config : config('google', []);
+    }
 
     public function send(string $to, Mailable $mailable): string
     {
@@ -67,10 +73,10 @@ class GmailEmailService implements EmailServiceInterface
     public function isHealthy(): bool
     {
         try {
-            // Simple health check - verify Gmail API credentials
-            $refreshToken = env('GOOGLE_REFRESH_TOKEN');
-            $clientId = env('GOOGLE_CLIENT_ID');
-            $clientSecret = env('GOOGLE_CLIENT_SECRET');
+            // Simple health check - verify Gmail API credentials from config
+            $refreshToken = $this->googleConfig['refresh_token'] ?? '';
+            $clientId = $this->googleConfig['client_id'] ?? '';
+            $clientSecret = $this->googleConfig['client_secret'] ?? '';
 
             return !empty($refreshToken) && !empty($clientId) && !empty($clientSecret);
         } catch (\Throwable) {

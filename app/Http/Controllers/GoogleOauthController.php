@@ -7,16 +7,29 @@ use Illuminate\Http\Request;
 
 class GoogleOauthController extends Controller
 {
+    private readonly array $googleConfig;
+
+    public function __construct(array $config = [])
+    {
+        // Use injected config or fallback to config helper
+        $this->googleConfig = !empty($config) ? $config : config('google', []);
+    }
+
     private function client(): Client
     {
         $client = new Client();
-        $client->setClientId(env('GOOGLE_CLIENT_ID'));
-        $client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
-        $client->setRedirectUri(env('GOOGLE_REDIRECT_URI'));
+        $client->setClientId($this->googleConfig['client_id']);
+        $client->setClientSecret($this->googleConfig['client_secret']);
+        $client->setRedirectUri($this->googleConfig['redirect_uri']);
         $client->setAccessType('offline');      // penting untuk refresh_token
         $client->setPrompt('consent');          // pastikan user memberi consent
         $client->setIncludeGrantedScopes(true);
-        $client->addScope('https://www.googleapis.com/auth/gmail.send'); // kirim email saja
+
+        // Use scopes from config
+        foreach ($this->googleConfig['scopes'] ?? ['https://www.googleapis.com/auth/gmail.send'] as $scope) {
+            $client->addScope($scope);
+        }
+
         return $client;
     }
 
