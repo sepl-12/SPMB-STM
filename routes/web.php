@@ -18,7 +18,7 @@ Route::get('/daftar/success/{registration_number}', [RegistrationController::cla
 
 // Payment routes
 // Legacy unsecured routes - kept for backward compatibility but should be phased out
-// Route::get('/pembayaran/{registration_number}', [PaymentController::class, 'show'])->name('payment.show');
+Route::get('/pembayaran/{registration_number}', [PaymentController::class, 'show'])->name('payment.show');
 Route::get('/pembayaran/status/{registration_number}', [PaymentController::class, 'status'])->name('payment.status');
 
 // Secured payment routes with signed URLs
@@ -35,10 +35,10 @@ Route::get('/pembayaran/finish', [PaymentController::class, 'finish'])->name('pa
 Route::post('/pembayaran/check-status', [PaymentController::class, 'checkStatus'])->name('payment.check-status');
 
 // DEPRECATED: Legacy payment success route - redirect to secure version
-// Route::get('/pembayaran/success/{registration_number}', function (string $registration_number) {
-//     $applicant = \App\Models\Applicant::where('registration_number', $registration_number)->firstOrFail();
-//     return redirect($applicant->getPaymentSuccessUrl());
-// })->name('payment.success');
+Route::get('/pembayaran/success/{registration_number}', function (string $registration_number) {
+    $applicant = \App\Models\Applicant::where('registration_number', $registration_number)->firstOrFail();
+    return redirect($applicant->getPaymentSuccessUrl());
+})->name('payment.success');
 
 // Payment Recovery routes
 Route::get('/cek-pembayaran', [PaymentController::class, 'checkPaymentForm'])->name('payment.check-form');
