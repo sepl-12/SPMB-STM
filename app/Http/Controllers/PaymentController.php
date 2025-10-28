@@ -10,6 +10,7 @@ use App\Payment\Exceptions\PaymentNotFoundException;
 use App\Payment\Services\PaymentLinkService;
 use App\Payment\Services\PaymentNotificationService;
 use App\Payment\Services\PaymentStatusService;
+use App\Services\Applicant\ExamCardPdfGenerator;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +21,8 @@ class PaymentController extends Controller
         protected readonly MidtransService $midtransService,
         protected readonly PaymentLinkService $paymentLinkService,
         protected readonly PaymentStatusService $paymentStatusService,
-        protected readonly PaymentNotificationService $paymentNotificationService
+        protected readonly PaymentNotificationService $paymentNotificationService,
+        protected readonly ExamCardPdfGenerator $examCardPdfGenerator
     ) {}
 
     /**
@@ -318,7 +320,7 @@ class PaymentController extends Controller
     public function examCard(Request $request, string $registration_number)
     {
         $applicant = Applicant::where('registration_number', $registration_number)->firstOrFail();
-        $applicant->load(['wave', 'latestPayment']);
+        $applicant->load(['wave', 'latestPayment', 'latestSubmission', 'latestSubmission.submissionFiles.formField']);
 
         // Validasi applicant sudah bayar
         if (!$applicant->hasSuccessfulPayment()) {
@@ -328,10 +330,19 @@ class PaymentController extends Controller
             ], 403);
         }
 
-        return view('exam-card.show', [
-            'applicant' => $applicant,
-            'wave' => $applicant->wave,
-        ]);
+        // Reuse cached PDF unless caller requests refresh or data changed after render.
+        $forceRefresh = $request->boolean('refresh');
+        $absolutePath = $this->examCardPdfGenerator->generateAndStore($applicant, $forceRefresh);
+        $fileName = 'kartu-ujian-' . $applicant->registration_number . '.pdf';
+        $headers = ['Content-Type' => 'application/pdf'];
+
+        if ($request->boolean('download')) {
+            return response()->download($absolutePath, $fileName, $headers);
+        }
+
+        return response()->file($absolutePath, array_merge($headers, [
+            'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+        ]));
     }
 
     /**

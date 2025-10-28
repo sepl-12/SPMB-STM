@@ -53,3 +53,8 @@ Route::middleware('throttle:60,1')->group(function () {
 
 Route::get('/google/oauth/redirect', [GoogleOauthController::class, 'redirect'])->name('google.oauth.redirect');
 Route::get('/google/oauth/callback', [GoogleOauthController::class, 'callback'])->name('google.oauth.callback');
+
+
+Route::get('/examcard', function() {
+    return view('pdf.exam-card');
+});

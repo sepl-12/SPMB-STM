@@ -23,7 +23,7 @@ class SendEmailJob implements ShouldQueue
         public readonly string $recipient,
         public readonly Mailable $mailable
     ) {
-        $this->onQueue('default');
+        $this->onQueue('emails');
     }
 
     public function handle(EmailServiceInterface $emailService): void
