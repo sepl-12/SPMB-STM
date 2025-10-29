@@ -309,6 +309,7 @@
                 isDrawing: false,
                 hasValue: Boolean(initialValue),
                 previewUrl: initialValue ? buildPreviewUrl(initialValue) : null,
+                backgroundImage: null,
                 init() {
                     const canvas = this.$refs.canvas;
                     const ctx = canvas.getContext('2d');
@@ -338,6 +339,7 @@
 
                     if (initialValue) {
                         this.$refs.input.value = initialValue;
+                        this.loadExistingSignature(initialValue);
                     }
 
                     const pointerDown = (event) => {
@@ -369,7 +371,7 @@
                     window.addEventListener('pointerup', pointerUp);
 
                     this.$watch('strokes.length', (value) => {
-                        this.hasValue = value > 0 || Boolean(this.$refs.input.value);
+                        this.hasValue = value > 0 || Boolean(this.$refs.input.value) || Boolean(this.backgroundImage);
                     });
                 },
                 clear() {
@@ -380,6 +382,7 @@
                     this.$refs.input.value = '';
                     this.previewUrl = null;
                     this.hasValue = false;
+                    this.backgroundImage = null;
                 },
                 undo() {
                     if (!this.strokes.length) {
@@ -402,6 +405,22 @@
                     this.previewUrl = dataUrl;
                     this.hasValue = true;
                 },
+                loadExistingSignature(value) {
+                    const source = value.startsWith('data:image') ? value : buildPreviewUrl(value);
+                    if (!source) {
+                        return;
+                    }
+
+                    const image = new Image();
+                    image.crossOrigin = 'anonymous';
+                    image.onload = () => {
+                        this.backgroundImage = image;
+                        this.previewUrl = source;
+                        this.hasValue = true;
+                        this.redraw();
+                    };
+                    image.src = source;
+                },
                 position(event) {
                     const canvas = this.$refs.canvas;
                     const rect = canvas.getBoundingClientRect();
@@ -415,6 +434,10 @@
                     const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.beginPath();
+
+                    if (this.backgroundImage) {
+                        ctx.drawImage(this.backgroundImage, 0, 0, canvas.width, canvas.height);
+                    }
 
                     for (const stroke of this.strokes) {
                         if (!stroke.length) continue;
