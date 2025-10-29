@@ -23,7 +23,10 @@ class RegistrationWizardLoader
                         }]);
                 }]);
             },
-        ])->first();
+        ])
+            ->whereHas('activeFormVersion')
+            ->orderByDesc('id')
+            ->first();
 
         if (!$form) {
             throw new ModelNotFoundException('Registration form is not configured.');
