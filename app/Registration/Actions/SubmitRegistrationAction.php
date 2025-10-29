@@ -21,6 +21,7 @@ use App\Registration\Validators\RegistrationValidator;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SubmitRegistrationAction
@@ -125,6 +126,7 @@ class SubmitRegistrationAction
 
         $fileFieldErrors = [];
         $fileFields = $allFields->filter(fn($field) => FormFieldType::tryFrom($field->field_type)?->isFileUpload());
+        $signatureFields = $allFields->filter(fn($field) => FormFieldType::tryFrom($field->field_type)?->isSignature());
 
         foreach ($fileFields as $field) {
             $fieldKey = $field->field_key;
@@ -137,6 +139,29 @@ class SubmitRegistrationAction
 
             if ($value && !Storage::disk('public')->exists((string) $value)) {
                 $fileFieldErrors[$fieldKey][] = "File untuk {$field->field_label} tidak ditemukan. Silakan unggah ulang.";
+            }
+        }
+
+        foreach ($signatureFields as $field) {
+            $fieldKey = $field->field_key;
+            $value = $validatedData[$fieldKey] ?? null;
+
+            if ($field->is_required && empty($value)) {
+                $fileFieldErrors[$fieldKey][] = "Tanda tangan untuk {$field->field_label} wajib diisi.";
+                continue;
+            }
+
+            if (!$value) {
+                continue;
+            }
+
+            if (!Str::startsWith($value, 'registration-signatures/')) {
+                $fileFieldErrors[$fieldKey][] = "Format tanda tangan untuk {$field->field_label} tidak dikenal. Mohon tandatangani ulang.";
+                continue;
+            }
+
+            if (!Storage::disk('public')->exists((string) $value)) {
+                $fileFieldErrors[$fieldKey][] = "Tanda tangan untuk {$field->field_label} tidak ditemukan. Mohon tandatangani ulang.";
             }
         }
 

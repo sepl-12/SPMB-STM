@@ -15,6 +15,7 @@ enum FormFieldType: string
     case FILE = 'file';
     case IMAGE = 'image';
     case BOOLEAN = 'boolean';
+    case SIGNATURE = 'signature';
 
     /**
      * Get display label for the field type
@@ -33,6 +34,7 @@ enum FormFieldType: string
             self::FILE => '📎 File - Upload file',
             self::IMAGE => '🖼️ Gambar - Upload gambar',
             self::BOOLEAN => '✅ Ya/Tidak - Toggle on/off',
+            self::SIGNATURE => '✍️ Tanda Tangan - Coret tanda tangan digital',
         };
     }
 
@@ -53,6 +55,7 @@ enum FormFieldType: string
             self::FILE => 'File',
             self::IMAGE => 'Gambar',
             self::BOOLEAN => 'Ya/Tidak',
+            self::SIGNATURE => 'Tanda Tangan',
         };
     }
 
@@ -67,6 +70,7 @@ enum FormFieldType: string
             self::DATE => 'success',
             self::FILE, self::IMAGE => 'danger',
             self::BOOLEAN => 'info',
+            self::SIGNATURE => 'secondary',
         };
     }
 
@@ -84,6 +88,11 @@ enum FormFieldType: string
     public function isFileUpload(): bool
     {
         return in_array($this, [self::FILE, self::IMAGE]);
+    }
+
+    public function isSignature(): bool
+    {
+        return $this === self::SIGNATURE;
     }
 
     /**

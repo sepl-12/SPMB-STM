@@ -120,6 +120,11 @@ class RegistrationRuleFactory
                     $messages["{$fieldKey}.max"] = sprintf('%s tidak boleh lebih dari 5MB.', $field->field_label);
                 }
                 break;
+            case FormFieldType::SIGNATURE:
+                $rules[] = 'string';
+                $rules[] = 'starts_with:data:image,registration-signatures/';
+                $messages["{$fieldKey}.starts_with"] = sprintf('%s harus berupa tanda tangan digital yang valid.', $field->field_label);
+                break;
         }
     }
 

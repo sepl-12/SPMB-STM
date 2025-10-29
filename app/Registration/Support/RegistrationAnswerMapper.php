@@ -28,7 +28,7 @@ class RegistrationAnswerMapper
 
             $fieldType = FormFieldType::tryFrom($field->field_type);
 
-            if ($fieldType?->isFileUpload() && is_string($fieldValue)) {
+            if (($fieldType?->isFileUpload() || $fieldType?->isSignature()) && is_string($fieldValue)) {
                 $this->createFileRecord($submission, $field, $fieldValue);
                 continue;
             }

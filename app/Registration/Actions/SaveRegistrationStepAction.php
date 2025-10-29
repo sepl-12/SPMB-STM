@@ -11,6 +11,7 @@ use App\Registration\Validators\RegistrationValidator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SaveRegistrationStepAction
@@ -53,6 +54,17 @@ class SaveRegistrationStepAction
                             $filesToStore[$fieldKey] = $uploadedFile;
                         }
                     }
+                    continue;
+                }
+
+                if ($fieldType?->isSignature()) {
+                    $signatureValue = $request->input($fieldKey);
+                    if ($signatureValue !== null) {
+                        $stepData[$fieldKey] = $signatureValue;
+                    } elseif (array_key_exists($fieldKey, $registrationData)) {
+                        $stepData[$fieldKey] = null;
+                    }
+
                     continue;
                 }
 
@@ -113,6 +125,42 @@ class SaveRegistrationStepAction
                 $validatedStepData[$fieldKey] = $storeUploadedFile($fieldKey, $uploadedFile);
             }
 
+            foreach ($currentStep->formFields as $field) {
+                $fieldKey = $field->field_key;
+                $fieldType = FormFieldType::tryFrom($field->field_type);
+
+                if (!$fieldType?->isSignature()) {
+                    continue;
+                }
+
+                $submittedValue = $stepData[$fieldKey] ?? null;
+                $validatedValue = $validatedStepData[$fieldKey] ?? null;
+                $existingValue = $registrationData[$fieldKey] ?? null;
+
+                if ($submittedValue === null || $submittedValue === '') {
+                    if ($existingValue && Storage::disk('public')->exists($existingValue)) {
+                        Storage::disk('public')->delete($existingValue);
+                    }
+
+                    unset($validatedStepData[$fieldKey]);
+                    unset($registrationData[$fieldKey]);
+
+                    continue;
+                }
+
+                if (is_string($validatedValue) && Str::startsWith($validatedValue, 'data:image')) {
+                    $storedPath = $this->storeSignatureData($fieldKey, $validatedValue, $existingValue);
+                    $validatedStepData[$fieldKey] = $storedPath;
+                    $registrationData[$fieldKey] = $storedPath;
+
+                    continue;
+                }
+
+                if (is_string($validatedValue) && Str::startsWith($validatedValue, 'registration-signatures/')) {
+                    $registrationData[$fieldKey] = $validatedValue;
+                }
+            }
+
             $registrationData = array_merge($registrationData, $validatedStepData);
         }
 
@@ -138,5 +186,28 @@ class SaveRegistrationStepAction
         }
 
         return max(0, min($stepCount - 1, $index));
+    }
+
+    protected function storeSignatureData(string $fieldKey, string $dataUrl, ?string $existingPath): string
+    {
+        if (!preg_match('/^data:image\/(png|jpe?g);base64,/', $dataUrl, $matches)) {
+            throw new \RuntimeException("Invalid signature data for {$fieldKey}");
+        }
+
+        $extension = $matches[1] === 'jpeg' ? 'jpg' : $matches[1];
+        $decoded = base64_decode(substr($dataUrl, strpos($dataUrl, ',') + 1));
+
+        if ($decoded === false) {
+            throw new \RuntimeException("Failed to decode signature for {$fieldKey}");
+        }
+
+        $fileName = sprintf('registration-signatures/%s_%s.%s', $fieldKey, uniqid('', true), $extension);
+        Storage::disk('public')->put($fileName, $decoded);
+
+        if ($existingPath && Storage::disk('public')->exists($existingPath)) {
+            Storage::disk('public')->delete($existingPath);
+        }
+
+        return $fileName;
     }
 }

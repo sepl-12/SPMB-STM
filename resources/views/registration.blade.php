@@ -199,6 +199,17 @@
                                         />
                                         @break
 
+                                    @case('signature')
+                                        <x-form.signature
+                                            :label="$field['field_label']"
+                                            :name="$field['field_key']"
+                                            :value="$fieldValue"
+                                            :required="$field['is_required']"
+                                            :helpText="$field['field_help_text']"
+                                            :error="$errors->first($field['field_key'])"
+                                        />
+                                        @break
+
                                     @case('boolean')
                                     @case('checkbox')
                                         @php
@@ -292,6 +303,143 @@
 
     @push('scripts')
     <script>
+        function signaturePad({ field, initialValue, required }) {
+            return {
+                strokes: [],
+                isDrawing: false,
+                hasValue: Boolean(initialValue),
+                previewUrl: initialValue ? buildPreviewUrl(initialValue) : null,
+                init() {
+                    const canvas = this.$refs.canvas;
+                    const ctx = canvas.getContext('2d');
+
+                    const resize = () => {
+                        const ratio = window.devicePixelRatio || 1;
+                        const width = canvas.offsetWidth || 600;
+                        const height = canvas.offsetHeight || 200;
+
+                        canvas.width = width * ratio;
+                        canvas.height = height * ratio;
+                        canvas.style.width = `${width}px`;
+                        canvas.style.height = `${height}px`;
+
+                        ctx.setTransform(1, 0, 0, 1, 0, 0);
+                        ctx.scale(ratio, ratio);
+                        ctx.lineJoin = 'round';
+                        ctx.lineCap = 'round';
+                        ctx.strokeStyle = '#1a202c';
+                        ctx.lineWidth = 2.5;
+
+                        this.redraw();
+                    };
+
+                    resize();
+                    window.addEventListener('resize', resize);
+
+                    if (initialValue) {
+                        this.$refs.input.value = initialValue;
+                    }
+
+                    const pointerDown = (event) => {
+                        event.preventDefault();
+                        this.isDrawing = true;
+                        const { x, y } = this.position(event);
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        this.strokes.push([{ x, y }]);
+                    };
+
+                    const pointerMove = (event) => {
+                        if (!this.isDrawing) return;
+                        event.preventDefault();
+                        const { x, y } = this.position(event);
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        this.strokes[this.strokes.length - 1].push({ x, y });
+                    };
+
+                    const pointerUp = () => {
+                        if (!this.isDrawing) return;
+                        this.isDrawing = false;
+                        this.export();
+                    };
+
+                    canvas.addEventListener('pointerdown', pointerDown);
+                    canvas.addEventListener('pointermove', pointerMove);
+                    window.addEventListener('pointerup', pointerUp);
+
+                    this.$watch('strokes.length', (value) => {
+                        this.hasValue = value > 0 || Boolean(this.$refs.input.value);
+                    });
+                },
+                clear() {
+                    const canvas = this.$refs.canvas;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    this.strokes = [];
+                    this.$refs.input.value = '';
+                    this.previewUrl = null;
+                    this.hasValue = false;
+                },
+                undo() {
+                    if (!this.strokes.length) {
+                        return;
+                    }
+
+                    this.strokes.pop();
+                    this.redraw();
+                    this.export();
+                },
+                export() {
+                    const canvas = this.$refs.canvas;
+                    if (!this.strokes.length) {
+                        this.clear();
+                        return;
+                    }
+
+                    const dataUrl = canvas.toDataURL('image/png');
+                    this.$refs.input.value = dataUrl;
+                    this.previewUrl = dataUrl;
+                    this.hasValue = true;
+                },
+                position(event) {
+                    const canvas = this.$refs.canvas;
+                    const rect = canvas.getBoundingClientRect();
+                    return {
+                        x: event.clientX - rect.left,
+                        y: event.clientY - rect.top,
+                    };
+                },
+                redraw() {
+                    const canvas = this.$refs.canvas;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.beginPath();
+
+                    for (const stroke of this.strokes) {
+                        if (!stroke.length) continue;
+                        ctx.moveTo(stroke[0].x, stroke[0].y);
+                        for (let i = 1; i < stroke.length; i++) {
+                            ctx.lineTo(stroke[i].x, stroke[i].y);
+                        }
+                        ctx.stroke();
+                    }
+                },
+            };
+        }
+
+        function buildPreviewUrl(value) {
+            if (!value) {
+                return null;
+            }
+
+            if (value.startsWith('data:image')) {
+                return value;
+            }
+
+            return value.startsWith('http') ? value : `{{ asset('storage') }}/${value}`;
+        }
+
         function registrationForm() {
             return {
                 init() {
