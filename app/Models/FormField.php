@@ -22,6 +22,24 @@ class FormField extends Model
         'is_system_field' => 'boolean',
     ];
 
+    protected $fillable = [
+        'form_version_id',
+        'form_step_id',
+        'field_key',
+        'field_label',
+        'field_type',
+        'field_options_json',
+        'linked_field_group',
+        'is_required',
+        'is_filterable',
+        'is_exportable',
+        'is_archived',
+        'field_placeholder_text',
+        'field_help_text',
+        'field_order_number',
+        'is_system_field',
+    ];
+
     protected static function booted(): void
     {
         static::creating(function (FormField $field) {
@@ -82,5 +100,31 @@ class FormField extends Model
     public function submissionFiles(): HasMany
     {
         return $this->hasMany(SubmissionFile::class);
+    }
+
+    /**
+     * Get all fields in the same linked group
+     */
+    public function getLinkedFields(): \Illuminate\Support\Collection
+    {
+        if (!$this->linked_field_group) {
+            return collect([]);
+        }
+
+        return static::query()
+            ->where('form_version_id', $this->form_version_id)
+            ->where('linked_field_group', $this->linked_field_group)
+            ->where('id', '!=', $this->id)
+            ->where('is_archived', false)
+            ->orderBy('field_order_number')
+            ->get();
+    }
+
+    /**
+     * Check if this field is part of a linked group
+     */
+    public function isLinked(): bool
+    {
+        return !empty($this->linked_field_group);
     }
 }

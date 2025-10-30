@@ -80,7 +80,13 @@
                     </div>
 
                     <!-- Form -->
-                    <form method="POST" action="{{ route('registration.save-step') }}" enctype="multipart/form-data" x-data="registrationForm()">
+                    <script>
+                        // Pass linked groups data to Alpine.js via window variable to avoid JSON encoding issues in HTML attributes
+                        window.linkedGroupsData = @json($currentStep['linked_groups'] ?? []);
+                    </script>
+
+                    <form method="POST" action="{{ route('registration.save-step') }}" enctype="multipart/form-data"
+                          x-data="registrationForm(window.linkedGroupsData || {})">
                         @csrf
                         <input type="hidden" name="current_step" value="{{ $currentStepIndex }}">
                         
@@ -153,6 +159,7 @@
                                             :helpText="$field['field_help_text']"
                                             :error="$errors->first($field['field_key'])"
                                             :options="$fieldOptions"
+                                            :linkedFieldGroup="$field['linked_field_group'] ?? null"
                                         />
                                         @break
 
@@ -463,12 +470,97 @@
             return value.startsWith('http') ? value : `{{ asset('storage') }}/${value}`;
         }
 
-        function registrationForm() {
+        function registrationForm(linkedGroups = {}) {
             return {
+                linkedGroups: linkedGroups,
+                selectedValues: {},
+                formElement: null, // Store reference to form element
+
                 init() {
-                    // Auto-save to localStorage (optional)
-                    this.$watch('$el', (value) => {
-                        // Optional: implement auto-save functionality
+                    // Save reference to form element to avoid context issues
+                    this.formElement = this.$el;
+
+                    // Initialize with current form values
+                    this.loadCurrentValues();
+
+                    // Update options on page load
+                    this.$nextTick(() => {
+                        this.updateAllLinkedFields();
+                    });
+                },
+
+                loadCurrentValues() {
+                    // Load current selected values from form inputs
+                    const selects = this.formElement.querySelectorAll('select[data-linked-group]');
+                    selects.forEach(select => {
+                        const group = select.dataset.linkedGroup;
+                        if (group && select.value) {
+                            if (!this.selectedValues[group]) {
+                                this.selectedValues[group] = {};
+                            }
+                            this.selectedValues[group][select.name] = select.value;
+                        }
+                    });
+                },
+
+                handleLinkedFieldChange(event) {
+                    const select = event.target;
+                    const group = select.dataset.linkedGroup;
+
+                    if (!group) return;
+
+                    // Update selected values
+                    if (!this.selectedValues[group]) {
+                        this.selectedValues[group] = {};
+                    }
+                    this.selectedValues[group][select.name] = select.value;
+
+                    // Update all other selects in this group
+                    this.updateLinkedFields(group);
+                },
+
+                updateLinkedFields(group) {
+                    if (!this.linkedGroups[group]) return;
+
+                    const fieldsInGroup = this.linkedGroups[group];
+                    const selectedInGroup = Object.values(this.selectedValues[group] || {}).filter(v => v);
+
+                    // Update each select in the group
+                    fieldsInGroup.forEach(fieldName => {
+                        const select = this.formElement.querySelector(`select[name="${fieldName}"]`);
+                        if (!select) return;
+
+                        const currentValue = select.value;
+                        const options = select.querySelectorAll('option');
+
+                        options.forEach(option => {
+                            if (!option.value) return; // Skip placeholder
+
+                            // Hide/disable if selected in another field
+                            const isSelectedElsewhere = selectedInGroup.includes(option.value)
+                                                      && currentValue !== option.value;
+
+                            if (isSelectedElsewhere) {
+                                option.disabled = true;
+                                option.style.display = 'none';
+                            } else {
+                                option.disabled = false;
+                                option.style.display = '';
+                            }
+                        });
+
+                        // If current selection is now disabled, clear it
+                        const currentOption = select.querySelector(`option[value="${currentValue}"]`);
+                        if (currentOption && currentOption.disabled) {
+                            select.value = '';
+                            this.selectedValues[group][fieldName] = '';
+                        }
+                    });
+                },
+
+                updateAllLinkedFields() {
+                    Object.keys(this.linkedGroups).forEach(group => {
+                        this.updateLinkedFields(group);
                     });
                 }
             }

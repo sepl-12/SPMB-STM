@@ -49,7 +49,14 @@ class RegistrationPageViewModel
      */
     public function currentStep(): ?array
     {
-        return $this->steps[$this->currentStepIndex] ?? null;
+        $step = $this->steps[$this->currentStepIndex] ?? null;
+
+        if ($step) {
+            // Add linked groups configuration
+            $step['linked_groups'] = $this->wizard->getLinkedGroupsForStep($this->currentStepIndex);
+        }
+
+        return $step;
     }
 
     /**
@@ -81,6 +88,7 @@ class RegistrationPageViewModel
                         'is_required' => (bool) $field->is_required,
                         'field_placeholder_text' => $field->field_placeholder_text,
                         'field_help_text' => $field->field_help_text,
+                        'linked_field_group' => $field->linked_field_group,
                         'options' => collect($field->field_options_json ?? [])->map(fn ($option) => [
                             'label' => $option['label'] ?? $option['value'] ?? '',
                             'value' => $option['value'] ?? $option['label'] ?? '',

@@ -10,7 +10,10 @@ use App\Filament\Forms\FieldSchemas\FieldPlacementSection;
 use App\Filament\Forms\FieldSchemas\FieldValidationSection;
 use App\Models\FormField;
 use App\Models\FormVersion;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -45,6 +48,101 @@ class FormFieldsRelationManager extends RelationManager
             FieldDisplaySection::make(),
             FieldValidationSection::make(),
             FieldOptionsSection::make(),
+
+            // Field Linking Section
+            Section::make('Field Linking (Opsional)')
+                ->description('Hubungkan field ini dengan field select lainnya untuk membuat opsi yang saling eksklusif.')
+                ->schema([
+                    Select::make('linked_field_group')
+                        ->label('Nama Grup Linked')
+                        ->placeholder('Pilih grup yang ada atau buat baru...')
+                        ->helperText('Field dengan nama grup yang sama akan berbagi opsi eksklusif. Pilih dari daftar atau ketik nama baru.')
+                        ->options(function () {
+                            // Get existing linked groups from current form version
+                            $activeVersion = $this->getActiveVersion();
+
+                            $existingGroups = FormField::query()
+                                ->where('form_version_id', $activeVersion->id)
+                                ->whereNotNull('linked_field_group')
+                                ->where('linked_field_group', '!=', '')
+                                ->distinct()
+                                ->pluck('linked_field_group', 'linked_field_group')
+                                ->toArray();
+
+                            return $existingGroups;
+                        })
+                        ->searchable()
+                        ->allowHtml()
+                        ->getSearchResultsUsing(function (string $search) {
+                            // Allow creating new group by typing
+                            $activeVersion = $this->getActiveVersion();
+
+                            $existingGroups = FormField::query()
+                                ->where('form_version_id', $activeVersion->id)
+                                ->whereNotNull('linked_field_group')
+                                ->where('linked_field_group', '!=', '')
+                                ->where('linked_field_group', 'like', "%{$search}%")
+                                ->distinct()
+                                ->pluck('linked_field_group', 'linked_field_group')
+                                ->toArray();
+
+                            // Add search term as new option
+                            if (!empty($search) && !in_array($search, $existingGroups)) {
+                                $existingGroups[$search] = "✨ Buat baru: \"{$search}\"";
+                            }
+
+                            return $existingGroups;
+                        })
+                        ->getOptionLabelUsing(function ($value) {
+                            return $value;
+                        })
+                        ->visible(fn ($get) => in_array($get('field_type'), ['select', 'radio']))
+                        ->reactive()
+                        ->dehydrateStateUsing(function ($state) {
+                            // Clean up the value (remove "Buat baru:" prefix if exists)
+                            return $state;
+                        })
+                        ->hint('💡 Ketik untuk membuat grup baru')
+                        ->hintColor('success'),
+
+                    Placeholder::make('linked_fields_preview')
+                        ->label('Terhubung Dengan')
+                        ->content(function ($record, $get) {
+                            if (!$record || !$get('linked_field_group')) {
+                                return '—';
+                            }
+
+                            $linkedFields = $record->getLinkedFields();
+                            if ($linkedFields->isEmpty()) {
+                                return '⚠️ Belum ada field lain dalam grup ini';
+                            }
+
+                            $fieldsList = $linkedFields->map(function ($field) {
+                                return "• {$field->field_label} ({$field->field_key})";
+                            })->join("\n");
+
+                            return new \Illuminate\Support\HtmlString(
+                                '<div class="text-sm space-y-1">' . nl2br($fieldsList) . '</div>'
+                            );
+                        })
+                        ->visible(fn ($get, $record) => !empty($get('linked_field_group')) && $record),
+
+                    Placeholder::make('linking_help')
+                        ->label('Cara Kerja')
+                        ->content(new \Illuminate\Support\HtmlString('
+                            <div class="text-xs text-gray-600 space-y-1">
+                                <p>🔗 <strong>Linked fields</strong> akan berbagi opsi secara eksklusif:</p>
+                                <ul class="list-disc list-inside ml-2 space-y-0.5">
+                                    <li>Jika user pilih "Teknik Informatika" di field pertama</li>
+                                    <li>Maka "Teknik Informatika" akan hilang di field lainnya</li>
+                                    <li>Cocok untuk: Pilihan Jurusan 1, 2, 3</li>
+                                </ul>
+                            </div>
+                        '))
+                        ->visible(fn ($get) => in_array($get('field_type'), ['select', 'radio'])),
+                ])
+                ->collapsible()
+                ->collapsed(),
         ]);
     }
 

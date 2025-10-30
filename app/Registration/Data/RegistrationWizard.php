@@ -65,4 +65,35 @@ class RegistrationWizard
             ->unique('id')
             ->values();
     }
+
+    /**
+     * Get linked field groups configuration for a specific step
+     *
+     * @param int $stepIndex
+     * @return array<string, array<string>>
+     */
+    public function getLinkedGroupsForStep(int $stepIndex): array
+    {
+        $step = $this->stepAt($stepIndex);
+
+        if (!$step) {
+            return [];
+        }
+
+        $linkedGroups = [];
+
+        foreach ($step->formFields as $field) {
+            if (!empty($field->linked_field_group) && !$field->is_archived) {
+                $groupName = $field->linked_field_group;
+
+                if (!isset($linkedGroups[$groupName])) {
+                    $linkedGroups[$groupName] = [];
+                }
+
+                $linkedGroups[$groupName][] = $field->field_key;
+            }
+        }
+
+        return $linkedGroups;
+    }
 }

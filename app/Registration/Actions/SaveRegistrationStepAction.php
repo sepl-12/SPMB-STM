@@ -6,6 +6,7 @@ use App\Enum\FormFieldType;
 use App\Registration\Data\RegistrationWizard;
 use App\Registration\Data\SaveStepResult;
 use App\Registration\Exceptions\RegistrationStepValidationException;
+use App\Registration\Validators\LinkedFieldValidator;
 use App\Registration\Validators\RegistrationValidationContext;
 use App\Registration\Validators\RegistrationValidator;
 use Illuminate\Http\Request;
@@ -16,8 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 class SaveRegistrationStepAction
 {
-    public function __construct(private readonly RegistrationValidator $validator)
-    {
+    public function __construct(
+        private readonly RegistrationValidator $validator,
+        private readonly LinkedFieldValidator $linkedFieldValidator
+    ) {
     }
 
     /**
@@ -123,6 +126,12 @@ class SaveRegistrationStepAction
                     $validatedStepData = $this->validator->validate(
                         $currentStep->formFields,
                         $context,
+                        $stepData
+                    );
+
+                    // Validate linked fields (no duplicate selections in same group)
+                    $this->linkedFieldValidator->validateLinkedFields(
+                        $currentStep->formFields,
                         $stepData
                     );
                 } catch (ValidationException $e) {
