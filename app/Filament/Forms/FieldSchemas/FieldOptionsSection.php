@@ -20,7 +20,7 @@ class FieldOptionsSection
                     ->label('')
                     ->content('Tambahkan minimal 1 pilihan. Label adalah yang ditampilkan, Value adalah yang disimpan di database.')
                     ->visible(fn(callable $get) => FormFieldType::tryFrom($get('field_type'))?->requiresOptions() ?? false),
-                Repeater::make('field_options')
+                Repeater::make('field_options_json')
                     ->label('Daftar Pilihan')
                     ->schema([
                         Grid::make(2)

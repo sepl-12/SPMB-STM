@@ -294,7 +294,7 @@ class FormFieldsRelationManager extends RelationManager
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data = $this->synchroniseVersionData($data);
+        $data['form_version_id'] = $this->getActiveVersion()->getKey();
         $data['field_order_number'] = $this->getNextOrderNumber();
 
         return $data;
@@ -302,27 +302,7 @@ class FormFieldsRelationManager extends RelationManager
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        return $this->synchroniseVersionData($data);
-    }
-
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        $data['field_options'] = $data['field_options_json'] ?? [];
-
-        return $data;
-    }
-
-    protected function synchroniseVersionData(array $data): array
-    {
         $data['form_version_id'] = $this->getActiveVersion()->getKey();
-        $data['field_options_json'] = Arr::map($data['field_options'] ?? [], function ($option) {
-            return [
-                'label' => $option['label'] ?? null,
-                'value' => $option['value'] ?? null,
-            ];
-        });
-
-        unset($data['field_options']);
 
         return $data;
     }
