@@ -103,9 +103,9 @@ class FormStepsRelationManager extends RelationManager
             ->actions([
                 EditAction::make(),
                 DeleteAction::make()
-                    ->label('Arsipkan')
+                    ->label('Hapus')
                     ->requiresConfirmation()
-                    ->successNotificationTitle('Langkah diarsipkan'),
+                    ->successNotificationTitle('Langkah dihapus'),
             ]);
     }
 
