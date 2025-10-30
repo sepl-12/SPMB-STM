@@ -20,14 +20,7 @@ class EditForm extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\Action::make('publish')
-                ->label('Terbitkan Perubahan')
-                ->icon('heroicon-o-rocket-launch')
-                ->color('success')
-                ->requiresConfirmation()
-                ->action(fn () => $this->publishActiveVersion()),
-        ];
+        return [];
     }
 
     public function getSubheading(): ?string
