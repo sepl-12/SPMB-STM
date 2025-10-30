@@ -167,8 +167,8 @@ class FormFieldsRelationManager extends RelationManager
                             $newRecord->field_order_number = $this->getNextOrderNumber();
                             $newRecord->save();
                         })
-                        ->successNotificationTitle('Pertanyaan berhasil diduplikat')
-                        ->after(fn() => $this->getTable()->deselectAllRecords()),
+                        ->successNotificationTitle('Pertanyaan berhasil diduplikat'),
+
                     Action::make('toggleArchive')
                         ->label(fn(FormField $record) => $record->is_archived ? 'Pulihkan' : 'Arsipkan')
                         ->icon('heroicon-o-archive-box')
@@ -185,7 +185,7 @@ class FormFieldsRelationManager extends RelationManager
                             $record->save();
                         })
                         ->successNotificationTitle('Status arsip diperbarui')
-                        ->after(fn() => $this->getTable()->deselectAllRecords())
+
                         ->hidden(fn(FormField $record) => $record->is_system_field),
                     Tables\Actions\DeleteAction::make()
                         ->hidden(fn(FormField $record) => $record->is_system_field)
