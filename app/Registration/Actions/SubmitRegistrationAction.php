@@ -137,7 +137,7 @@ class SubmitRegistrationAction
                 continue;
             }
 
-            if ($value && !Storage::disk('public')->exists((string) $value)) {
+            if ($value && !Storage::disk('private')->exists((string) $value)) {
                 $fileFieldErrors[$fieldKey][] = "File untuk {$field->field_label} tidak ditemukan. Silakan unggah ulang.";
             }
         }
@@ -160,7 +160,7 @@ class SubmitRegistrationAction
                 continue;
             }
 
-            if (!Storage::disk('public')->exists((string) $value)) {
+            if (!Storage::disk('private')->exists((string) $value)) {
                 $fileFieldErrors[$fieldKey][] = "Tanda tangan untuk {$field->field_label} tidak ditemukan. Mohon tandatangani ulang.";
             }
         }

@@ -39,7 +39,8 @@ class RegistrationAnswerMapper
 
     protected function createFileRecord(Submission $submission, FormField $field, string $storedPath): void
     {
-        $disk = Storage::disk('public');
+        // Use PRIVATE disk for security - files should only be accessible via signed URLs
+        $disk = Storage::disk('private');
         $mimeType = 'application/octet-stream';
 
         if ($disk->exists($storedPath)) {
@@ -59,7 +60,7 @@ class RegistrationAnswerMapper
         SubmissionFile::create([
             'submission_id' => $submission->id,
             'form_field_id' => $field->id,
-            'stored_disk_name' => 'public',
+            'stored_disk_name' => 'private',
             'stored_file_path' => $storedPath,
             'original_file_name' => basename($storedPath),
             'mime_type_name' => $mimeType,
