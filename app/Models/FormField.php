@@ -59,8 +59,7 @@ class FormField extends Model
         // Prevent deleting system fields (silent fail)
         static::deleting(function (FormField $field) {
             if ($field->is_system_field) {
-                // Return false to prevent deletion without throwing error
-                return false;
+                throw new \Exception('System fields cannot be deleted');
             }
         });
     }

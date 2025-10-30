@@ -279,7 +279,7 @@ class FormFieldsRelationManager extends RelationManager
     private function duplicateField(FormField $record): void
     {
         $newRecord = $record->replicate();
-        $newRecord->field_key = $record->field_key . '_copy_' . time();
+        $newRecord->field_key = $record->field_key . '_copy_' . uniqid('', true);
         $newRecord->field_label = $record->field_label . ' (Copy)';
         $newRecord->field_order_number = $this->getNextOrderNumber();
         $newRecord->save();
