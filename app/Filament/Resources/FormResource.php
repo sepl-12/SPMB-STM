@@ -21,6 +21,7 @@ use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class FormResource extends Resource
@@ -110,29 +111,34 @@ class FormResource extends Resource
                             return false;
                         }
 
-                        if ($state) {
-                            FormVersion::query()
-                                ->where('form_id', $record->getKey())
-                                ->whereKeyNot($version->getKey())
-                                ->update([
+                        return DB::transaction(function () use ($record, $version, $state) {
+                            if ($state) {
+                                // Deactivate all other versions of this form
+                                FormVersion::query()
+                                    ->where('form_id', $record->getKey())
+                                    ->whereKeyNot($version->getKey())
+                                    ->update([
+                                        'is_active' => false,
+                                        'published_datetime' => null,
+                                    ]);
+
+                                // Activate the selected version
+                                $version->update([
+                                    'is_active' => true,
+                                    'published_datetime' => now(),
+                                ]);
+                            } else {
+                                // Deactivate the version
+                                $version->update([
                                     'is_active' => false,
                                     'published_datetime' => null,
                                 ]);
+                            }
 
-                            $version->update([
-                                'is_active' => true,
-                                'published_datetime' => now(),
-                            ]);
-                        } else {
-                            $version->update([
-                                'is_active' => false,
-                                'published_datetime' => null,
-                            ]);
-                        }
+                            $record->unsetRelation('activeFormVersion');
 
-                        $record->unsetRelation('activeFormVersion');
-
-                        return (bool) $version->fresh()->is_active;
+                            return (bool) $version->fresh()->is_active;
+                        });
                     })
                     ->afterStateUpdated(function (ToggleColumn $column, bool $state) {
                         Notification::make()
