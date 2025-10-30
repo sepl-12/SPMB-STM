@@ -52,12 +52,21 @@
 
         .photo {
             position: absolute;
-            left: 34mm;
-            bottom: 53mm;
+            left: 25mm;
+            bottom: 40mm;
             width: 34mm;
             height: 44mm;
             object-fit: cover;
             border-radius: 4mm;
+        }
+
+        .signature-image {
+            position: absolute;
+            left: var(--left);
+            top: var(--top);
+            width: var(--width, 45mm);
+            height: var(--height, 20mm);
+            object-fit: contain;
         }
     </style>
 </head>
@@ -68,6 +77,7 @@
         $waCombined = collect([$whatsapp_parent, $whatsapp_student])->filter()->implode(' / ');
         $signatureDateText = $signature_day_month;
         $photoSrc = $photo_path ? 'file://' . $photo_path : null;
+        $signatureSrc = $signature_image_path ? 'file://' . $signature_image_path : null;
         $birthLine = collect([$birth_place, $birthDateText])->filter()->implode(', ');
     @endphp
 
@@ -125,6 +135,9 @@
             <div class="field signature" style="--left: 110mm; --top: 256mm; --width: 60mm; text-align: center;">
                 {{ $signature_name ?? '-' }}
             </div>
+            @if($signatureSrc)
+                <img src="{{ $signatureSrc }}" alt="Tanda Tangan Peserta" class="signature-image" style="--left: 110mm; --top: 245mm; --width: 60mm; --height: 25mm;">
+            @endif
 
             @if($photoSrc)
                 <img src="{{ $photoSrc }}" alt="Foto Peserta" class="photo">

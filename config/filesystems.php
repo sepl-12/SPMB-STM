@@ -47,6 +47,14 @@ return [
             'report' => false,
         ],
 
+        'private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
         'livewire-tmp' => [
             'driver' => 'local',
             'root' => storage_path('app/public/livewire-tmp'),

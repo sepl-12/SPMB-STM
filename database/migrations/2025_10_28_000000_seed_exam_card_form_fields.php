@@ -52,6 +52,13 @@ return new class extends Migration
                 $version->update(['is_active' => true]);
             }
 
+            $dataSiswaStep = $this->ensureStep($version, [
+                'step_key' => 'data_siswa',
+                'step_title' => 'Data Siswa',
+                'step_description' => 'Lengkapi data dasar siswa untuk kartu tes.',
+                'step_order_number' => 1,
+            ]);
+
             $dataOrtuStep = $this->ensureStep($version, [
                 'step_key' => 'data_orang_tua',
                 'step_title' => 'Data Orang Tua / Wali',
@@ -74,7 +81,94 @@ return new class extends Migration
                 ['label' => 'Akuntansi (AK)', 'value' => 'AK'],
             ];
 
+            // Step: Data Siswa
+            $this->ensureField($version, $dataSiswaStep, [
+                'field_key' => 'nama_lengkap',
+                'field_label' => 'Nama Lengkap',
+                'field_type' => 'text',
+                'field_placeholder_text' => 'Nama lengkap sesuai dokumen resmi',
+                'field_help_text' => 'Isi nama lengkap sesuai akta kelahiran atau ijazah.',
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => true,
+                'is_archived' => false,
+                'field_order_number' => 1,
+            ]);
+
+            $this->ensureField($version, $dataSiswaStep, [
+                'field_key' => 'nisn',
+                'field_label' => 'NISN',
+                'field_type' => 'text',
+                'field_placeholder_text' => 'Nomor Induk Siswa Nasional',
+                'field_help_text' => 'Masukkan NISN 10 digit.',
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => true,
+                'is_archived' => false,
+                'field_order_number' => 2,
+            ]);
+
+            $this->ensureField($version, $dataSiswaStep, [
+                'field_key' => 'tempat_lahir',
+                'field_label' => 'Tempat Lahir',
+                'field_type' => 'text',
+                'field_placeholder_text' => 'Kota / Kabupaten',
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => true,
+                'is_archived' => false,
+                'field_order_number' => 3,
+            ]);
+
+            $this->ensureField($version, $dataSiswaStep, [
+                'field_key' => 'tanggal_lahir',
+                'field_label' => 'Tanggal Lahir',
+                'field_type' => 'date',
+                'field_placeholder_text' => null,
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => true,
+                'is_archived' => false,
+                'field_order_number' => 4,
+            ]);
+
+            $this->ensureField($version, $dataSiswaStep, [
+                'field_key' => 'alamat',
+                'field_label' => 'Alamat Lengkap',
+                'field_type' => 'textarea',
+                'field_placeholder_text' => 'Alamat tempat tinggal saat ini',
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => true,
+                'is_archived' => false,
+                'field_order_number' => 5,
+            ]);
+
             // Step: Data Orang Tua / Wali
+            $this->ensureField($version, $dataOrtuStep, [
+                'field_key' => 'nama_ayah',
+                'field_label' => 'Nama Ayah',
+                'field_type' => 'text',
+                'field_placeholder_text' => 'Nama lengkap ayah kandung / wali',
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => true,
+                'is_archived' => false,
+                'field_order_number' => 1,
+            ]);
+
+            $this->ensureField($version, $dataOrtuStep, [
+                'field_key' => 'nama_ibu',
+                'field_label' => 'Nama Ibu',
+                'field_type' => 'text',
+                'field_placeholder_text' => 'Nama lengkap ibu kandung / wali',
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => true,
+                'is_archived' => false,
+                'field_order_number' => 2,
+            ]);
+
             $this->ensureField($version, $dataOrtuStep, [
                 'field_key' => 'no_hp',
                 'field_label' => 'No. HP Orang Tua',
@@ -85,7 +179,7 @@ return new class extends Migration
                 'is_filterable' => false,
                 'is_exportable' => true,
                 'is_archived' => false,
-                'field_order_number' => 5,
+                'field_order_number' => 3,
             ]);
 
             $this->ensureField($version, $dataOrtuStep, [
@@ -98,7 +192,7 @@ return new class extends Migration
                 'is_filterable' => false,
                 'is_exportable' => true,
                 'is_archived' => false,
-                'field_order_number' => 6,
+                'field_order_number' => 4,
             ]);
 
             $this->ensureField($version, $dataOrtuStep, [
@@ -110,7 +204,7 @@ return new class extends Migration
                 'is_filterable' => false,
                 'is_exportable' => true,
                 'is_archived' => false,
-                'field_order_number' => 7,
+                'field_order_number' => 5,
             ]);
 
             // Step: Pilihan Jurusan & Konfirmasi
@@ -179,6 +273,32 @@ return new class extends Migration
             ]);
 
             $this->ensureField($version, $pilihanStep, [
+                'field_key' => 'pas_foto',
+                'field_label' => 'Pas Foto 3x4',
+                'field_type' => 'image',
+                'field_placeholder_text' => null,
+                'field_help_text' => 'Unggah pas foto berwarna dengan latar belakang polos. Format jpg/png maks 5MB.',
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => false,
+                'is_archived' => false,
+                'field_order_number' => 6,
+            ]);
+
+            $this->ensureField($version, $pilihanStep, [
+                'field_key' => 'tanda_tangan_peserta',
+                'field_label' => 'Tanda Tangan Peserta',
+                'field_type' => 'signature',
+                'field_placeholder_text' => null,
+                'field_help_text' => 'Tandatangani kotak menggunakan kursor atau layar sentuh.',
+                'is_required' => true,
+                'is_filterable' => false,
+                'is_exportable' => false,
+                'is_archived' => false,
+                'field_order_number' => 7,
+            ]);
+
+            $this->ensureField($version, $pilihanStep, [
                 'field_key' => 'persetujuan',
                 'field_label' => 'Saya menyatakan bahwa data yang saya isi adalah benar dan dapat dipertanggungjawabkan',
                 'field_type' => 'checkbox',
@@ -186,7 +306,7 @@ return new class extends Migration
                 'is_filterable' => false,
                 'is_exportable' => true,
                 'is_archived' => false,
-                'field_order_number' => 6,
+                'field_order_number' => 8,
             ]);
         });
     }
@@ -214,6 +334,8 @@ return new class extends Migration
                 'pilihan_jurusan_2',
                 'pilihan_jurusan_3',
                 'tanggal_tes',
+                'pas_foto',
+                'tanda_tangan_peserta',
             ];
 
             FormField::query()

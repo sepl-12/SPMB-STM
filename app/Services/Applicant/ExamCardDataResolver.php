@@ -35,7 +35,8 @@ class ExamCardDataResolver
      *     signature_city: string,
      *     signature_day_month: string|null,
      *     signature_name: string,
-     *     photo_path: string|null
+     *     photo_path: string|null,
+     *     signature_image_path: string|null
      * }
      */
     public function resolve(Applicant $applicant): array
@@ -102,6 +103,7 @@ class ExamCardDataResolver
         $signatureCity = setting('exam_card_signature_city', 'Sangatta');
         $signatureDayMonth = $examDate?->translatedFormat('d F') ?? now()->translatedFormat('d F');
         $signatureName = $name;
+        $signatureImagePath = $this->resolveSignaturePath($applicant);
 
         return [
             'applicant' => $applicant,
@@ -125,6 +127,7 @@ class ExamCardDataResolver
             'signature_day_month' => $signatureDayMonth,
             'signature_name' => $signatureName,
             'photo_path' => $this->resolvePhotoPath($applicant),
+            'signature_image_path' => $signatureImagePath,
         ];
     }
 
@@ -197,6 +200,26 @@ class ExamCardDataResolver
 
     protected function resolvePhotoPath(Applicant $applicant): ?string
     {
+        return $this->resolveFilePathByFieldKeys($applicant, [
+            'foto_siswa',
+            'pas_foto',
+            'pas_foto_siswa',
+            'photo',
+        ]);
+    }
+
+    protected function resolveSignaturePath(Applicant $applicant): ?string
+    {
+        return $this->resolveFilePathByFieldKeys($applicant, [
+            'tanda_tangan_peserta',
+        ]);
+    }
+
+    /**
+     * @param array<int, string> $fieldKeys
+     */
+    protected function resolveFilePathByFieldKeys(Applicant $applicant, array $fieldKeys): ?string
+    {
         $submission = $applicant->latestSubmission;
 
         if (! $submission) {
@@ -208,23 +231,22 @@ class ExamCardDataResolver
             ? $submission->submissionFiles
             : $submission->submissionFiles()->get();
 
-        $photoFile = $files->first(function (SubmissionFile $file) {
-            return in_array($file->formField?->field_key, [
-                'foto_siswa',
-                'pas_foto',
-                'pas_foto_siswa',
-                'photo',
-            ], true);
+        $file = $files->first(function (SubmissionFile $file) use ($fieldKeys) {
+            if ($file->formField) {
+                return in_array($file->formField->field_key, $fieldKeys, true);
+            }
+
+            return false;
         });
 
-        if (! $photoFile) {
+        if (! $file) {
             return null;
         }
 
-        if (! Storage::disk($photoFile->stored_disk_name)->exists($photoFile->stored_file_path)) {
+        if (! Storage::disk($file->stored_disk_name)->exists($file->stored_file_path)) {
             return null;
         }
 
-        return Storage::disk($photoFile->stored_disk_name)->path($photoFile->stored_file_path);
+        return Storage::disk($file->stored_disk_name)->path($file->stored_file_path);
     }
 }
