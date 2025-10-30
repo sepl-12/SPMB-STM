@@ -79,11 +79,29 @@ class SaveRegistrationStepAction
             }
 
             $storeUploadedFile = function (string $fieldKey, UploadedFile $uploadedFile) use (&$registrationData): string {
+                // Store the new file first
                 $storedPath = $uploadedFile->store('registration-files', 'public');
 
+                // Verify the upload was successful
+                if (!$storedPath) {
+                    throw new \RuntimeException("Failed to store uploaded file for field: {$fieldKey}");
+                }
+
+                // Verify the file actually exists after upload
+                if (!Storage::disk('public')->exists($storedPath)) {
+                    throw new \RuntimeException("File was not properly stored for field: {$fieldKey}");
+                }
+
+                // Only delete old file AFTER new file is successfully stored
                 $existingPath = $registrationData[$fieldKey] ?? null;
                 if ($existingPath && $existingPath !== $storedPath && Storage::disk('public')->exists($existingPath)) {
-                    Storage::disk('public')->delete($existingPath);
+                    try {
+                        Storage::disk('public')->delete($existingPath);
+                    } catch (\Exception $e) {
+                        // Log the error but don't fail the upload if old file deletion fails
+                        // The new file is already stored successfully
+                        \Log::warning("Failed to delete old file: {$existingPath}", ['error' => $e->getMessage()]);
+                    }
                 }
 
                 $registrationData[$fieldKey] = $storedPath;
@@ -139,7 +157,12 @@ class SaveRegistrationStepAction
 
                 if ($submittedValue === null || $submittedValue === '') {
                     if ($existingValue && Storage::disk('public')->exists($existingValue)) {
-                        Storage::disk('public')->delete($existingValue);
+                        try {
+                            Storage::disk('public')->delete($existingValue);
+                        } catch (\Exception $e) {
+                            // Log the error but continue - the field value will be cleared anyway
+                            \Log::warning("Failed to delete signature file: {$existingValue}", ['error' => $e->getMessage()]);
+                        }
                     }
 
                     unset($validatedStepData[$fieldKey]);
@@ -202,10 +225,29 @@ class SaveRegistrationStepAction
         }
 
         $fileName = sprintf('registration-signatures/%s_%s.%s', $fieldKey, uniqid('', true), $extension);
-        Storage::disk('public')->put($fileName, $decoded);
 
+        // Store the new signature file
+        $putResult = Storage::disk('public')->put($fileName, $decoded);
+
+        // Verify the storage was successful
+        if (!$putResult) {
+            throw new \RuntimeException("Failed to store signature file for field: {$fieldKey}");
+        }
+
+        // Verify the file actually exists after storage
+        if (!Storage::disk('public')->exists($fileName)) {
+            throw new \RuntimeException("Signature file was not properly stored for field: {$fieldKey}");
+        }
+
+        // Only delete old signature AFTER new signature is successfully stored
         if ($existingPath && Storage::disk('public')->exists($existingPath)) {
-            Storage::disk('public')->delete($existingPath);
+            try {
+                Storage::disk('public')->delete($existingPath);
+            } catch (\Exception $e) {
+                // Log the error but don't fail the upload if old file deletion fails
+                // The new signature is already stored successfully
+                \Log::warning("Failed to delete old signature: {$existingPath}", ['error' => $e->getMessage()]);
+            }
         }
 
         return $fileName;
