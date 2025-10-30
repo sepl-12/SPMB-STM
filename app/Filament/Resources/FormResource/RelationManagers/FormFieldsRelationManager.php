@@ -160,13 +160,7 @@ class FormFieldsRelationManager extends RelationManager
                         ->requiresConfirmation()
                         ->modalHeading('Duplikat Pertanyaan')
                         ->modalDescription('Pertanyaan akan diduplikat dengan urutan baru')
-                        ->action(function (FormField $record) {
-                            $newRecord = $record->replicate();
-                            $newRecord->field_key = $record->field_key . '_copy_' . time();
-                            $newRecord->field_label = $record->field_label . ' (Copy)';
-                            $newRecord->field_order_number = $this->getNextOrderNumber();
-                            $newRecord->save();
-                        })
+                        ->action(fn (FormField $record) => $this->duplicateField($record))
                         ->successNotificationTitle('Pertanyaan berhasil diduplikat'),
 
                     Action::make('toggleArchive')
@@ -180,10 +174,7 @@ class FormFieldsRelationManager extends RelationManager
                                 ? 'Pertanyaan akan dimunculkan kembali di formulir'
                                 : 'Pertanyaan tidak akan tampil di formulir tetapi tetap tersimpan'
                         )
-                        ->action(function (FormField $record) {
-                            $record->is_archived = ! $record->is_archived;
-                            $record->save();
-                        })
+                        ->action(fn (FormField $record) => $this->toggleFieldArchive($record))
                         ->successNotificationTitle('Status arsip diperbarui')
 
                         ->hidden(fn(FormField $record) => $record->is_system_field),
@@ -191,16 +182,7 @@ class FormFieldsRelationManager extends RelationManager
                         ->hidden(fn(FormField $record) => $record->is_system_field)
                         ->modalHeading('Hapus Pertanyaan')
                         ->modalDescription('Pertanyaan yang dihapus tidak dapat dipulihkan. Yakin ingin melanjutkan?')
-                        ->after(function (FormField $record) {
-                            // Jika field masih ada setelah delete, berarti protected
-                            if ($record->exists && $record->is_system_field) {
-                                \Filament\Notifications\Notification::make()
-                                    ->warning()
-                                    ->title('Field Sistem Tidak Dapat Dihapus')
-                                    ->body("Field '{$record->field_label}' adalah field sistem dan tidak dapat dihapus.")
-                                    ->send();
-                            }
-                        }),
+                        ->after(fn (FormField $record) => $this->notifyOnSystemFieldDeletionAttempt($record)),
                 ])
             ])
             ->bulkActions([
@@ -213,12 +195,7 @@ class FormFieldsRelationManager extends RelationManager
                             ->options(fn() => $this->getStepOptions())
                             ->required(),
                     ])
-                    ->action(function (Collection $records, array $data) {
-                        $records->each(function (FormField $record) use ($data) {
-                            $record->form_step_id = $data['form_step_id'];
-                            $record->save();
-                        });
-                    })
+                    ->action(fn (Collection $records, array $data) => $this->moveFieldsToStep($records, $data))
                     ->successNotificationTitle('Pertanyaan berhasil dipindahkan')
                     ->deselectRecordsAfterCompletion(),
                 BulkAction::make('archive')
@@ -226,22 +203,7 @@ class FormFieldsRelationManager extends RelationManager
                     ->icon('heroicon-o-archive-box')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->action(function (Collection $records) {
-                        $systemFields = $records->filter(fn($record) => $record->is_system_field);
-                        $regularFields = $records->reject(fn($record) => $record->is_system_field);
-
-                        // Only archive non-system fields
-                        $regularFields->each->update(['is_archived' => true]);
-
-                        // Show notification if system fields were skipped
-                        if ($systemFields->count() > 0) {
-                            \Filament\Notifications\Notification::make()
-                                ->warning()
-                                ->title('Field Sistem Dilewati')
-                                ->body("Field sistem tidak dapat diarsipkan: {$systemFields->pluck('field_label')->join(', ')}")
-                                ->send();
-                        }
-                    })
+                    ->action(fn (Collection $records) => $this->archiveSelectedFields($records))
                     ->successNotificationTitle(
                         fn(Collection $records) =>
                         'Berhasil diarsipkan: ' . $records->reject(fn($record) => $record->is_system_field)->count() . ' pertanyaan'
@@ -260,30 +222,8 @@ class FormFieldsRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->modalHeading('Hapus Pertanyaan')
                     ->modalDescription('Pertanyaan yang dihapus tidak dapat dipulihkan. Yakin ingin melanjutkan?')
-                    ->before(function (Collection $records) {
-                        $systemFields = $records->filter(fn($record) => $record->is_system_field);
-
-                        if ($systemFields->count() > 0) {
-                            \Filament\Notifications\Notification::make()
-                                ->warning()
-                                ->title('Field Sistem Tidak Akan Dihapus')
-                                ->body("Field sistem yang dipilih akan dilewati: {$systemFields->pluck('field_label')->join(', ')}")
-                                ->persistent()
-                                ->send();
-                        }
-                    })
-                    ->after(function (Collection $records) {
-                        $deleted = $records->filter(fn($record) => !$record->exists);
-                        $protected = $records->filter(fn($record) => $record->exists && $record->is_system_field);
-
-                        if ($protected->count() > 0) {
-                            \Filament\Notifications\Notification::make()
-                                ->info()
-                                ->title('Penghapusan Selesai')
-                                ->body("Dihapus: {$deleted->count()}, Dilewati (field sistem): {$protected->count()}")
-                                ->send();
-                        }
-                    }),
+                    ->before(fn (Collection $records) => $this->beforeBulkDelete($records))
+                    ->after(fn (Collection $records) => $this->afterBulkDelete($records)),
 
             ])
             ->defaultPaginationPageOption(50)
@@ -334,5 +274,86 @@ class FormFieldsRelationManager extends RelationManager
             ->orderBy('step_order_number')
             ->pluck('step_title', 'id')
             ->all();
+    }
+
+    private function duplicateField(FormField $record): void
+    {
+        $newRecord = $record->replicate();
+        $newRecord->field_key = $record->field_key . '_copy_' . time();
+        $newRecord->field_label = $record->field_label . ' (Copy)';
+        $newRecord->field_order_number = $this->getNextOrderNumber();
+        $newRecord->save();
+    }
+
+    private function toggleFieldArchive(FormField $record): void
+    {
+        $record->is_archived = !$record->is_archived;
+        $record->save();
+    }
+
+    private function notifyOnSystemFieldDeletionAttempt(FormField $record): void
+    {
+        // Jika field masih ada setelah delete, berarti protected
+        if ($record->exists && $record->is_system_field) {
+            \Filament\Notifications\Notification::make()
+                ->warning()
+                ->title('Field Sistem Tidak Dapat Dihapus')
+                ->body("Field '{$record->field_label}' adalah field sistem dan tidak dapat dihapus.")
+                ->send();
+        }
+    }
+
+    private function moveFieldsToStep(Collection $records, array $data): void
+    {
+        $records->each(function (FormField $record) use ($data) {
+            $record->form_step_id = $data['form_step_id'];
+            $record->save();
+        });
+    }
+
+    private function archiveSelectedFields(Collection $records): void
+    {
+        $systemFields = $records->filter(fn($record) => $record->is_system_field);
+        $regularFields = $records->reject(fn($record) => $record->is_system_field);
+
+        // Only archive non-system fields
+        $regularFields->each->update(['is_archived' => true]);
+
+        // Show notification if system fields were skipped
+        if ($systemFields->isNotEmpty()) {
+            \Filament\Notifications\Notification::make()
+                ->warning()
+                ->title('Field Sistem Dilewati')
+                ->body("Field sistem tidak dapat diarsipkan: {$systemFields->pluck('field_label')->join(', ')}")
+                ->send();
+        }
+    }
+
+    private function beforeBulkDelete(Collection $records): void
+    {
+        $systemFields = $records->filter(fn($record) => $record->is_system_field);
+
+        if ($systemFields->isNotEmpty()) {
+            \Filament\Notifications\Notification::make()
+                ->warning()
+                ->title('Field Sistem Tidak Akan Dihapus')
+                ->body("Field sistem yang dipilih akan dilewati: {$systemFields->pluck('field_label')->join(', ')}")
+                ->persistent()
+                ->send();
+        }
+    }
+
+    private function afterBulkDelete(Collection $records): void
+    {
+        $deletedCount = $records->filter(fn($record) => !$record->exists)->count();
+        $protectedCount = $records->filter(fn($record) => $record->exists && $record->is_system_field)->count();
+
+        if ($protectedCount > 0) {
+            \Filament\Notifications\Notification::make()
+                ->info()
+                ->title('Penghapusan Selesai')
+                ->body("Dihapus: {$deletedCount}, Dilewati (field sistem): {$protectedCount}")
+                ->send();
+        }
     }
 }
