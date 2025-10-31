@@ -3,6 +3,7 @@
 namespace App\Services\Applicant;
 
 use App\Models\Applicant;
+use App\Models\ExamCardFieldConfig;
 use App\Models\SubmissionFile;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
@@ -12,31 +13,12 @@ use Illuminate\Support\Facades\Storage;
 class ExamCardDataResolver
 {
     /**
-     * Resolve all data needed to render exam card PDF.
+     * Resolve all data needed to render exam card PDF using dynamic field configuration.
      *
      * @return array{
      *     applicant: Applicant,
-     *     registration_number: string,
-     *     nisn: string|null,
-     *     name: string,
-     *     birth_place: string|null,
-     *     birth_date: Carbon|null,
-     *     address: string|null,
-     *     parent_father: string|null,
-     *     parent_mother: string|null,
-     *     whatsapp_parent: string|null,
-     *     whatsapp_student: string|null,
-     *     email: string|null,
-     *     major_first: string|null,
-     *     major_second: string|null,
-     *     major_third: string|null,
-     *     previous_school: string|null,
-     *     exam_date: Carbon|null,
-     *     signature_city: string,
-     *     signature_day_month: string|null,
-     *     signature_name: string,
-     *     photo_path: string|null,
-     *     signature_image_path: string|null
+     *     fields: array<string, array{value: mixed, config: ExamCardFieldConfig}>,
+     *     legacy: array (for backward compatibility)
      * }
      */
     public function resolve(Applicant $applicant): array
@@ -49,85 +31,149 @@ class ExamCardDataResolver
             $applicant->load(['latestSubmission.submissionFiles.formField']);
         }
 
+        // Load field configurations from database
+        $fieldConfigs = ExamCardFieldConfig::enabled()->ordered()->get();
+
         $answers = $applicant->getLatestSubmissionAnswers();
+        $fields = [];
 
-        $name = $this->firstFilled($answers, ['nama_lengkap', 'full_name', 'name']) ?? $applicant->applicant_full_name;
-        $nisn = $this->firstFilled($answers, ['nisn']) ?? $applicant->applicant_nisn;
-        $birthPlace = $this->firstFilled($answers, ['tempat_lahir', 'birth_place']);
-        $birthDateRaw = $this->firstFilled($answers, ['tanggal_lahir', 'birth_date']);
-        $address = $this->firstFilled($answers, ['alamat', 'address', 'alamat_lengkap']);
-        $parentFather = $this->firstFilled($answers, ['nama_ayah', 'ayah', 'nama_orang_tua_laki', 'nama_orang_tua_ayah']);
-        $parentMother = $this->firstFilled($answers, ['nama_ibu', 'ibu', 'nama_orang_tua_perempuan', 'nama_orang_tua_ibu']);
-        $parentWhatsapp = $this->firstFilled($answers, [
-            'no_hp_ortu',
-            'no_hp_orangtua',
-            'no_hp_orang_tua',
-            'wa_ortu',
-            'wa_orangtua',
-            'no_hp',
-            'phone_parent',
-        ]) ?? $applicant->applicant_phone_number;
-        $studentWhatsapp = $this->firstFilled($answers, [
-            'no_hp_siswa',
-            'wa_siswa',
-            'phone_student',
-            'telepon_siswa',
-            'hp_siswa',
-        ]);
-        $email = $this->firstFilled($answers, ['email', 'email_address', 'email_siswa']) ?? $applicant->applicant_email_address;
+        // Resolve each field based on configuration
+        foreach ($fieldConfigs as $config) {
+            $value = $this->resolveFieldValue($config, $applicant, $answers);
 
-        $majorFirst = $this->firstFilled($answers, [
-            'pilihan_jurusan_1',
-            'jurusan_1',
-            'jurusan_pilihan_1',
-            'program_studi_1',
-            'jurusan',
-            'major',
-        ]) ?? $applicant->chosen_major_name;
-        $majorSecond = $this->firstFilled($answers, [
-            'pilihan_jurusan_2',
-            'jurusan_2',
-            'jurusan_pilihan_2',
-            'program_studi_2',
-        ]);
-        $majorThird = $this->firstFilled($answers, [
-            'pilihan_jurusan_3',
-            'jurusan_3',
-            'jurusan_pilihan_3',
-            'program_studi_3',
-        ]);
+            $fields[$config->field_key] = [
+                'value' => $value,
+                'config' => $config,
+            ];
+        }
 
-        $previousSchool = $this->firstFilled($answers, ['asal_sekolah', 'sekolah_asal', 'asal_smp', 'asal_sdlb']);
-        $examDate = $this->resolveExamDate($applicant, $answers);
-
-        $signatureCity = setting('exam_card_signature_city', 'Sangatta');
-        $signatureDayMonth = $examDate?->translatedFormat('d F') ?? now()->translatedFormat('d F');
-        $signatureName = $name;
-        $signatureImagePath = $this->resolveSignaturePath($applicant);
+        // Build legacy format for backward compatibility
+        $legacy = $this->buildLegacyFormat($applicant, $fields);
 
         return [
             'applicant' => $applicant,
-            'registration_number' => $applicant->registration_number,
-            'nisn' => $nisn,
-            'name' => $name,
+            'fields' => $fields,
+            'legacy' => $legacy,
+            // Also merge legacy fields at root level for backward compatibility
+            ...$legacy,
+        ];
+    }
+
+    /**
+     * Resolve value untuk specific field config
+     */
+    protected function resolveFieldValue(ExamCardFieldConfig $config, Applicant $applicant, array $answers): mixed
+    {
+        $fieldKey = $config->field_key;
+
+        // Special handling untuk field-field tertentu
+        switch ($fieldKey) {
+            case 'registration_number':
+                return $applicant->registration_number;
+
+            case 'nisn':
+                return $this->firstFilled($answers, $config->getAllKeys()) ?? $applicant->applicant_nisn;
+
+            case 'name':
+                return $this->firstFilled($answers, $config->getAllKeys()) ?? $applicant->applicant_full_name;
+
+            case 'birth_place':
+                return $this->firstFilled($answers, $config->getAllKeys());
+
+            case 'birth_date':
+                $dateRaw = $this->firstFilled($answers, $config->getAllKeys());
+                return $this->normalizeDate($dateRaw);
+
+            case 'address':
+                return $this->firstFilled($answers, $config->getAllKeys());
+
+            case 'parent_father':
+                return $this->firstFilled($answers, $config->getAllKeys());
+
+            case 'parent_mother':
+                return $this->firstFilled($answers, $config->getAllKeys());
+
+            case 'whatsapp_parent':
+                $value = $this->firstFilled($answers, $config->getAllKeys()) ?? $applicant->applicant_phone_number;
+                return $this->cleanPhone($value);
+
+            case 'whatsapp_student':
+                $value = $this->firstFilled($answers, $config->getAllKeys());
+                return $this->cleanPhone($value);
+
+            case 'email':
+                return $this->firstFilled($answers, $config->getAllKeys()) ?? $applicant->applicant_email_address;
+
+            case 'major_first':
+                return $this->firstFilled($answers, $config->getAllKeys()) ?? $applicant->chosen_major_name;
+
+            case 'major_second':
+            case 'major_third':
+                return $this->firstFilled($answers, $config->getAllKeys());
+
+            case 'previous_school':
+                return $this->firstFilled($answers, $config->getAllKeys());
+
+            case 'exam_date':
+                return $this->resolveExamDate($applicant, $answers);
+
+            case 'signature_date':
+                $examDate = $this->resolveExamDate($applicant, $answers);
+                return $examDate?->translatedFormat('d F') ?? now()->translatedFormat('d F');
+
+            case 'signature_name':
+                $name = $this->firstFilled($answers, ['nama_lengkap', 'full_name', 'name']) ?? $applicant->applicant_full_name;
+                return $name;
+
+            case 'photo':
+                return $this->resolvePhotoPath($applicant);
+
+            case 'signature_image':
+                return $this->resolveSignaturePath($applicant);
+
+            default:
+                // Generic field resolution using aliases
+                return $this->firstFilled($answers, $config->getAllKeys());
+        }
+    }
+
+    /**
+     * Build legacy array format for backward compatibility
+     */
+    protected function buildLegacyFormat(Applicant $applicant, array $fields): array
+    {
+        $examDate = $fields['exam_date']['value'] ?? null;
+        $birthDate = $fields['birth_date']['value'] ?? null;
+        $birthPlace = $fields['birth_place']['value'] ?? null;
+
+        $birthDateText = $birthDate?->translatedFormat('d F Y');
+        $examDateText = $examDate?->translatedFormat('d F Y');
+
+        $whatsappParent = $fields['whatsapp_parent']['value'] ?? null;
+        $whatsappStudent = $fields['whatsapp_student']['value'] ?? null;
+
+        return [
+            'registration_number' => $fields['registration_number']['value'] ?? $applicant->registration_number,
+            'nisn' => $fields['nisn']['value'] ?? null,
+            'name' => $fields['name']['value'] ?? $applicant->applicant_full_name,
             'birth_place' => $birthPlace,
-            'birth_date' => $this->normalizeDate($birthDateRaw),
-            'address' => $address,
-            'parent_father' => $parentFather,
-            'parent_mother' => $parentMother,
-            'whatsapp_parent' => $this->cleanPhone($parentWhatsapp),
-            'whatsapp_student' => $this->cleanPhone($studentWhatsapp),
-            'email' => $email,
-            'major_first' => $majorFirst,
-            'major_second' => $majorSecond,
-            'major_third' => $majorThird,
-            'previous_school' => $previousSchool,
+            'birth_date' => $birthDate,
+            'address' => $fields['address']['value'] ?? null,
+            'parent_father' => $fields['parent_father']['value'] ?? null,
+            'parent_mother' => $fields['parent_mother']['value'] ?? null,
+            'whatsapp_parent' => $whatsappParent,
+            'whatsapp_student' => $whatsappStudent,
+            'email' => $fields['email']['value'] ?? null,
+            'major_first' => $fields['major_first']['value'] ?? null,
+            'major_second' => $fields['major_second']['value'] ?? null,
+            'major_third' => $fields['major_third']['value'] ?? null,
+            'previous_school' => $fields['previous_school']['value'] ?? null,
             'exam_date' => $examDate,
-            'signature_city' => $signatureCity,
-            'signature_day_month' => $signatureDayMonth,
-            'signature_name' => $signatureName,
-            'photo_path' => $this->resolvePhotoPath($applicant),
-            'signature_image_path' => $signatureImagePath,
+            'signature_city' => setting('exam_card_signature_city', 'Sangatta'),
+            'signature_day_month' => $fields['signature_date']['value'] ?? null,
+            'signature_name' => $fields['signature_name']['value'] ?? null,
+            'photo_path' => $fields['photo']['value'] ?? null,
+            'signature_image_path' => $fields['signature_image']['value'] ?? null,
         ];
     }
 

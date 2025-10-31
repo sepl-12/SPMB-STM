@@ -1,0 +1,295 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\ExamCardFieldConfig;
+use Illuminate\Database\Seeder;
+
+class ExamCardFieldConfigSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        $fields = [
+            // Registration Number & NISN
+            [
+                'field_key' => 'registration_number',
+                'field_aliases' => ['no_pendaftaran', 'nomor_pendaftaran'],
+                'label' => 'Nomor Pendaftaran',
+                'position_left' => 70,
+                'position_top' => 82,
+                'width' => 82,
+                'field_type' => 'text',
+                'font_size' => 12.5,
+                'is_enabled' => true,
+                'order' => 1,
+                'is_required' => true,
+            ],
+            [
+                'field_key' => 'nisn',
+                'field_aliases' => [],
+                'label' => 'NISN',
+                'position_left' => 148,
+                'position_top' => 82,
+                'width' => 58,
+                'field_type' => 'text',
+                'font_size' => 12.5,
+                'is_enabled' => true,
+                'order' => 2,
+                'fallback_value' => '-',
+            ],
+
+            // Personal Information
+            [
+                'field_key' => 'name',
+                'field_aliases' => ['nama_lengkap', 'full_name'],
+                'label' => 'Nama Lengkap',
+                'position_left' => 80,
+                'position_top' => 92,
+                'width' => 122,
+                'field_type' => 'text',
+                'font_size' => 12.5,
+                'is_enabled' => true,
+                'order' => 3,
+                'is_required' => true,
+            ],
+            [
+                'field_key' => 'birth_place',
+                'field_aliases' => ['tempat_lahir'],
+                'label' => 'Tempat Lahir',
+                'position_left' => 80,
+                'position_top' => 102,
+                'width' => 130,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 4,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'birth_date',
+                'field_aliases' => ['tanggal_lahir'],
+                'label' => 'Tanggal Lahir',
+                'position_left' => 80,
+                'position_top' => 102,
+                'width' => 130,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 5,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'address',
+                'field_aliases' => ['alamat', 'alamat_lengkap'],
+                'label' => 'Alamat',
+                'position_left' => 80,
+                'position_top' => 110,
+                'width' => 138,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 6,
+                'fallback_value' => '-',
+            ],
+
+            // Parent Information
+            [
+                'field_key' => 'parent_father',
+                'field_aliases' => ['nama_ayah', 'ayah', 'nama_orang_tua_laki', 'nama_orang_tua_ayah'],
+                'label' => 'Nama Ayah',
+                'position_left' => 80,
+                'position_top' => 128,
+                'width' => 120,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 7,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'parent_mother',
+                'field_aliases' => ['nama_ibu', 'ibu', 'nama_orang_tua_perempuan', 'nama_orang_tua_ibu'],
+                'label' => 'Nama Ibu',
+                'position_left' => 80,
+                'position_top' => 137,
+                'width' => 120,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 8,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'whatsapp_parent',
+                'field_aliases' => ['no_hp_ortu', 'no_hp_orangtua', 'no_hp_orang_tua', 'wa_ortu', 'wa_orangtua', 'no_hp', 'phone_parent'],
+                'label' => 'No. HP Orang Tua',
+                'position_left' => 80,
+                'position_top' => 147,
+                'width' => 120,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 9,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'whatsapp_student',
+                'field_aliases' => ['no_hp_siswa', 'wa_siswa', 'phone_student', 'telepon_siswa', 'hp_siswa'],
+                'label' => 'No. HP Siswa',
+                'position_left' => 80,
+                'position_top' => 147,
+                'width' => 120,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 10,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'email',
+                'field_aliases' => ['email_address', 'email_siswa'],
+                'label' => 'Email',
+                'position_left' => 80,
+                'position_top' => 157,
+                'width' => 138,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 11,
+                'fallback_value' => '-',
+            ],
+
+            // Major Choices
+            [
+                'field_key' => 'major_first',
+                'field_aliases' => ['pilihan_jurusan_1', 'jurusan_1', 'jurusan_pilihan_1', 'program_studi_1', 'jurusan', 'major'],
+                'label' => 'Pilihan Jurusan 1',
+                'position_left' => 80,
+                'position_top' => 167,
+                'width' => 120,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 12,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'major_second',
+                'field_aliases' => ['pilihan_jurusan_2', 'jurusan_2', 'jurusan_pilihan_2', 'program_studi_2'],
+                'label' => 'Pilihan Jurusan 2',
+                'position_left' => 80,
+                'position_top' => 177,
+                'width' => 120,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 13,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'major_third',
+                'field_aliases' => ['pilihan_jurusan_3', 'jurusan_3', 'jurusan_pilihan_3', 'program_studi_3'],
+                'label' => 'Pilihan Jurusan 3',
+                'position_left' => 80,
+                'position_top' => 187,
+                'width' => 120,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 14,
+                'fallback_value' => '-',
+            ],
+
+            // School & Exam Information
+            [
+                'field_key' => 'previous_school',
+                'field_aliases' => ['asal_sekolah', 'sekolah_asal', 'asal_smp', 'asal_sdlb'],
+                'label' => 'Asal Sekolah',
+                'position_left' => 80,
+                'position_top' => 197,
+                'width' => 140,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 15,
+                'fallback_value' => '-',
+            ],
+            [
+                'field_key' => 'exam_date',
+                'field_aliases' => ['tanggal_tes', 'tanggal_ujian'],
+                'label' => 'Tanggal Tes',
+                'position_left' => 80,
+                'position_top' => 205,
+                'width' => 80,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 16,
+                'fallback_value' => '-',
+            ],
+
+            // Signature Section
+            [
+                'field_key' => 'signature_date',
+                'field_aliases' => [],
+                'label' => 'Tanggal Tanda Tangan',
+                'position_left' => 131,
+                'position_top' => 222,
+                'width' => 68,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 17,
+            ],
+            [
+                'field_key' => 'signature_name',
+                'field_aliases' => [],
+                'label' => 'Nama di Tanda Tangan',
+                'position_left' => 110,
+                'position_top' => 256,
+                'width' => 60,
+                'field_type' => 'text',
+                'font_size' => 11.5,
+                'is_enabled' => true,
+                'order' => 18,
+                'fallback_value' => '-',
+            ],
+
+            // Images
+            [
+                'field_key' => 'photo',
+                'field_aliases' => ['foto_siswa', 'pas_foto', 'pas_foto_siswa'],
+                'label' => 'Foto Peserta',
+                'position_left' => 30,
+                'position_top' => 225, // 297 - 40 - 44 = bottom position converted to top
+                'width' => 25,
+                'height' => 35,
+                'field_type' => 'image',
+                'is_enabled' => true,
+                'order' => 19,
+            ],
+            [
+                'field_key' => 'signature_image',
+                'field_aliases' => ['tanda_tangan_peserta'],
+                'label' => 'Tanda Tangan Peserta',
+                'position_left' => 110,
+                'position_top' => 245,
+                'width' => 60,
+                'height' => 25,
+                'field_type' => 'signature',
+                'is_enabled' => true,
+                'order' => 20,
+            ],
+        ];
+
+        foreach ($fields as $field) {
+            ExamCardFieldConfig::updateOrCreate(
+                ['field_key' => $field['field_key']],
+                $field
+            );
+        }
+    }
+}
