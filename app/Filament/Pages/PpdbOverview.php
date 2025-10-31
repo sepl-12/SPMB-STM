@@ -31,6 +31,7 @@ class PpdbOverview extends Page
             \App\Filament\Widgets\PpdbStatsOverview::class,
             \App\Filament\Widgets\DailyApplicantsChart::class,
             \App\Filament\Widgets\TopSchoolsTable::class,
+            \App\Filament\Widgets\RecentApplicantsWidget::class,
         ];
     }
 
