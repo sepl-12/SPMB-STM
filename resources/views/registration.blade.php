@@ -163,7 +163,7 @@
                                         />
                                         @break
 
-                                    @case('multiselect')
+                                    @case('multi_select')
                                         @php
                                             $oldValue = old($field['field_key']);
                                             $multiValue = is_null($oldValue)
