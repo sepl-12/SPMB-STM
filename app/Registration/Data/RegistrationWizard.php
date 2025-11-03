@@ -96,4 +96,29 @@ class RegistrationWizard
 
         return $linkedGroups;
     }
+
+    /**
+     * Get conditional fields configuration for a specific step
+     *
+     * @param int $stepIndex
+     * @return array<string, array>
+     */
+    public function getConditionalFieldsForStep(int $stepIndex): array
+    {
+        $step = $this->stepAt($stepIndex);
+
+        if (!$step) {
+            return [];
+        }
+
+        $conditionalFields = [];
+
+        foreach ($step->formFields as $field) {
+            if ($field->hasConditionalRules() && !$field->is_archived) {
+                $conditionalFields[$field->field_key] = $field->conditional_rules;
+            }
+        }
+
+        return $conditionalFields;
+    }
 }

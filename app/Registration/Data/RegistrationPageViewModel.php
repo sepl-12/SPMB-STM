@@ -54,6 +54,9 @@ class RegistrationPageViewModel
         if ($step) {
             // Add linked groups configuration
             $step['linked_groups'] = $this->wizard->getLinkedGroupsForStep($this->currentStepIndex);
+
+            // Add conditional fields configuration
+            $step['conditional_fields'] = $this->wizard->getConditionalFieldsForStep($this->currentStepIndex);
         }
 
         return $step;
@@ -89,6 +92,7 @@ class RegistrationPageViewModel
                         'field_placeholder_text' => $field->field_placeholder_text,
                         'field_help_text' => $field->field_help_text,
                         'linked_field_group' => $field->linked_field_group,
+                        'conditional_rules' => $field->conditional_rules,
                         'options' => collect($field->field_options_json ?? [])->map(fn ($option) => [
                             'label' => $option['label'] ?? $option['value'] ?? '',
                             'value' => $option['value'] ?? $option['label'] ?? '',

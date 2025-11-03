@@ -23,23 +23,46 @@ class RegistrationValidator
      */
     public function validate(Collection $fields, RegistrationValidationContext $context, array $data): array
     {
-        [$rules, $messages, $attributes] = $this->buildRuleSets($fields, $context);
+        // Filter fields to only include visible ones based on conditional rules
+        $visibleFields = $this->filterVisibleFields($fields, $data);
+
+        [$rules, $messages, $attributes] = $this->buildRuleSets($visibleFields, $context);
 
         $validator = ValidatorFacade::make($data, $rules, $messages, $attributes);
 
-        $validator->after(function ($validator) use ($fields, $data) {
+        $validator->after(function ($validator) use ($visibleFields, $data) {
             $relevantData = collect($data)
-                ->only($fields->pluck('field_key')->all())
+                ->only($visibleFields->pluck('field_key')->all())
                 ->toArray();
 
-            $this->emailFieldInspector->inspect($validator, $fields, $relevantData);
+            $this->emailFieldInspector->inspect($validator, $visibleFields, $relevantData);
         });
 
         $validated = $validator->validate();
 
         return collect($validated)
-            ->only($fields->pluck('field_key')->all())
+            ->only($visibleFields->pluck('field_key')->all())
             ->toArray();
+    }
+
+    /**
+     * Filter fields to only include visible ones based on conditional rules
+     *
+     * @param Collection<int, FormField> $fields
+     * @param array<string, mixed> $data
+     * @return Collection<int, FormField>
+     */
+    protected function filterVisibleFields(Collection $fields, array $data): Collection
+    {
+        return $fields->filter(function (FormField $field) use ($data) {
+            // If field has no conditional rules, it's always visible
+            if (!$field->hasConditionalRules()) {
+                return true;
+            }
+
+            // Check if field should be visible based on current form data
+            return $field->shouldBeVisible($data);
+        });
     }
 
     /**

@@ -83,10 +83,13 @@
                     <script>
                         // Pass linked groups data to Alpine.js via window variable to avoid JSON encoding issues in HTML attributes
                         window.linkedGroupsData = @json($currentStep['linked_groups'] ?? []);
+                        // Pass conditional fields data to Alpine.js
+                        window.conditionalFieldsData = @json($currentStep['conditional_fields'] ?? []);
                     </script>
 
                     <form method="POST" action="{{ route('registration.save-step') }}" enctype="multipart/form-data"
-                          x-data="registrationForm(window.linkedGroupsData || {})">
+                          x-data="registrationForm(window.linkedGroupsData || {}, window.conditionalFieldsData || {})"
+                          @change="updateFormData($event)">
                         @csrf
                         <input type="hidden" name="current_step" value="{{ $currentStepIndex }}">
                         
@@ -98,6 +101,17 @@
                                     $fieldOptions = collect($field['options']);
                                 @endphp
 
+                                <div
+                                    x-show="isFieldVisible('{{ $field['field_key'] }}')"
+                                    x-transition:enter="transition ease-out duration-200"
+                                    x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                    x-transition:enter-end="opacity-100 transform translate-y-0"
+                                    x-transition:leave="transition ease-in duration-150"
+                                    x-transition:leave-start="opacity-100"
+                                    x-transition:leave-end="opacity-0"
+                                    style="display: none;"
+                                    x-cloak
+                                >
                                 @switch($field['field_type'])
                                     @case('text')
                                     @case('email')
@@ -232,6 +246,7 @@
                                         />
                                         @break
                                 @endswitch
+                                </div>
                             @endforeach
                         </div>
 
@@ -470,10 +485,12 @@
             return value.startsWith('http') ? value : `{{ asset('storage') }}/${value}`;
         }
 
-        function registrationForm(linkedGroups = {}) {
+        function registrationForm(linkedGroups = {}, conditionalFields = {}) {
             return {
                 linkedGroups: linkedGroups,
+                conditionalFields: conditionalFields,
                 selectedValues: {},
+                formData: {},
                 formElement: null, // Store reference to form element
 
                 init() {
@@ -483,10 +500,107 @@
                     // Initialize with current form values
                     this.loadCurrentValues();
 
+                    // Initialize form data for conditional visibility
+                    this.initFormData();
+
                     // Update options on page load
                     this.$nextTick(() => {
                         this.updateAllLinkedFields();
                     });
+                },
+
+                initFormData() {
+                    // Initialize formData with current input values
+                    const inputs = this.formElement.querySelectorAll('input, select, textarea');
+                    inputs.forEach(input => {
+                        const name = input.name;
+                        if (name) {
+                            if (input.type === 'checkbox') {
+                                this.formData[name] = input.checked ? '1' : '0';
+                            } else if (input.type === 'radio') {
+                                if (input.checked) {
+                                    this.formData[name] = input.value;
+                                }
+                            } else {
+                                this.formData[name] = input.value || '';
+                            }
+                        }
+                    });
+                },
+
+                updateFormData(event) {
+                    const input = event.target;
+                    const name = input.name;
+
+                    if (!name) return;
+
+                    if (input.type === 'checkbox') {
+                        this.formData[name] = input.checked ? '1' : '0';
+                    } else if (input.type === 'radio') {
+                        this.formData[name] = input.value;
+                    } else {
+                        this.formData[name] = input.value || '';
+                    }
+                },
+
+                isFieldVisible(fieldKey) {
+                    const rule = this.conditionalFields[fieldKey];
+
+                    if (!rule || !rule.show_if) {
+                        return true; // No rule = always visible
+                    }
+
+                    const showIf = rule.show_if;
+
+                    if (showIf.field) {
+                        // Single condition
+                        return this.evaluateCondition(showIf);
+                    }
+
+                    if (showIf.all) {
+                        // AND logic - all conditions must be true
+                        return showIf.all.every(condition => this.evaluateCondition(condition));
+                    }
+
+                    if (showIf.any) {
+                        // OR logic - at least one condition must be true
+                        return showIf.any.some(condition => this.evaluateCondition(condition));
+                    }
+
+                    return true;
+                },
+
+                evaluateCondition(condition) {
+                    const actualValue = this.formData[condition.field] || '';
+                    const expectedValue = condition.value !== undefined ? String(condition.value) : '';
+                    const operator = condition.operator || 'equals';
+
+                    // Normalize boolean values
+                    const normalizeBoolean = (val) => {
+                        if (val === 'on' || val === '1' || val === 'true' || val === true) return '1';
+                        if (val === '' || val === '0' || val === 'false' || val === false) return '0';
+                        return String(val);
+                    };
+
+                    const actual = normalizeBoolean(actualValue);
+                    const expected = normalizeBoolean(expectedValue);
+
+                    switch (operator) {
+                        case 'equals':
+                            return actual === expected;
+                        case 'not_equals':
+                            return actual !== expected;
+                        case 'contains':
+                            return String(actual).includes(String(expected));
+                        case 'not_contains':
+                            return !String(actual).includes(String(expected));
+                        case 'is_empty':
+                            return !actual || actual === '0';
+                        case 'is_not_empty':
+                            return actual && actual !== '0';
+                        default:
+                            return false;
+                    }
                 },
 
                 loadCurrentValues() {

@@ -15,6 +15,7 @@ class FormField extends Model
 
     protected $casts = [
         'field_options_json' => 'array',
+        'conditional_rules' => 'array',
         'is_required' => 'boolean',
         'is_filterable' => 'boolean',
         'is_exportable' => 'boolean',
@@ -30,6 +31,7 @@ class FormField extends Model
         'field_type',
         'field_options_json',
         'linked_field_group',
+        'conditional_rules',
         'is_required',
         'is_filterable',
         'is_exportable',
@@ -126,5 +128,123 @@ class FormField extends Model
     public function isLinked(): bool
     {
         return !empty($this->linked_field_group);
+    }
+
+    /**
+     * Check if this field has conditional visibility rules
+     */
+    public function hasConditionalRules(): bool
+    {
+        return !empty($this->conditional_rules) && isset($this->conditional_rules['show_if']);
+    }
+
+    /**
+     * Get the parent field that controls this field's visibility
+     */
+    public function getControllerField()
+    {
+        if (!$this->hasConditionalRules()) {
+            return null;
+        }
+
+        $rule = $this->conditional_rules['show_if'] ?? [];
+
+        // Single condition
+        if (isset($rule['field'])) {
+            $parentFieldKey = $rule['field'];
+
+            return static::where('form_version_id', $this->form_version_id)
+                ->where('field_key', $parentFieldKey)
+                ->first();
+        }
+
+        // Multiple conditions (all/any)
+        if (isset($rule['all']) || isset($rule['any'])) {
+            $conditions = $rule['all'] ?? $rule['any'] ?? [];
+            if (!empty($conditions) && isset($conditions[0]['field'])) {
+                $parentFieldKey = $conditions[0]['field'];
+
+                return static::where('form_version_id', $this->form_version_id)
+                    ->where('field_key', $parentFieldKey)
+                    ->first();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if field should be visible based on form data
+     */
+    public function shouldBeVisible(array $formData): bool
+    {
+        if (!$this->hasConditionalRules()) {
+            return true; // Always visible if no rules
+        }
+
+        $rule = $this->conditional_rules['show_if'] ?? [];
+
+        if (isset($rule['field'])) {
+            // Single condition
+            return $this->evaluateCondition($rule, $formData);
+        }
+
+        if (isset($rule['all'])) {
+            // AND logic - all conditions must be true
+            foreach ($rule['all'] as $condition) {
+                if (!$this->evaluateCondition($condition, $formData)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        if (isset($rule['any'])) {
+            // OR logic - at least one condition must be true
+            foreach ($rule['any'] as $condition) {
+                if ($this->evaluateCondition($condition, $formData)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Evaluate a single condition
+     */
+    protected function evaluateCondition(array $condition, array $formData): bool
+    {
+        $field = $condition['field'] ?? null;
+        $operator = $condition['operator'] ?? 'equals';
+        $expectedValue = $condition['value'] ?? null;
+        $actualValue = $formData[$field] ?? null;
+
+        // Normalize boolean values
+        if ($expectedValue === 'true' || $expectedValue === '1') {
+            $expectedValue = true;
+        } elseif ($expectedValue === 'false' || $expectedValue === '0') {
+            $expectedValue = false;
+        }
+
+        if ($actualValue === 'on' || $actualValue === '1') {
+            $actualValue = true;
+        } elseif ($actualValue === '0' || $actualValue === '') {
+            $actualValue = false;
+        }
+
+        return match ($operator) {
+            'equals' => $actualValue == $expectedValue,
+            'not_equals' => $actualValue != $expectedValue,
+            'contains' => is_string($actualValue) && str_contains($actualValue, (string) $expectedValue),
+            'not_contains' => is_string($actualValue) && !str_contains($actualValue, (string) $expectedValue),
+            'greater_than' => is_numeric($actualValue) && is_numeric($expectedValue) && $actualValue > $expectedValue,
+            'less_than' => is_numeric($actualValue) && is_numeric($expectedValue) && $actualValue < $expectedValue,
+            'is_empty' => empty($actualValue),
+            'is_not_empty' => !empty($actualValue),
+            default => false,
+        };
     }
 }

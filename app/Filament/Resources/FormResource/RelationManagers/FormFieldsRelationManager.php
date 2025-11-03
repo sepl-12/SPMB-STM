@@ -14,7 +14,10 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
@@ -140,6 +143,151 @@ class FormFieldsRelationManager extends RelationManager
                             </div>
                         '))
                         ->visible(fn ($get) => in_array($get('field_type'), ['select', 'radio'])),
+                ])
+                ->collapsible()
+                ->collapsed(),
+
+            // Conditional Visibility Section
+            Section::make('Conditional Visibility (Opsional)')
+                ->description('Atur kapan field ini ditampilkan berdasarkan nilai field lain (contoh: tampilkan field hanya jika checkbox dicentang)')
+                ->schema([
+                    Toggle::make('enable_conditional')
+                        ->label('Aktifkan Conditional Visibility')
+                        ->live()
+                        ->afterStateUpdated(function (callable $set, $state, $get) {
+                            if (!$state) {
+                                $set('conditional_rules', null);
+                            }
+                        })
+                        ->dehydrated(false),
+
+                    Select::make('conditional_rules.show_if.field')
+                        ->label('Tampilkan Jika Field')
+                        ->options(function (Get $get) {
+                            $stepId = $get('form_step_id');
+                            $currentFieldKey = $get('field_key');
+
+                            if (!$stepId) {
+                                return [];
+                            }
+
+                            // Get fields dari step yang sama, kecuali field ini sendiri
+                            // Prioritaskan checkbox, boolean, select, radio
+                            return FormField::where('form_step_id', $stepId)
+                                ->where('field_key', '!=', $currentFieldKey)
+                                ->where('is_archived', false)
+                                ->whereIn('field_type', ['checkbox', 'boolean', 'select', 'radio'])
+                                ->orderBy('field_order_number')
+                                ->pluck('field_label', 'field_key')
+                                ->toArray();
+                        })
+                        ->searchable()
+                        ->required()
+                        ->live()
+                        ->helperText('Pilih field yang akan mengontrol visibility field ini')
+                        ->visible(fn (Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
+
+                    Select::make('conditional_rules.show_if.operator')
+                        ->label('Operator Kondisi')
+                        ->options([
+                            'equals' => '= (Sama dengan)',
+                            'not_equals' => '≠ (Tidak sama dengan)',
+                            'is_empty' => '∅ (Kosong)',
+                            'is_not_empty' => '≠∅ (Tidak kosong)',
+                            'contains' => '⊃ (Mengandung)',
+                            'not_contains' => '⊅ (Tidak mengandung)',
+                        ])
+                        ->default('equals')
+                        ->required()
+                        ->live()
+                        ->helperText('Pilih kondisi yang harus dipenuhi')
+                        ->visible(fn (Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
+
+                    TextInput::make('conditional_rules.show_if.value')
+                        ->label('Nilai yang Diharapkan')
+                        ->helperText(function (Get $get) {
+                            $controllerFieldKey = $get('conditional_rules.show_if.field');
+
+                            if (!$controllerFieldKey) {
+                                return 'Pilih field controller terlebih dahulu';
+                            }
+
+                            $controllerField = FormField::where('field_key', $controllerFieldKey)->first();
+
+                            if (!$controllerField) {
+                                return '';
+                            }
+
+                            return match($controllerField->field_type) {
+                                'checkbox', 'boolean' => '✓ Gunakan "1" untuk checked/true, "0" untuk unchecked/false',
+                                'select', 'radio' => '📋 Masukkan value dari option yang dipilih',
+                                default => '📝 Masukkan nilai yang diharapkan',
+                            };
+                        })
+                        ->visible(fn (Get $get) =>
+                            ($get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))) &&
+                            in_array($get('conditional_rules.show_if.operator'), ['equals', 'not_equals', 'contains', 'not_contains'])
+                        ),
+
+                    Placeholder::make('preview')
+                        ->label('📌 Preview Kondisi')
+                        ->content(function (Get $get) {
+                            $fieldKey = $get('conditional_rules.show_if.field');
+                            $operator = $get('conditional_rules.show_if.operator');
+                            $value = $get('conditional_rules.show_if.value');
+
+                            if (!$fieldKey) {
+                                return '—';
+                            }
+
+                            $controllerField = FormField::where('field_key', $fieldKey)->first();
+                            $fieldLabel = $controllerField?->field_label ?? $fieldKey;
+
+                            $operatorLabel = match($operator) {
+                                'equals' => 'sama dengan',
+                                'not_equals' => 'tidak sama dengan',
+                                'is_empty' => 'kosong',
+                                'is_not_empty' => 'tidak kosong',
+                                'contains' => 'mengandung',
+                                'not_contains' => 'tidak mengandung',
+                                default => $operator,
+                            };
+
+                            $valueLabel = match($value) {
+                                '1', 'true' => '✓ checked/true',
+                                '0', 'false' => '☐ unchecked/false',
+                                default => "'{$value}'",
+                            };
+
+                            $preview = "Field ini akan <strong>tampil</strong> jika '<strong>{$fieldLabel}</strong>' {$operatorLabel}";
+
+                            if (in_array($operator, ['equals', 'not_equals', 'contains', 'not_contains'])) {
+                                $preview .= " {$valueLabel}";
+                            }
+
+                            return new \Illuminate\Support\HtmlString('<div class="text-sm">' . $preview . '</div>');
+                        })
+                        ->visible(fn (Get $get) => !empty($get('conditional_rules.show_if.field'))),
+
+                    Placeholder::make('example_hint')
+                        ->label('💡 Contoh Use Case')
+                        ->content(new \Illuminate\Support\HtmlString('
+                            <div class="text-xs text-gray-600 space-y-2">
+                                <p><strong>Contoh 1:</strong> Checkbox "Apakah memiliki penyakit kronis?"</p>
+                                <ul class="list-disc list-inside ml-3 space-y-1">
+                                    <li>Jika checked → tampilkan field "Sebutkan penyakit"</li>
+                                    <li>Operator: <code>equals</code></li>
+                                    <li>Value: <code>1</code></li>
+                                </ul>
+                                <p><strong>Contoh 2:</strong> Select "Jalur Pendaftaran"</p>
+                                <ul class="list-disc list-inside ml-3 space-y-1">
+                                    <li>Jika pilih "Beasiswa" → tampilkan field upload</li>
+                                    <li>Operator: <code>equals</code></li>
+                                    <li>Value: <code>beasiswa</code></li>
+                                </ul>
+                            </div>
+                        '))
+                        ->visible(fn (Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
                 ])
                 ->collapsible()
                 ->collapsed(),
