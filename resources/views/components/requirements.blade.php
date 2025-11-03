@@ -11,7 +11,7 @@
                     </svg>
                 </div>
                 <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">
-                    Dokumen yang Diperlukan
+                    Syarat Pendaftaran
                 </h2>
             </div>
             

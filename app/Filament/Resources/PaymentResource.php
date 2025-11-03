@@ -13,14 +13,19 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\RestoreAction;
+use Filament\Tables\Actions\ForceDeleteAction;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class PaymentResource extends Resource
 {
@@ -80,8 +85,33 @@ class PaymentResource extends Resource
                     ->label('Terakhir Update')
                     ->dateTime('d M Y H:i')
                     ->sortable(),
+                TextColumn::make('deleted_at')
+                    ->label('Dihapus Pada')
+                    ->dateTime('d M Y H:i')
+                    ->sortable()
+                    ->toggleable()
+                    ->placeholder('-')
+                    ->badge()
+                    ->color('danger'),
+                TextColumn::make('deletedBy.name')
+                    ->label('Dihapus Oleh')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->placeholder('-'),
+                TextColumn::make('deletion_reason')
+                    ->label('Alasan Hapus')
+                    ->limit(50)
+                    ->tooltip(fn ($record) => $record?->deletion_reason)
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->placeholder('-'),
             ])
             ->filters([
+                TrashedFilter::make()
+                    ->label('Status Penghapusan')
+                    ->placeholder('Hanya Aktif')
+                    ->trueLabel('Hanya Dihapus')
+                    ->falseLabel('Hanya Aktif')
+                    ->default(false),
                 SelectFilter::make('payment_status_name')
                     ->label('Status')
                     ->options(fn () => collect(PaymentStatus::cases())
@@ -112,6 +142,7 @@ class PaymentResource extends Resource
             ])
             ->actions([
                 ViewAction::make(),
+
                 Action::make('reconcile')
                     ->label('Rekonsiliasi Status')
                     ->icon('heroicon-o-arrow-path')
@@ -122,9 +153,118 @@ class PaymentResource extends Resource
                             ->body('Integrasikan webhook/gateway untuk memperbarui status pembayaran ' . $record->merchant_order_code . '.')
                             ->success()
                             ->send();
-                    }),
+                    })
+                    ->visible(fn (Payment $record) => $record->deleted_at === null),
+
+                DeleteAction::make()
+                    ->label('Hapus')
+                    ->color('danger')
+                    ->icon('heroicon-o-trash')
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Data Pembayaran')
+                    ->modalDescription('Data akan di-soft delete dan bisa di-restore. Payment yang sudah settlement tidak dapat dihapus.')
+                    ->form([
+                        Forms\Components\Textarea::make('deletion_reason')
+                            ->label('Alasan Penghapusan')
+                            ->required()
+                            ->placeholder('Jelaskan mengapa payment ini dihapus...')
+                            ->rows(3)
+                            ->helperText('Alasan ini akan tercatat dalam audit log'),
+                    ])
+                    ->before(function (Payment $record, array $data) {
+                        // Validasi menggunakan service
+                        $service = app(\App\Services\Payment\PaymentDeletionService::class);
+                        $validation = $service->canDelete($record);
+
+                        if (!$validation['can_delete']) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Tidak Dapat Menghapus')
+                                ->body(implode("\n", $validation['errors']))
+                                ->persistent()
+                                ->send();
+
+                            // Cancel deletion
+                            throw new \Filament\Support\Exceptions\Halt();
+                        }
+
+                        // Set metadata
+                        $record->deleted_by = auth()->id();
+                        $record->deletion_reason = $data['deletion_reason'];
+                        $record->save();
+                    })
+                    ->successNotification(
+                        Notification::make()
+                            ->success()
+                            ->title('Payment Dihapus')
+                            ->body('Data pembayaran berhasil dihapus (soft delete)')
+                    )
+                    ->visible(fn (Payment $record) => $record->deleted_at === null),
+
+                RestoreAction::make()
+                    ->label('Pulihkan')
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->requiresConfirmation()
+                    ->modalHeading('Pulihkan Payment')
+                    ->modalDescription('Payment akan dikembalikan ke status aktif')
+                    ->successNotification(
+                        Notification::make()
+                            ->success()
+                            ->title('Payment Dipulihkan')
+                            ->body('Data pembayaran berhasil dipulihkan')
+                    )
+                    ->visible(fn (Payment $record) => $record->deleted_at !== null),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('delete_bulk')
+                    ->label('Hapus Terpilih')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Multiple Payments')
+                    ->modalDescription('Payment yang sudah settlement akan dilewati secara otomatis')
+                    ->form([
+                        Forms\Components\Textarea::make('deletion_reason')
+                            ->label('Alasan Penghapusan Massal')
+                            ->required()
+                            ->placeholder('Jelaskan mengapa payment-payment ini dihapus...')
+                            ->rows(3),
+                    ])
+                    ->action(function (Collection $records, array $data) {
+                        $service = app(\App\Services\Payment\PaymentDeletionService::class);
+                        $deleted = 0;
+                        $failed = 0;
+                        $errors = [];
+
+                        foreach ($records as $payment) {
+                            try {
+                                $service->delete($payment, $data['deletion_reason']);
+                                $deleted++;
+                            } catch (\Exception $e) {
+                                $failed++;
+                                $errors[] = "{$payment->merchant_order_code}: {$e->getMessage()}";
+                            }
+                        }
+
+                        $message = "Berhasil hapus {$deleted} payment";
+                        if ($failed > 0) {
+                            $message .= ", Gagal: {$failed}";
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title($message)
+                            ->body($failed > 0 ? implode("\n", array_slice($errors, 0, 3)) : null)
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                Tables\Actions\RestoreBulkAction::make()
+                    ->label('Pulihkan Terpilih')
+                    ->successNotificationTitle('Payment berhasil dipulihkan')
+                    ->deselectRecordsAfterCompletion(),
+            ]);
     }
 
     public static function getRelations(): array
@@ -152,6 +292,13 @@ class PaymentResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return false;
+        // Gunakan policy untuk authorization
+        return auth()->user()->can('delete', $record);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        // Tampilkan juga yang sudah di-soft delete
+        return parent::getEloquentQuery()->withTrashed();
     }
 }

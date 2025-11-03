@@ -9,10 +9,11 @@ use App\Traits\HasPaymentAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use HasFactory, HasPaymentAttributes;
+    use HasFactory, HasPaymentAttributes, SoftDeletes;
 
     protected $guarded = [];
 
@@ -24,9 +25,41 @@ class Payment extends Model
         'payment_method_name' => PaymentMethod::class,
     ];
 
+    protected $fillable = [
+        'applicant_id',
+        'payment_gateway_name',
+        'merchant_order_code',
+        'paid_amount_total',
+        'currency_code',
+        'payment_method_name',
+        'payment_status_name',
+        'status_updated_datetime',
+        'gateway_payload_json',
+        'deleted_by',
+        'deletion_reason',
+    ];
+
     public function applicant(): BelongsTo
     {
         return $this->belongsTo(Applicant::class);
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    /**
+     * Boot method to add business rules for deletion
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Payment $payment) {
+            // Business Rule: Settlement payment tidak boleh dihapus
+            if ($payment->payment_status_name === PaymentStatus::SETTLEMENT) {
+                throw new \Exception('Payment yang sudah settlement tidak dapat dihapus. Hubungi supervisor untuk proses lebih lanjut.');
+            }
+        });
     }
 
     /**
