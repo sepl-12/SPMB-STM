@@ -65,9 +65,9 @@
             <div class="mt-6 sm:mt-8 text-center px-2">
                 <p class="text-gray-600 text-xs sm:text-sm">
                     Informasi lebih lanjut: 
-                    <a href="tel:+6281234567890" class="text-green-600 font-medium hover:underline">+62 812-3456-7890</a>
+                    <a href="tel:+6281234567890" class="text-green-600 font-medium hover:underline"> {{ setting('contact_phone') }} </a>
                     atau email 
-                    <a href="mailto:info@smkmuh1.sch.id" class="text-green-600 font-medium hover:underline">info@smkmuh1.sch.id</a>
+                    <a href="mailto:info@smkmuh1.sch.id" class="text-green-600 font-medium hover:underline">{{ setting('contact_email', 'info@sekolah.com') }}</a>
                 </p>
             </div>
         </div>
