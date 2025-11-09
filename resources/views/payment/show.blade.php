@@ -110,7 +110,9 @@
     </div>
 
     @push('scripts')
-    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
+    <script src="{{ config('payment.midtrans.is_production') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}"
+            data-client-key="{{ config('payment.midtrans.client_key') }}">
+    </script>
     <script>
         const payButton = document.getElementById('pay-button');
         const snapToken = @json($snapToken);

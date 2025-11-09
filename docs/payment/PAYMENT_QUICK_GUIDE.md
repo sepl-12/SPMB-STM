@@ -4,7 +4,7 @@
 
 ### 1. Setup (Already Done)
 ✅ Midtrans PHP SDK sudah terinstall
-✅ Config sudah tersedia di `config/midtrans.php`
+✅ Config sudah tersedia di `config/payment.php` (section midtrans)
 ✅ ENV variables sudah dikonfigurasi
 
 ### 2. Test Payment Flow

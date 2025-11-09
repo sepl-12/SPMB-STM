@@ -42,9 +42,9 @@ class TestMidtransConnection extends Command
         $this->newLine();
 
         // Check config
-        $serverKey = config('midtrans.server_key');
-        $clientKey = config('midtrans.client_key');
-        $isProduction = config('midtrans.is_production');
+        $serverKey = config('payment.midtrans.server_key');
+        $clientKey = config('payment.midtrans.client_key');
+        $isProduction = config('payment.midtrans.is_production');
 
         $this->info('📋 Configuration:');
         $this->line('Server Key: ' . substr($serverKey, 0, 15) . '...');
@@ -262,7 +262,7 @@ class TestMidtransConnection extends Command
                     $this->newLine();
                     
                     // Show Snap URL for testing
-                    $snapUrl = (config('midtrans.is_production') ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com') 
+                    $snapUrl = (config('payment.midtrans.is_production') ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com')
                         . '/snap/v3/redirection/' . $result['snap_token'];
                     $this->line('🔗 Direct Snap URL (for testing):');
                     $this->line($snapUrl);

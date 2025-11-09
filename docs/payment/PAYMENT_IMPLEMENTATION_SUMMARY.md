@@ -37,7 +37,7 @@ Fitur payment gateway menggunakan Midtrans Snap telah berhasil diimplementasikan
 - ✅ Update `resources/views/registration-success.blade.php` - Link ke pembayaran
 
 ### 4. Configuration
-- ✅ Config Midtrans sudah ada di `config/midtrans.php`
+- ✅ Config Midtrans sudah ada di `config/payment.php` (section midtrans)
 - ✅ ENV variables sudah dikonfigurasi (Sandbox credentials)
 - ✅ Midtrans PHP SDK sudah terinstall via composer
 
