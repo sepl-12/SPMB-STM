@@ -113,7 +113,7 @@ class PaymentLinkService
 
     protected function assertEmailMatches(Applicant $applicant, string $email): void
     {
-        $recordedEmail = $applicant->getLatestAnswerForField('email') ?? '';
+        $recordedEmail = $applicant->applicant_email_address ?? '';
 
         if (strtolower($recordedEmail) !== strtolower($email)) {
             throw new PaymentEmailMismatchException('Email tidak sesuai dengan data pendaftaran.');

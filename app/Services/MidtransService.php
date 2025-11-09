@@ -36,7 +36,7 @@ class MidtransService
         // Customer details
         $customerDetails = [
             'first_name' => $applicant->applicant_full_name,
-            'email' => $applicant->getLatestAnswerForField('email') ?? 'no-email@ppdb.com',
+            'email' => $applicant->applicant_email_address ?: 'no-email@ppdb.com',
             'phone' => $applicant->getLatestAnswerForField('no_hp') ?? $applicant->getLatestAnswerForField('phone') ?? '08123456789',
         ];
 
