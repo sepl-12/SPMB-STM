@@ -35,6 +35,9 @@ enum PaymentMethod: string
         // Payment Gateway / Unknown
     case ECHANNEL = 'echannel'; // Midtrans default untuk metode tidak diketahui
 
+    // Manual Transfer (Emergency Mode)
+    case MANUAL_TRANSFER = 'manual_transfer';
+
     /**
      * Get all method values as array
      */
@@ -66,6 +69,7 @@ enum PaymentMethod: string
             self::INDOMARET => 'Indomaret',
             self::BANK_TRANSFER => 'Transfer Bank',
             self::ECHANNEL => 'Payment Gateway',
+            self::MANUAL_TRANSFER => 'Transfer Manual (QRIS)',
         };
     }
 
@@ -82,6 +86,7 @@ enum PaymentMethod: string
             self::ALFAMART, self::INDOMARET => 'convenience_store',
             self::BANK_TRANSFER => 'bank_transfer',
             self::ECHANNEL => 'payment_gateway',
+            self::MANUAL_TRANSFER => 'manual_transfer',
         };
     }
 
@@ -98,6 +103,7 @@ enum PaymentMethod: string
             self::ALFAMART, self::INDOMARET => 'heroicon-o-building-storefront',
             self::BANK_TRANSFER => 'heroicon-o-banknotes',
             self::ECHANNEL => 'heroicon-o-globe-alt',
+            self::MANUAL_TRANSFER => 'heroicon-o-photo',
         };
     }
 
@@ -124,6 +130,7 @@ enum PaymentMethod: string
             self::INDOMARET => 'yellow',
             self::BANK_TRANSFER => 'gray',
             self::ECHANNEL => 'blue',
+            self::MANUAL_TRANSFER => 'indigo',
         };
     }
 
@@ -170,6 +177,7 @@ enum PaymentMethod: string
             self::ALFAMART, self::INDOMARET => '15-30 menit',
             self::BANK_TRANSFER => '1-3 jam kerja',
             self::ECHANNEL => 'Bervariasi',
+            self::MANUAL_TRANSFER => 'Verifikasi manual (maks 1x24 jam)',
         };
     }
 }

@@ -19,6 +19,7 @@ Route::get('/daftar/success/{registration_number}', [RegistrationController::cla
 // Payment routes
 // Legacy unsecured routes - kept for backward compatibility but should be phased out
 Route::get('/pembayaran/{registration_number}', [PaymentController::class, 'show'])->name('payment.show');
+Route::post('/pembayaran/{registration_number}/upload', [PaymentController::class, 'uploadManualPayment'])->name('payment.upload-manual');
 Route::get('/pembayaran/status/{registration_number}', [PaymentController::class, 'status'])->name('payment.status');
 
 // Secured payment routes with signed URLs

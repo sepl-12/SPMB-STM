@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Settings\PaymentSettings;
 use App\Settings\SettingsRepositoryInterface;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\MarkdownEditor;
@@ -10,6 +11,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -213,6 +215,55 @@ class SiteSettings extends Page implements HasForms
                     ])
                     ->columns(2),
 
+                // Emergency Payment Section
+                Section::make('Pembayaran Darurat')
+                    ->description('Mode pembayaran manual saat Midtrans bermasalah')
+                    ->icon('heroicon-o-exclamation-triangle')
+                    ->collapsible()
+                    ->collapsed(fn() => !PaymentSettings::isEmergencyModeEnabled())
+                    ->schema([
+                        Toggle::make('emergency_payment_enabled')
+                            ->label('Aktifkan Mode Pembayaran Darurat')
+                            ->helperText('⚠️ Jika diaktifkan, user akan melakukan pembayaran manual via QRIS dan upload bukti transfer. Pastikan Anda siap melakukan approval.')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state) {
+                                if ($state) {
+                                    Notification::make()
+                                        ->warning()
+                                        ->title('Mode Darurat Diaktifkan')
+                                        ->body('User akan melakukan pembayaran manual. Pastikan Anda memantau halaman approval pembayaran.')
+                                        ->send();
+                                }
+                            }),
+
+                        FileUpload::make('emergency_qris_image')
+                            ->label('Upload QRIS Image')
+                            ->image()
+                            ->imageEditor()
+                            ->maxSize(2048)
+                            ->directory('qris')
+                            ->disk('public')
+                            ->visibility('public')
+                            ->helperText('Format: JPG/PNG, Max 2MB. Pastikan QRIS masih aktif dan valid.')
+                            ->visible(fn($get) => $get('emergency_payment_enabled'))
+                            ->columnSpanFull(),
+
+                        TextInput::make('emergency_payment_account_name')
+                            ->label('Nama Penerima QRIS')
+                            ->placeholder('Yayasan Pendidikan XYZ')
+                            ->helperText('Nama yang muncul saat user scan QRIS')
+                            ->visible(fn($get) => $get('emergency_payment_enabled')),
+
+                        Textarea::make('emergency_payment_instructions')
+                            ->label('Instruksi Pembayaran')
+                            ->rows(6)
+                            ->helperText('Instruksi yang akan ditampilkan ke user')
+                            ->placeholder("1. Scan QRIS di bawah\n2. Bayar sesuai jumlah\n3. Upload bukti")
+                            ->visible(fn($get) => $get('emergency_payment_enabled'))
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+
                 // Social Media
                 Section::make('Sosial Media')
                     ->description('Link akun sosial media sekolah')
@@ -268,6 +319,13 @@ class SiteSettings extends Page implements HasForms
             'contact_whatsapp' => $repo->get('contact_whatsapp', ''),
             'contact_phone' => $repo->get('contact_phone', ''),
             'contact_address' => $repo->get('contact_address', ''),
+
+            // Emergency Payment Settings
+            'emergency_payment_enabled' => PaymentSettings::isEmergencyModeEnabled(),
+            'emergency_qris_image' => PaymentSettings::getQrisImagePath(),
+            'emergency_payment_account_name' => PaymentSettings::getAccountName(),
+            'emergency_payment_instructions' => PaymentSettings::getEmergencyInstructions(),
+
             'social_facebook_url' => $repo->get('social_facebook_url', ''),
             'social_instagram_handle' => $repo->get('social_instagram_handle', ''),
             'social_twitter_handle' => $repo->get('social_twitter_handle', ''),
@@ -282,7 +340,35 @@ class SiteSettings extends Page implements HasForms
 
             $repo = $this->settings();
 
+            // Handle Emergency Payment Settings separately
+            if (isset($data['emergency_payment_enabled'])) {
+                PaymentSettings::setEmergencyMode((bool) $data['emergency_payment_enabled']);
+            }
+
+            if (isset($data['emergency_qris_image']) && !empty($data['emergency_qris_image'])) {
+                PaymentSettings::setQrisImagePath($data['emergency_qris_image']);
+            }
+
+            if (isset($data['emergency_payment_account_name'])) {
+                $repo->set('emergency_payment_account_name', $data['emergency_payment_account_name'] ?? '');
+            }
+
+            if (isset($data['emergency_payment_instructions'])) {
+                $repo->set('emergency_payment_instructions', $data['emergency_payment_instructions'] ?? '');
+            }
+
+            // Handle other settings
             foreach ($data as $key => $value) {
+                // Skip emergency payment settings (already handled)
+                if (in_array($key, [
+                    'emergency_payment_enabled',
+                    'emergency_qris_image',
+                    'emergency_payment_account_name',
+                    'emergency_payment_instructions'
+                ])) {
+                    continue;
+                }
+
                 if (in_array($key, ['faq_items', 'timeline_items'])) {
                     $repo->set($key, json_encode(array_values($value ?? [])));
                 } else {

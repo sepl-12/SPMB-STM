@@ -19,6 +19,9 @@ enum PaymentStatus: string
     case EXPIRE = 'expire';
     case FAILURE = 'failure';
 
+    // Manual payment status
+    case PENDING_VERIFICATION = 'pending_verification';
+
     /**
      * Get all status values as array
      */
@@ -40,6 +43,7 @@ enum PaymentStatus: string
             self::DENY => 'Ditolak',
             self::EXPIRE => 'Kedaluwarsa',
             self::FAILURE => 'Gagal',
+            self::PENDING_VERIFICATION => 'Menunggu Verifikasi',
         };
     }
 
@@ -53,6 +57,7 @@ enum PaymentStatus: string
             self::SETTLEMENT => 'success',
             self::CAPTURE => 'info',
             self::CANCEL, self::DENY, self::EXPIRE, self::FAILURE => 'danger',
+            self::PENDING_VERIFICATION => 'warning',
         };
     }
 
@@ -66,6 +71,7 @@ enum PaymentStatus: string
             self::SETTLEMENT => 'heroicon-o-check-circle',
             self::CAPTURE => 'heroicon-o-information-circle',
             self::CANCEL, self::DENY, self::EXPIRE, self::FAILURE => 'heroicon-o-x-circle',
+            self::PENDING_VERIFICATION => 'heroicon-o-document-magnifying-glass',
         };
     }
 
@@ -90,7 +96,7 @@ enum PaymentStatus: string
      */
     public function isPending(): bool
     {
-        return in_array($this, [self::PENDING, self::CAPTURE]);
+        return in_array($this, [self::PENDING, self::CAPTURE, self::PENDING_VERIFICATION]);
     }
 
     /**
@@ -111,7 +117,7 @@ enum PaymentStatus: string
     public static function fromString(string $status): ?self
     {
         $status = strtolower($status);
-        
+
         return match ($status) {
             'pending' => self::PENDING,
             'settlement' => self::SETTLEMENT,
@@ -120,6 +126,7 @@ enum PaymentStatus: string
             'deny' => self::DENY,
             'expire' => self::EXPIRE,
             'failure', 'failed' => self::FAILURE,
+            'pending_verification' => self::PENDING_VERIFICATION,
             default => null,
         };
     }

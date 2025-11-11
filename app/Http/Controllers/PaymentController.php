@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UploadManualPaymentRequest;
 use App\Models\Applicant;
 use App\Models\Payment;
 use App\Payment\Exceptions\PaymentEmailMismatchException;
@@ -11,6 +12,7 @@ use App\Payment\Services\PaymentLinkService;
 use App\Payment\Services\PaymentNotificationService;
 use App\Payment\Services\PaymentStatusService;
 use App\Services\Applicant\ExamCardPdfGenerator;
+use App\Services\ManualPayment\ManualPaymentService;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +24,8 @@ class PaymentController extends Controller
         protected readonly PaymentLinkService $paymentLinkService,
         protected readonly PaymentStatusService $paymentStatusService,
         protected readonly PaymentNotificationService $paymentNotificationService,
-        protected readonly ExamCardPdfGenerator $examCardPdfGenerator
+        protected readonly ExamCardPdfGenerator $examCardPdfGenerator,
+        protected readonly ManualPaymentService $manualPaymentService
     ) {}
 
     /**
@@ -50,10 +53,81 @@ class PaymentController extends Controller
             return $redirect;
         }
 
+        // Check if emergency payment mode is enabled
+        if (\App\Settings\PaymentSettings::isEmergencyModeEnabled()) {
+            return view('payment.emergency', [
+                'applicant' => $result->applicant,
+                'qrisImage' => \App\Settings\PaymentSettings::getQrisImagePath(),
+                'instructions' => \App\Settings\PaymentSettings::getEmergencyInstructions(),
+                'accountName' => \App\Settings\PaymentSettings::getAccountName(),
+                'registrationFee' => $result->applicant->wave->registration_fee_amount,
+            ]);
+        }
+
         return view('payment.show', [
             'applicant' => $result->applicant,
             'snapToken' => $result->snapToken,
         ]);
+    }
+
+    /**
+     * Upload manual payment proof
+     */
+    public function uploadManualPayment(UploadManualPaymentRequest $request, string $registration_number)
+    {
+        try {
+            // Find applicant
+            $applicant = Applicant::where('registration_number', $registration_number)
+                ->with('wave')
+                ->firstOrFail();
+
+            // Check if emergency mode is enabled
+            if (!\App\Settings\PaymentSettings::isEmergencyModeEnabled()) {
+                return back()->with('error', 'Mode pembayaran darurat tidak aktif.');
+            }
+
+            // Check if can upload
+            if (!$this->manualPaymentService->canUploadManualPayment($applicant)) {
+                return back()->with('error', 'Anda sudah mengupload bukti pembayaran atau pembayaran sudah berhasil.');
+            }
+
+            // Validate amount
+            $paidAmount = (float) $request->input('paid_amount');
+            if (!$this->manualPaymentService->validateAmount($applicant, $paidAmount)) {
+                $expectedAmount = number_format($applicant->wave->registration_fee_amount, 0, ',', '.');
+                return back()
+                    ->withInput()
+                    ->with('error', "Jumlah pembayaran tidak sesuai. Harap bayar Rp {$expectedAmount}");
+            }
+
+            // Create manual payment
+            $manualPayment = $this->manualPaymentService->createManualPayment(
+                $applicant,
+                $request->file('proof_image'),
+                $paidAmount,
+                $request->input('payment_notes')
+            );
+
+            Log::info('Manual payment uploaded', [
+                'registration_number' => $registration_number,
+                'manual_payment_id' => $manualPayment->id,
+                'amount' => $paidAmount,
+            ]);
+
+            return redirect()
+                ->route('payment.status', $registration_number)
+                ->with('success', 'Bukti pembayaran berhasil diupload. Mohon tunggu verifikasi dari admin (maksimal 1x24 jam).');
+        } catch (\Exception $e) {
+            Log::error('Manual payment upload error', [
+                'registration_number' => $registration_number,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan saat upload bukti pembayaran. Silakan coba lagi.');
+        }
     }
 
     /**
