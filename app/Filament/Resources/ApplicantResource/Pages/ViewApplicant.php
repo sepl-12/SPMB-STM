@@ -10,6 +10,8 @@ use App\Mail\PaymentConfirmed;
 use App\Models\Applicant;
 use App\Models\FormField;
 use App\Services\Email\EmailServiceInterface;
+use App\Services\FormPreviewService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action as HeaderAction;
 use Filament\Infolists\Components\Actions\Action;
 use Filament\Infolists\Components\Grid;
@@ -289,6 +291,69 @@ class ViewApplicant extends ViewRecord
                                                 ->collapsed(false)
                                                 ->compact()
                                                 ->columns(2);
+                                        }
+
+                                        return $sections;
+                                    })
+                                    ->columnSpan('full'),
+                            ]),
+                        Tab::make('Preview Formulir')
+                            ->icon('heroicon-o-eye')
+                            ->badge(fn(Applicant $record) => $this->getPreviewFieldsCount($record) ?: null)
+                            ->schema([
+                                Section::make('Preview Data Pendaftaran')
+                                    ->description('Tampilan data formulir seperti yang dilihat pendaftar sebelum submit')
+                                    ->headerActions([
+                                        \Filament\Infolists\Components\Actions\Action::make('export_pdf')
+                                            ->label('Export PDF')
+                                            ->icon('heroicon-o-arrow-down-tray')
+                                            ->color('success')
+                                            ->requiresConfirmation()
+                                            ->modalHeading('Export Preview ke PDF')
+                                            ->modalDescription('Download data preview pendaftaran dalam format PDF')
+                                            ->modalSubmitActionLabel('Download PDF')
+                                            ->action(function (Applicant $record) {
+                                                return $this->exportPreviewToPdf($record);
+                                            }),
+                                    ])
+                                    ->schema(function (Applicant $record) {
+                                        $previewData = $this->getCompiledPreviewData($record);
+
+                                        if (empty($previewData)) {
+                                            return [
+                                                TextEntry::make('no_preview_message')
+                                                    ->label('')
+                                                    ->state('Tidak ada data preview yang tersimpan.')
+                                                    ->color('gray')
+                                                    ->icon('heroicon-o-information-circle'),
+                                            ];
+                                        }
+
+                                        $sections = [];
+
+                                        foreach ($previewData as $stepData) {
+                                            $fieldEntries = [];
+
+                                            foreach ($stepData['fields'] as $field) {
+                                                $fieldKey = 'preview_' . md5($field['field_key']);
+
+                                                $fieldEntries[] = TextEntry::make($fieldKey)
+                                                    ->label($field['field_label'] . ($field['is_required'] ? ' *' : ''))
+                                                    ->state(strip_tags($field['formatted_value']))
+                                                    ->html()
+                                                    ->formatStateUsing(fn() => new HtmlString($field['formatted_value']))
+                                                    ->columnSpan(2);
+                                            }
+
+                                            if (!empty($fieldEntries)) {
+                                                $sections[] = Section::make($stepData['step_title'])
+                                                    ->description($stepData['step_description'])
+                                                    ->schema($fieldEntries)
+                                                    ->icon('heroicon-o-document-text')
+                                                    ->collapsible()
+                                                    ->collapsed(false)
+                                                    ->columns(2);
+                                            }
                                         }
 
                                         return $sections;
@@ -609,5 +674,90 @@ class ViewApplicant extends ViewRecord
             'download_url' => $downloadUrl,
             'preview_url' => $previewUrl,
         ];
+    }
+
+    /**
+     * Get compiled preview data using FormPreviewService
+     */
+    protected function getCompiledPreviewData(Applicant $record): array
+    {
+        // Get latest submission answers
+        $sessionData = $record->getLatestSubmissionAnswers();
+
+        if (empty($sessionData)) {
+            return [];
+        }
+
+        // Get active form version
+        $formVersion = $record->wave->formVersion;
+
+        if (!$formVersion) {
+            return [];
+        }
+
+        try {
+            $previewService = app(FormPreviewService::class);
+            return $previewService->compilePreviewData($sessionData, $formVersion);
+        } catch (\Exception $e) {
+            \Log::error('Failed to compile preview data for applicant', [
+                'applicant_id' => $record->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get count of fields in preview data
+     */
+    protected function getPreviewFieldsCount(Applicant $record): int
+    {
+        $previewData = $this->getCompiledPreviewData($record);
+
+        return collect($previewData)->sum(function ($stepData) {
+            return count($stepData['fields'] ?? []);
+        });
+    }
+
+    /**
+     * Export preview data to PDF
+     */
+    protected function exportPreviewToPdf(Applicant $record)
+    {
+        try {
+            $previewData = $this->getCompiledPreviewData($record);
+
+            if (empty($previewData)) {
+                Notification::make()
+                    ->danger()
+                    ->title('Tidak Ada Data')
+                    ->body('Tidak ada data preview untuk diekspor.')
+                    ->send();
+                return;
+            }
+
+            $pdf = Pdf::loadView('pdf.applicant-preview', [
+                'applicant' => $record,
+                'previewData' => $previewData,
+                'formTitle' => $record->wave->formVersion->form_version_name ?? 'Formulir Pendaftaran',
+            ]);
+
+            $filename = 'preview_' . $record->registration_number . '_' . now()->format('YmdHis') . '.pdf';
+
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->stream();
+            }, $filename);
+        } catch (\Exception $e) {
+            \Log::error('Failed to export preview to PDF', [
+                'applicant_id' => $record->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Ekspor Gagal')
+                ->body('Terjadi kesalahan saat mengekspor preview: ' . $e->getMessage())
+                ->send();
+        }
     }
 }
