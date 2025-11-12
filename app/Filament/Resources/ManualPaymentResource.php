@@ -4,7 +4,10 @@ namespace App\Filament\Resources;
 
 use App\Enum\PaymentStatus;
 use App\Filament\Resources\ManualPaymentResource\Pages;
+use App\Mail\ManualPaymentApproved;
+use App\Mail\ManualPaymentRejected;
 use App\Models\ManualPayment;
+use App\Services\GmailMailableSender;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -269,6 +272,26 @@ class ManualPaymentResource extends Resource
                 ]);
             });
 
+            // Send email notification to applicant via Gmail API
+            try {
+                $applicantEmail = $record->applicant->applicant_email_address;
+                if ($applicantEmail) {
+                    app(GmailMailableSender::class)->send(
+                        $applicantEmail,
+                        new ManualPaymentApproved($record)
+                    );
+                    Log::info('Manual payment approval email sent', [
+                        'manual_payment_id' => $record->id,
+                        'email' => $applicantEmail,
+                    ]);
+                }
+            } catch (\Exception $emailError) {
+                Log::warning('Failed to send approval email', [
+                    'manual_payment_id' => $record->id,
+                    'error' => $emailError->getMessage(),
+                ]);
+            }
+
             Notification::make()
                 ->success()
                 ->title('Pembayaran Disetujui')
@@ -307,6 +330,26 @@ class ManualPaymentResource extends Resource
                 'rejected_by' => auth()->id(),
                 'reason' => $reason,
             ]);
+
+            // Send email notification to applicant via Gmail API
+            try {
+                $applicantEmail = $record->applicant->applicant_email_address;
+                if ($applicantEmail) {
+                    app(GmailMailableSender::class)->send(
+                        $applicantEmail,
+                        new ManualPaymentRejected($record)
+                    );
+                    Log::info('Manual payment rejection email sent', [
+                        'manual_payment_id' => $record->id,
+                        'email' => $applicantEmail,
+                    ]);
+                }
+            } catch (\Exception $emailError) {
+                Log::warning('Failed to send rejection email', [
+                    'manual_payment_id' => $record->id,
+                    'error' => $emailError->getMessage(),
+                ]);
+            }
 
             Notification::make()
                 ->warning()
