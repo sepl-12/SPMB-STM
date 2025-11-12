@@ -3,6 +3,7 @@
 use App\Http\Controllers\FileDownloadController;
 use App\Http\Controllers\GoogleOauthController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PreviewController;
 use App\Http\Controllers\RegistrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,11 @@ Route::get('/daftar', [RegistrationController::class, 'index'])->name('registrat
 Route::post('/daftar/save-step', [RegistrationController::class, 'saveStep'])->name('registration.save-step');
 Route::post('/daftar/jump-to-step', [RegistrationController::class, 'jumpToStep'])->name('registration.jump-to-step');
 Route::get('/daftar/success/{registration_number}', [RegistrationController::class, 'success'])->name('registration.success');
+
+// Registration Preview routes
+Route::get('/daftar/preview', [PreviewController::class, 'show'])->name('registration.preview');
+Route::post('/daftar/preview/confirm', [PreviewController::class, 'confirm'])->name('registration.preview.confirm');
+Route::post('/daftar/preview/edit', [PreviewController::class, 'edit'])->name('registration.preview.edit');
 
 // Payment routes
 // Legacy unsecured routes - kept for backward compatibility but should be phased out

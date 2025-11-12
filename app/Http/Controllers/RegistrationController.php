@@ -95,7 +95,8 @@ class RegistrationController extends Controller
         $this->sessionStore->putData($result->registrationData);
 
         if ($result->shouldSubmit) {
-            return $this->submitRegistration($wizard, $result->registrationData);
+            // Redirect to preview page instead of directly submitting
+            return redirect()->route('registration.preview');
         }
 
         $this->sessionStore->putCurrentStepIndex($result->nextStepIndex ?? $result->currentStepIndex);
