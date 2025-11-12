@@ -126,9 +126,8 @@ class ManualPaymentResource extends Resource
 
                 Tables\Columns\ImageColumn::make('proof_image_path')
                     ->label('Bukti')
-                    ->disk('private')
-                    ->size(60)
-                    ->defaultImageUrl(fn($record) => $record->getProofImageUrl()),
+                    ->getStateUsing(fn($record) => $record->getProofImageUrl())
+                    ->size(60),
 
                 Tables\Columns\TextColumn::make('paid_amount')
                     ->label('Jumlah')

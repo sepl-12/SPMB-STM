@@ -90,11 +90,8 @@ class ManualPayment extends Model
             return null;
         }
 
-        // Generate temporary signed URL (valid for 1 hour)
-        return Storage::disk('private')->temporaryUrl(
-            $this->proof_image_path,
-            now()->addHour()
-        );
+        // Generate route URL for viewing proof (requires authentication)
+        return route('manual-payment.proof', ['manualPayment' => $this->id]);
     }
 
     public function getStatusBadgeColor(): string

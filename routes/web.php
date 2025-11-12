@@ -52,6 +52,10 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::get('/files/{file}/preview', [FileDownloadController::class, 'preview'])->name('file.preview');
 });
 
+// Manual Payment Proof Image (admin only, auth middleware)
+Route::middleware('auth')->get('/manual-payments/{manualPayment}/proof', [FileDownloadController::class, 'viewManualPaymentProof'])
+    ->name('manual-payment.proof');
+
 Route::get('/google/oauth/redirect', [GoogleOauthController::class, 'redirect'])->name('google.oauth.redirect');
 Route::get('/google/oauth/callback', [GoogleOauthController::class, 'callback'])->name('google.oauth.callback');
 

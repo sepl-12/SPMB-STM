@@ -135,48 +135,50 @@
                     </div>
 
                     <!-- Paid Amount -->
-                    <div>
-                        <label for="paid_amount" class="block text-sm font-medium text-gray-700 mb-2">
+                    <div class="mb-4">
+                        <label for="paid_amount" class="block text-sm font-medium text-gray-700 mb-1.5">
                             Jumlah yang Dibayar <span class="text-red-500">*</span>
                         </label>
-                        <div class="mt-1 relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span class="text-gray-500 sm:text-sm">Rp</span>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                                <span class="text-gray-500 text-sm sm:text-base">Rp</span>
                             </div>
                             <input type="number"
                                    name="paid_amount"
                                    id="paid_amount"
                                    value="{{ old('paid_amount', $registrationFee) }}"
-                                   class="focus:ring-orange-500 focus:border-orange-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md @error('paid_amount') border-red-300 @enderror"
+                                   class="w-full pl-12 sm:pl-14 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 @error('paid_amount') border-red-300 @enderror"
                                    placeholder="{{ $registrationFee }}"
+                                   readonly
                                    required>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Jumlah harus sesuai dengan biaya pendaftaran</p>
+                        <p class="mt-1 text-xs sm:text-sm text-gray-500">Jumlah sesuai biaya pendaftaran</p>
                         @error('paid_amount')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-xs sm:text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Payment Notes -->
-                    <div>
-                        <label for="payment_notes" class="block text-sm font-medium text-gray-700 mb-2">
+                    <div class="mb-4">
+                        <label for="payment_notes" class="block text-sm font-medium text-gray-700 mb-1.5">
                             Catatan (Opsional)
                         </label>
                         <textarea name="payment_notes"
                                   id="payment_notes"
                                   rows="3"
-                                  class="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md @error('payment_notes') border-red-300 @enderror"
+                                  class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 resize-y @error('payment_notes') border-red-300 @enderror"
                                   placeholder="Contoh: Bayar dari rekening BCA a.n. John Doe">{{ old('payment_notes') }}</textarea>
+                        <p class="mt-1 text-xs sm:text-sm text-gray-500">Opsional: Tambahkan informasi tambahan jika diperlukan</p>
                         @error('payment_notes')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-xs sm:text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Submit Button -->
-                    <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex flex-col sm:flex-row gap-3 mt-2">
                         <button type="submit"
-                                class="flex-1 inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="w-full px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                             </svg>
                             Upload Bukti Pembayaran
