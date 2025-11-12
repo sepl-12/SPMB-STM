@@ -2,6 +2,8 @@
 
 namespace App\Payment\Services;
 
+use App\Enum\PaymentMethod;
+use App\Enum\PaymentStatus;
 use App\Models\Applicant;
 use App\Models\Payment;
 use App\Payment\DTO\PaymentStatusResult;
@@ -36,6 +38,28 @@ class PaymentStatusService
      */
     public function checkAjaxStatus(string $orderId): array
     {
+        // Find payment by order ID
+        $payment = Payment::where('merchant_order_code', $orderId)->first();
+
+        if (!$payment) {
+            return [
+                'success' => false,
+                'message' => 'Payment not found',
+            ];
+        }
+
+        // Skip Midtrans check for manual payments
+        if ($payment->payment_method_name === PaymentMethod::MANUAL_TRANSFER ||
+            $payment->payment_status_name === PaymentStatus::PENDING_VERIFICATION) {
+            return [
+                'success' => true,
+                'message' => 'Manual payment - awaiting admin verification',
+                'status' => $payment->payment_status_name->value,
+                'is_manual' => true,
+            ];
+        }
+
+        // Check status from Midtrans for automated payments
         return $this->midtransService->checkTransactionStatus($orderId);
     }
 

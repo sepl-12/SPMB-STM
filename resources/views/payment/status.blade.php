@@ -12,6 +12,8 @@
                         $isPaid = $latestPayment->payment_status_name->isSuccess();
                         $isPending = $latestPayment->payment_status_name->isPending();
                         $isFailed = $latestPayment->payment_status_name->isFailed();
+                        $isManualPayment = $latestPayment->payment_method_name === \App\Enum\PaymentMethod::MANUAL_TRANSFER;
+                        $isPendingVerification = $latestPayment->payment_status_name === \App\Enum\PaymentStatus::PENDING_VERIFICATION;
                     @endphp
 
                     <!-- Status Icon -->
@@ -24,6 +26,18 @@
                             </div>
                             <h1 class="text-3xl font-bold text-gray-900 mb-2">Pembayaran Berhasil!</h1>
                             <p class="text-gray-600">Terima kasih, pembayaran Anda telah kami terima</p>
+                        @elseif($isPendingVerification)
+                            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                                <svg class="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">Menunggu Verifikasi Admin</h1>
+                            <p class="text-gray-600">Bukti pembayaran Anda sedang diverifikasi oleh admin</p>
+                            <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                                <p class="font-medium">📋 Proses Verifikasi</p>
+                                <p class="mt-1">Admin akan memverifikasi bukti pembayaran Anda dalam waktu maksimal 1x24 jam. Anda akan diberitahu melalui email setelah pembayaran diverifikasi.</p>
+                            </div>
                         @elseif($isPending)
                             <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
                                 <svg class="h-10 w-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,8 +75,8 @@
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Status</span>
-                                <span class="font-semibold {{ $isPaid ? 'text-green-600' : ($isPending ? 'text-yellow-600' : 'text-red-600') }}">
-                                    {{ $isPaid ? 'Lunas' : ($isPending ? 'Menunggu' : 'Gagal') }}
+                                <span class="font-semibold {{ $isPaid ? 'text-green-600' : ($isPendingVerification ? 'text-blue-600' : ($isPending ? 'text-yellow-600' : 'text-red-600')) }}">
+                                    {{ $isPaid ? 'Lunas' : ($isPendingVerification ? 'Menunggu Verifikasi' : ($isPending ? 'Menunggu' : 'Gagal')) }}
                                 </span>
                             </div>
                             <div class="flex justify-between">
@@ -90,7 +104,7 @@
                     <!-- Action Buttons -->
                     <div class="flex flex-col sm:flex-row gap-3 justify-center">
                         @if($isPaid)
-                            <a 
+                            <a
                                 href="{{ route('registration.success', $applicant->registration_number) }}"
                                 class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
                             >
@@ -99,8 +113,18 @@
                                 </svg>
                                 Lihat Detail Pendaftaran
                             </a>
+                        @elseif($isPendingVerification)
+                            <a
+                                href="{{ route('home') }}"
+                                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg font-medium hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-lg"
+                            >
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                </svg>
+                                Kembali ke Beranda
+                            </a>
                         @elseif($isPending)
-                            <button 
+                            <button
                                 onclick="checkPaymentStatus()"
                                 class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
                             >
@@ -110,7 +134,7 @@
                                 Cek Status Pembayaran
                             </button>
                         @else
-                            <a 
+                            <a
                                 href="{{ route('payment.show', $applicant->registration_number) }}"
                                 class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
                             >
@@ -150,12 +174,12 @@
         </div>
     </div>
 
-    @if($latestPayment && $latestPayment->payment_status_name->isPending())
+    @if($latestPayment && $latestPayment->payment_status_name->isPending() && !$isPendingVerification)
     @push('scripts')
     <script>
         function checkPaymentStatus() {
             const orderId = @json($latestPayment->merchant_order_code);
-            
+
             fetch('{{ route("payment.check-status") }}', {
                 method: 'POST',
                 headers: {
@@ -179,7 +203,7 @@
             });
         }
 
-        // Auto-check status every 30 seconds
+        // Auto-check status every 30 seconds for non-manual payments
         setInterval(checkPaymentStatus, 30000);
     </script>
     @endpush
