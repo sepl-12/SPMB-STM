@@ -225,7 +225,7 @@
             </tr>
             <tr>
                 <td>Gelombang</td>
-                <td>: {{ $applicant->wave->wave_name }}</td>
+                <td>: {{ $applicant->wave?->wave_name ?? 'Tidak Ada'}}</td>
             </tr>
             @if($applicant->chosen_major_name)
             <tr>
@@ -235,14 +235,14 @@
             @endif
             <tr>
                 <td>Tanggal Daftar</td>
-                <td>: {{ $applicant->registered_datetime->format('d F Y, H:i') }} WIB</td>
+                <td>: {{ $applicant->registered_datetime?->format('d F Y, H:i') ?? 'Tidak Ada'}} WITA</td>
             </tr>
             <tr>
                 <td>Status Pembayaran</td>
                 <td>:
                     @if($applicant->latestPayment)
-                        <span class="badge badge-{{ $applicant->latestPayment->payment_status_name->value === 'settlement' ? 'green' : 'gray' }}">
-                            {{ $applicant->latestPayment->payment_status_name->label() }}
+                        <span class="badge badge-{{ $applicant->latestPayment->payment_status_name?->value === 'settlement' ? 'green' : 'gray' }}">
+                            {{ $applicant->latestPayment->payment_status_name?->label() ?? 'Tidak Diketahui' }}
                         </span>
                     @else
                         <span class="badge badge-gray">Belum Bayar</span>
