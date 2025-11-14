@@ -10,14 +10,16 @@ use App\Payment\DTO\PaymentLinkResult;
 use App\Payment\DTO\SnapTransaction;
 use App\Payment\Exceptions\PaymentEmailMismatchException;
 use App\Payment\Exceptions\PaymentNotFoundException;
+use App\Services\Applicant\ApplicantUrlGenerator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 
 class PaymentLinkService
 {
-    public function __construct(private readonly CreatePaymentLinkAction $createPaymentLinkAction)
-    {
-    }
+    public function __construct(
+        private readonly CreatePaymentLinkAction $createPaymentLinkAction,
+        private readonly ApplicantUrlGenerator $applicantUrlGenerator,
+    ) {}
 
     public function showForm(string $registrationNumber): PaymentLinkResult
     {
@@ -30,8 +32,7 @@ class PaymentLinkService
                 applicant: $applicant,
                 payment: $latestSuccess,
                 snapToken: null,
-                redirectRoute: 'payment.success',
-                redirectParams: ['registration_number' => $registrationNumber],
+                redirectUrl: $this->applicantUrlGenerator->getPaymentSuccessUrl($applicant),
                 flash: ['message' => 'Pembayaran Anda sudah berhasil.']
             );
         }
@@ -58,8 +59,7 @@ class PaymentLinkService
                 applicant: $applicant,
                 payment: null,
                 snapToken: null,
-                redirectRoute: 'payment.show',
-                redirectParams: ['registration_number' => $registrationNumber],
+                redirectUrl: $this->applicantUrlGenerator->getPaymentUrl($applicant),
                 flash: ['info' => 'Silakan lanjutkan pembayaran Anda.']
             );
         }
@@ -69,8 +69,7 @@ class PaymentLinkService
                 applicant: $applicant,
                 payment: $latestPayment,
                 snapToken: null,
-                redirectRoute: 'payment.success',
-                redirectParams: ['registration_number' => $registrationNumber],
+                redirectUrl: $this->applicantUrlGenerator->getPaymentSuccessUrl($applicant),
                 flash: ['success' => 'Pembayaran Anda sudah berhasil!']
             );
         }
@@ -79,8 +78,7 @@ class PaymentLinkService
             applicant: $applicant,
             payment: $latestPayment,
             snapToken: Arr::get($latestPayment->gateway_payload_json, 'snap_token'),
-            redirectRoute: 'payment.show',
-            redirectParams: ['registration_number' => $registrationNumber],
+            redirectUrl: $this->applicantUrlGenerator->getPaymentUrl($applicant),
             flash: ['info' => 'Lanjutkan pembayaran Anda.']
         );
     }

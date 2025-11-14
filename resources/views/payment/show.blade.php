@@ -116,16 +116,17 @@
     <script>
         const payButton = document.getElementById('pay-button');
         const snapToken = @json($snapToken);
+        const statusUrl = @json($applicant->status_url);
 
         payButton.addEventListener('click', function() {
             snap.pay(snapToken, {
                 onSuccess: function(result) {
                     console.log('Payment success:', result);
-                    window.location.href = '{{ route("payment.status", $applicant->registration_number) }}';
+                    window.location.href = statusUrl;
                 },
                 onPending: function(result) {
                     console.log('Payment pending:', result);
-                    window.location.href = '{{ route("payment.status", $applicant->registration_number) }}';
+                    window.location.href = statusUrl;
                 },
                 onError: function(result) {
                     console.log('Payment error:', result);

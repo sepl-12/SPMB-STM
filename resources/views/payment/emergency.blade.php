@@ -93,7 +93,14 @@
                 @endif
 
                 <!-- Upload Form -->
-                <form action="{{ route('payment.upload-manual', $applicant->registration_number) }}"
+                @php
+                    $manualUploadUrl = URL::temporarySignedRoute(
+                        'payment.upload-manual',
+                        now()->addMinutes(30),
+                        ['registration_number' => $applicant->registration_number]
+                    );
+                @endphp
+                <form action="{{ $manualUploadUrl }}"
                       method="POST"
                       enctype="multipart/form-data"
                       class="space-y-6">

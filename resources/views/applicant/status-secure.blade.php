@@ -151,7 +151,7 @@
                                 </svg>
                             </div>
                             <p class="text-gray-600 mb-4">Belum ada data pembayaran</p>
-                            <a href="{{ route('payment.show', $applicant->registration_number) }}" 
+                            <a href="{{ $applicant->payment_url }}" 
                                class="inline-block bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-200">
                                 Lakukan Pembayaran
                             </a>

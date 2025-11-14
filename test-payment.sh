@@ -70,7 +70,7 @@ if [ "$APPLICANT_COUNT" -gt 0 ]; then
             echo 'Registration Number: ' . \$applicant->registration_number . PHP_EOL;
             echo 'Name: ' . \$applicant->applicant_full_name . PHP_EOL;
             echo 'Fee: Rp ' . number_format(\$applicant->wave->registration_fee_amount, 0, ',', '.') . PHP_EOL;
-            echo 'Payment URL: ' . route('payment.show', \$applicant->registration_number) . PHP_EOL;
+            echo 'Payment URL: ' . \$applicant->payment_url . PHP_EOL;
         }
     " 2>/dev/null
     echo ""
@@ -87,8 +87,8 @@ echo "================================================"
 echo ""
 echo "✅ Available endpoints:"
 echo "   - Registration: http://localhost:8000/daftar"
-echo "   - Payment: http://localhost:8000/pembayaran/{registration_number}"
-echo "   - Status: http://localhost:8000/pembayaran/status/{registration_number}"
+echo "   - Payment (signed): http://localhost:8000/secure/pembayaran/{registration_number}"
+echo "   - Status (signed): http://localhost:8000/secure/status/{registration_number}"
 echo ""
 echo "🔧 Testing tools:"
 echo "   - Test Midtrans: php artisan midtrans:test"

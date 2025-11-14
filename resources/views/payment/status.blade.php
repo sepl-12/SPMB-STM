@@ -135,7 +135,7 @@
                             </button>
                         @else
                             <a
-                                href="{{ route('payment.show', $applicant->registration_number) }}"
+                                href="{{ $applicant->payment_url }}"
                                 class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
                             >
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@
                         <h1 class="text-2xl font-bold text-gray-900 mb-2">Belum Ada Pembayaran</h1>
                         <p class="text-gray-600 mb-6">Anda belum melakukan pembayaran untuk pendaftaran ini</p>
                         <a 
-                            href="{{ route('payment.show', $applicant->registration_number) }}"
+                            href="{{ $applicant->payment_url }}"
                             class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg"
                         >
                             Lakukan Pembayaran

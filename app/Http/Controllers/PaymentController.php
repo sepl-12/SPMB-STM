@@ -29,48 +29,6 @@ class PaymentController extends Controller
     ) {}
 
     /**
-     * Show payment page
-     */
-    public function show($registration_number)
-    {
-        try {
-            $result = $this->paymentLinkService->showForm($registration_number);
-        } catch (PaymentNotFoundException $e) {
-            abort(404, $e->getMessage());
-        } catch (PaymentLinkCreationFailed $e) {
-            return back()->with('error', $e->getMessage());
-        }
-
-        if ($result->shouldRedirect()) {
-            $redirect = redirect()->route($result->redirectRoute, $result->redirectParams ?? []);
-
-            if ($result->flash) {
-                foreach ($result->flash as $key => $message) {
-                    $redirect->with($key, $message);
-                }
-            }
-
-            return $redirect;
-        }
-
-        // Check if emergency payment mode is enabled
-        if (\App\Settings\PaymentSettings::isEmergencyModeEnabled()) {
-            return view('payment.emergency', [
-                'applicant' => $result->applicant,
-                'qrisImage' => \App\Settings\PaymentSettings::getQrisImagePath(),
-                'instructions' => \App\Settings\PaymentSettings::getEmergencyInstructions(),
-                'accountName' => \App\Settings\PaymentSettings::getAccountName(),
-                'registrationFee' => $result->applicant->wave->registration_fee_amount,
-            ]);
-        }
-
-        return view('payment.show', [
-            'applicant' => $result->applicant,
-            'snapToken' => $result->snapToken,
-        ]);
-    }
-
-    /**
      * Upload manual payment proof
      */
     public function uploadManualPayment(UploadManualPaymentRequest $request, string $registration_number)
@@ -114,8 +72,7 @@ class PaymentController extends Controller
                 'amount' => $paidAmount,
             ]);
 
-            return redirect()
-                ->route('payment.status', $registration_number)
+            return redirect($applicant->getStatusUrl())
                 ->with('success', 'Bukti pembayaran berhasil diupload. Mohon tunggu verifikasi dari admin (maksimal 1x24 jam).');
         } catch (\Exception $e) {
             Log::error('Manual payment upload error', [
@@ -179,41 +136,7 @@ class PaymentController extends Controller
             $this->paymentNotificationService->handle((array) $status);
         }
 
-        return redirect()->route('payment.status', $payment->applicant->registration_number);
-    }
-
-    /**
-     * Show payment status page
-     */
-    public function status($registration_number)
-    {
-        try {
-            $result = $this->paymentStatusService->getStatusPage($registration_number);
-        } catch (PaymentNotFoundException $e) {
-            abort(404, $e->getMessage());
-        }
-
-        return view('payment.status', [
-            'applicant' => $result->applicant,
-            'latestPayment' => $result->latestPayment,
-        ]);
-    }
-
-    /**
-     * Show payment success page
-     */
-    public function success($registration_number)
-    {
-        try {
-            $result = $this->paymentStatusService->getSuccessPage($registration_number);
-        } catch (PaymentNotFoundException $e) {
-            abort(404, $e->getMessage());
-        }
-
-        return view('payment.success', [
-            'applicant' => $result->applicant,
-            'latestPayment' => $result->latestPayment,
-        ]);
+        return redirect($payment->applicant->getStatusUrl());
     }
 
     /**
@@ -290,11 +213,8 @@ class PaymentController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        if (!$result->shouldRedirect()) {
-            return redirect()->route('payment.show', $request->registration_number);
-        }
-
-        $redirect = redirect()->route($result->redirectRoute, $result->redirectParams ?? []);
+        $redirectUrl = $result->redirectUrl ?? $result->applicant->getPaymentUrl();
+        $redirect = redirect()->to($redirectUrl);
 
         if ($result->flash) {
             foreach ($result->flash as $key => $message) {
@@ -334,7 +254,7 @@ class PaymentController extends Controller
             ], 500);
         }
 
-        $paymentUrl = route('payment.show', $request->registration_number);
+        $paymentUrl = $result->applicant->getPaymentUrl();
 
         Log::info('Payment link requested', [
             'registration_number' => $request->registration_number,
@@ -358,9 +278,6 @@ class PaymentController extends Controller
         // Laravel sudah validasi signed URL di middleware
         // Jika sampai sini, berarti URL valid dan belum expired
 
-        $applicant = Applicant::where('registration_number', $registration_number)->firstOrFail();
-
-        // Reuse existing show logic
         try {
             $result = $this->paymentLinkService->showForm($registration_number);
         } catch (PaymentNotFoundException $e) {
@@ -370,7 +287,7 @@ class PaymentController extends Controller
         }
 
         if ($result->shouldRedirect()) {
-            $redirect = redirect()->route($result->redirectRoute, $result->redirectParams ?? []);
+            $redirect = redirect()->to($result->redirectUrl);
 
             if ($result->flash) {
                 foreach ($result->flash as $key => $message) {
@@ -379,6 +296,16 @@ class PaymentController extends Controller
             }
 
             return $redirect;
+        }
+
+        if (\App\Settings\PaymentSettings::isEmergencyModeEnabled()) {
+            return view('payment.emergency', [
+                'applicant' => $result->applicant,
+                'qrisImage' => \App\Settings\PaymentSettings::getQrisImagePath(),
+                'instructions' => \App\Settings\PaymentSettings::getEmergencyInstructions(),
+                'accountName' => \App\Settings\PaymentSettings::getAccountName(),
+                'registrationFee' => $result->applicant->wave->registration_fee_amount,
+            ]);
         }
 
         return view('payment.show', [
@@ -425,14 +352,15 @@ class PaymentController extends Controller
      */
     public function statusSecure(Request $request, string $registration_number)
     {
-        $applicant = Applicant::where('registration_number', $registration_number)->firstOrFail();
-        $applicant->load(['wave', 'latestPayment', 'latestSubmission']);
+        try {
+            $result = $this->paymentStatusService->getStatusPage($registration_number);
+        } catch (PaymentNotFoundException $e) {
+            abort(404, $e->getMessage());
+        }
 
-        return view('applicant.status-secure', [
-            'applicant' => $applicant,
-            'payment' => $applicant->latestPayment,
-            'submission' => $applicant->latestSubmission,
-            'wave' => $applicant->wave,
+        return view('payment.status', [
+            'applicant' => $result->applicant,
+            'latestPayment' => $result->latestPayment,
         ]);
     }
 }

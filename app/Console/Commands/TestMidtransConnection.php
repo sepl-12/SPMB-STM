@@ -258,7 +258,7 @@ class TestMidtransConnection extends Command
                     $this->newLine();
                     
                     $this->line('🌐 Payment URL:');
-                    $this->line(route('payment.show', $applicant->registration_number));
+                    $this->line($applicant->payment_url);
                     $this->newLine();
                     
                     // Show Snap URL for testing

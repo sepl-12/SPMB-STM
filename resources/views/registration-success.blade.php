@@ -64,7 +64,7 @@
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                     <a 
-                        href="{{ route('payment.show', $applicant->registration_number) }}"
+                        href="{{ $applicant->payment_url }}"
                         class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
                     >
                         <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -11,14 +11,12 @@ final class PaymentLinkResult
         public readonly Applicant $applicant,
         public readonly ?Payment $payment,
         public readonly ?string $snapToken,
-        public readonly ?string $redirectRoute = null,
-        public readonly ?array $redirectParams = null,
+        public readonly ?string $redirectUrl = null,
         public readonly ?array $flash = null,
-    ) {
-    }
+    ) {}
 
     public function shouldRedirect(): bool
     {
-        return $this->redirectRoute !== null;
+        return $this->redirectUrl !== null;
     }
 }
