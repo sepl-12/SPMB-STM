@@ -2,20 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GoogleTokenManager;
 use Google\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class GoogleOauthController extends Controller
 {
     private readonly array $googleConfig;
+    private const STATE_KEY = 'google_oauth_state';
 
-    public function __construct(array $config = [])
-    {
+    public function __construct(
+        private readonly GoogleTokenManager $tokenManager,
+        array $config = []
+    ) {
         // Use injected config or fallback to config helper
         $this->googleConfig = !empty($config) ? $config : config('google', []);
     }
 
-    private function client(): Client
+    private function client(?string $state = null): Client
     {
         $client = new Client();
         $client->setClientId($this->googleConfig['client_id']);
@@ -30,16 +35,32 @@ class GoogleOauthController extends Controller
             $client->addScope($scope);
         }
 
+        if ($state) {
+            $client->setState($state);
+        }
+
         return $client;
     }
 
     public function redirect()
     {
-        return redirect($this->client()->createAuthUrl());
+        $state = Str::random(40);
+        session([self::STATE_KEY => $state]);
+
+        return redirect($this->client($state)->createAuthUrl());
     }
 
     public function callback(Request $request)
     {
+        $expectedState = session(self::STATE_KEY);
+        $receivedState = $request->input('state');
+
+        if (!$expectedState || !$receivedState || !hash_equals($expectedState, $receivedState)) {
+            abort(403, 'Invalid OAuth state');
+        }
+
+        session()->forget(self::STATE_KEY);
+
         $client = $this->client();
 
         if (!$request->has('code')) {
@@ -52,10 +73,11 @@ class GoogleOauthController extends Controller
         $refreshToken = $token['refresh_token'] ?? null;
 
         if (!$refreshToken) {
-            return 'Tidak ada refresh_token. Coba ulangi, pastikan prompt consent tampil.';
+            return response('Tidak ada refresh_token. Coba ulangi, pastikan prompt consent tampil.', 400);
         }
 
-        // Untuk demo cepat: tampilkan; PRODUKSI: simpan ke DB / secret manager
-        return 'Refresh Token: ' . $refreshToken;
+        $this->tokenManager->storeRefreshToken($refreshToken);
+
+        return response('Refresh token berhasil disimpan secara aman.');
     }
 }

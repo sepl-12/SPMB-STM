@@ -8,6 +8,7 @@ use App\Services\Applicant\ExamCardDataResolver;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ExamCardPreviewController extends Controller
 {
@@ -16,6 +17,8 @@ class ExamCardPreviewController extends Controller
      */
     public function preview(Request $request, ExamCardDataResolver $resolver)
     {
+        Gate::authorize('viewExamCardPreview');
+
         $applicantId = $request->query('applicant_id');
 
         // Jika ada applicant_id, gunakan data real

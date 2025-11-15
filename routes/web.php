@@ -55,5 +55,6 @@ Route::get('/google/oauth/redirect', [GoogleOauthController::class, 'redirect'])
 Route::get('/google/oauth/callback', [GoogleOauthController::class, 'callback'])->name('google.oauth.callback');
 
 // Exam Card Preview - Admin only
-Route::get('/admin/exam-card/preview', [App\Http\Controllers\ExamCardPreviewController::class, 'preview'])
+Route::middleware(['auth', 'can:viewExamCardPreview'])
+    ->get('/admin/exam-card/preview', [App\Http\Controllers\ExamCardPreviewController::class, 'preview'])
     ->name('exam-card.preview');

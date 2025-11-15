@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Payment\Events\PaymentSettled;
 use App\Payment\Listeners\QueuePaymentConfirmationEmail;
 use App\Registration\Events\ApplicantRegisteredEvent;
@@ -10,10 +11,12 @@ use App\Services\Email\EmailServiceInterface;
 use App\Services\Email\GmailEmailService;
 use App\Services\Email\LaravelEmailService;
 use App\Services\GmailMailableSender;
+use App\Services\GoogleTokenManager;
 use App\Settings\CacheSettingsRepository;
 use App\Settings\SettingsRepositoryInterface;
 use App\View\Composers\SiteSettingComposer;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -27,11 +30,20 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SettingsRepositoryInterface::class, CacheSettingsRepository::class);
 
+        $this->app->singleton(GoogleTokenManager::class, fn($app) => new GoogleTokenManager(
+            $app->make(SettingsRepositoryInterface::class)
+        ));
+
         // Register Google services with config injection
         $this->app->singleton(\App\Services\GmailApiService::class, function ($app) {
-            return new \App\Services\GmailApiService(
-                config('google')
-            );
+            $config = config('google');
+            $storedToken = $app->make(GoogleTokenManager::class)->getRefreshToken();
+
+            if (!empty($storedToken)) {
+                $config['refresh_token'] = $storedToken;
+            }
+
+            return new \App\Services\GmailApiService($config);
         });
 
         $this->app->singleton(GmailMailableSender::class, function ($app) {
@@ -86,6 +98,10 @@ class AppServiceProvider extends ServiceProvider
             'components.requirements',
             'components.faq',
         ], SiteSettingComposer::class);
+
+        Gate::define('viewExamCardPreview', function (User $user) {
+            return (bool) $user->email_verified_at;
+        });
 
         Event::listen(ApplicantRegisteredEvent::class, SendApplicantRegisteredEmail::class);
         Event::listen(PaymentSettled::class, QueuePaymentConfirmationEmail::class);
