@@ -36,79 +36,10 @@ class ManualPaymentResource extends Resource
 
     public static function form(Form $form): Form
     {
+        // Form tidak digunakan untuk view page, hanya untuk create/edit jika ada
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Pendaftar')
-                    ->schema([
-                        Forms\Components\TextInput::make('applicant.registration_number')
-                            ->label('Nomor Pendaftaran')
-                            ->disabled(),
-                        Forms\Components\TextInput::make('applicant.applicant_full_name')
-                            ->label('Nama Lengkap')
-                            ->disabled(),
-                        Forms\Components\TextInput::make('applicant.wave.wave_name')
-                            ->label('Gelombang')
-                            ->disabled(),
-                    ])
-                    ->columns(3),
-
-                Forms\Components\Section::make('Detail Pembayaran')
-                    ->schema([
-                        Forms\Components\TextInput::make('paid_amount')
-                            ->label('Jumlah Dibayar')
-                            ->prefix('Rp')
-                            ->numeric()
-                            ->disabled(),
-                        Forms\Components\TextInput::make('payment.paid_amount_total')
-                            ->label('Jumlah yang Harus Dibayar')
-                            ->prefix('Rp')
-                            ->numeric()
-                            ->disabled(),
-                        Forms\Components\DateTimePicker::make('upload_datetime')
-                            ->label('Waktu Upload')
-                            ->disabled(),
-                        Forms\Components\Textarea::make('payment_notes')
-                            ->label('Catatan dari User')
-                            ->rows(2)
-                            ->disabled()
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(3),
-
-                Forms\Components\Section::make('Bukti Pembayaran')
-                    ->schema([
-                        Forms\Components\FileUpload::make('proof_image_path')
-                            ->label('Bukti Transfer')
-                            ->image()
-                            ->imagePreviewHeight('400')
-                            ->disabled()
-                            ->columnSpanFull(),
-                    ]),
-
-                Forms\Components\Section::make('Status Approval')
-                    ->schema([
-                        Forms\Components\Select::make('approval_status')
-                            ->label('Status')
-                            ->options([
-                                'pending' => 'Menunggu Verifikasi',
-                                'approved' => 'Disetujui',
-                                'rejected' => 'Ditolak',
-                            ])
-                            ->disabled(),
-                        Forms\Components\TextInput::make('approvedBy.name')
-                            ->label('Disetujui/Ditolak Oleh')
-                            ->disabled(),
-                        Forms\Components\DateTimePicker::make('approved_at')
-                            ->label('Tanggal Approval')
-                            ->disabled(),
-                        Forms\Components\Textarea::make('rejection_reason')
-                            ->label('Alasan Penolakan')
-                            ->rows(3)
-                            ->disabled()
-                            ->columnSpanFull()
-                            ->visible(fn($record) => $record?->isRejected()),
-                    ])
-                    ->columns(3),
+                // Empty schema karena kita menggunakan infolist untuk view
             ]);
     }
 

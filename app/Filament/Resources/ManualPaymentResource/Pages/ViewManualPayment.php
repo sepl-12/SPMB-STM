@@ -10,14 +10,145 @@ use App\Models\ManualPayment;
 use App\Services\GmailMailableSender;
 use Filament\Actions;
 use Filament\Forms;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Components;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Support\Enums\FontWeight;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ViewManualPayment extends ViewRecord
 {
     protected static string $resource = ManualPaymentResource::class;
+
+    public function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Components\Split::make([
+                    // Bagian Kiri: Bukti Pembayaran (Gambar Besar)
+                    Components\Section::make('Bukti Pembayaran')
+                        ->schema([
+                            Components\ViewEntry::make('proof_image_path')
+                                ->label('')
+                                ->view('filament.infolists.entries.payment-proof-image')
+                                ->columnSpanFull(),
+
+                            Components\Actions::make([
+                                Components\Actions\Action::make('view_fullsize')
+                                    ->label('Lihat Ukuran Penuh')
+                                    ->icon('heroicon-o-magnifying-glass-plus')
+                                    ->color('primary')
+                                    ->url(fn ($record) => $record->getProofImageUrl())
+                                    ->openUrlInNewTab(),
+                            ])->fullWidth(),
+
+                            Components\TextEntry::make('upload_datetime')
+                                ->label('Waktu Upload')
+                                ->icon('heroicon-o-clock')
+                                ->dateTime('d F Y, H:i')
+                                ->badge()
+                                ->color('info'),
+                        ])
+                        ->columnSpan(['lg' => 2]),
+
+                    // Bagian Kanan: Informasi Detail
+                    Components\Group::make()
+                        ->schema([
+                            // Section: Informasi Pendaftar
+                            Components\Section::make('Informasi Pendaftar')
+                                ->icon('heroicon-o-user')
+                                ->schema([
+                                    Components\TextEntry::make('applicant.registration_number')
+                                        ->label('No. Pendaftaran')
+                                        ->icon('heroicon-o-hashtag')
+                                        ->weight(FontWeight::Bold)
+                                        ->copyable()
+                                        ->badge()
+                                        ->color('primary'),
+
+                                    Components\TextEntry::make('applicant.applicant_full_name')
+                                        ->label('Nama Lengkap')
+                                        ->icon('heroicon-o-user-circle')
+                                        ->weight(FontWeight::SemiBold)
+                                        ->size('lg'),
+
+                                    Components\TextEntry::make('applicant.applicant_email_address')
+                                        ->label('Email')
+                                        ->icon('heroicon-o-envelope')
+                                        ->copyable(),
+
+                                    Components\TextEntry::make('applicant.wave.wave_name')
+                                        ->label('Gelombang')
+                                        ->icon('heroicon-o-calendar-days')
+                                        ->badge()
+                                        ->color('warning'),
+                                ]),
+
+                            // Section: Detail Pembayaran
+                            Components\Section::make('Detail Pembayaran')
+                                ->icon('heroicon-o-banknotes')
+                                ->schema([
+                                    Components\TextEntry::make('paid_amount')
+                                        ->label('Jumlah Dibayar')
+                                        ->money('IDR')
+                                        ->icon('heroicon-o-currency-dollar')
+                                        ->weight(FontWeight::Bold)
+                                        ->size('lg')
+                                        ->color('success'),
+
+                                    Components\TextEntry::make('payment.paid_amount_total')
+                                        ->label('Yang Harus Dibayar')
+                                        ->money('IDR')
+                                        ->icon('heroicon-o-receipt-percent'),
+
+                                    Components\TextEntry::make('payment_notes')
+                                        ->label('Catatan dari User')
+                                        ->icon('heroicon-o-chat-bubble-left-right')
+                                        ->placeholder('Tidak ada catatan')
+                                        ->columnSpanFull(),
+                                ]),
+
+                            // Section: Status Approval
+                            Components\Section::make('Status Approval')
+                                ->icon('heroicon-o-shield-check')
+                                ->schema([
+                                    Components\TextEntry::make('approval_status')
+                                        ->label('Status')
+                                        ->badge()
+                                        ->formatStateUsing(fn ($record) => $record->getStatusLabel())
+                                        ->color(fn ($record) => $record->getStatusBadgeColor())
+                                        ->size('lg')
+                                        ->weight(FontWeight::Bold),
+
+                                    Components\TextEntry::make('approvedBy.name')
+                                        ->label('Disetujui/Ditolak Oleh')
+                                        ->icon('heroicon-o-user')
+                                        ->placeholder('-')
+                                        ->visible(fn ($record) => $record->approved_by !== null),
+
+                                    Components\TextEntry::make('approved_at')
+                                        ->label('Tanggal Approval')
+                                        ->icon('heroicon-o-clock')
+                                        ->dateTime('d F Y, H:i')
+                                        ->visible(fn ($record) => $record->approved_at !== null),
+
+                                    Components\TextEntry::make('rejection_reason')
+                                        ->label('Alasan Penolakan')
+                                        ->icon('heroicon-o-exclamation-circle')
+                                        ->columnSpanFull()
+                                        ->color('danger')
+                                        ->visible(fn ($record) => $record->isRejected()),
+                                ]),
+                        ])
+                        ->columnSpan(['lg' => 1]),
+                ])
+                ->from('lg')
+                ->columnSpanFull(),
+            ]);
+    }
 
     protected function getHeaderActions(): array
     {
