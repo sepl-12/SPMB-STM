@@ -122,6 +122,6 @@ class SaveRegistrationStepActionIntegrationTest extends TestCase
         $this->assertArrayHasKey('rapor', $result->registrationData);
         $this->assertNotEmpty($result->registrationData['rapor']);
         $this->assertDatabaseMissing('applicants', ['applicant_email_address' => 'tester@example.com']);
-        $this->assertTrue(Storage::disk('public')->exists($result->registrationData['rapor']), 'File upload harus tersimpan di disk public.');
+        $this->assertTrue(Storage::disk('private')->exists($result->registrationData['rapor']), 'File upload harus tersimpan di disk public.');
     }
 }

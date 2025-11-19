@@ -128,12 +128,24 @@ class PaymentLinkService
         if ($existingPayment) {
             $snapToken = Arr::get($existingPayment->gateway_payload_json, 'snap_token');
 
-            if ($snapToken) {
+            // Check if token exists and payment is still fresh (less than 23 hours old)
+            // Midtrans Snap Token expires after 24 hours, we use 23 hours for safety margin
+            $isTokenFresh = $existingPayment->created_at->diffInHours(now()) < 23;
+
+            if ($snapToken && $isTokenFresh) {
                 return new SnapTransaction(
                     orderId: $existingPayment->merchant_order_code,
                     snapToken: $snapToken,
                     payment: $existingPayment,
                 );
+            }
+
+            // Token expired or not found, mark old payment as expired and create new one
+            if (!$isTokenFresh) {
+                $existingPayment->update([
+                    'payment_status_name' => PaymentStatus::EXPIRE,
+                    'status_updated_datetime' => now(),
+                ]);
             }
         }
 
