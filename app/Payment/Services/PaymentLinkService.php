@@ -74,6 +74,21 @@ class PaymentLinkService
             );
         }
 
+        // Check if token is expired (older than 23 hours)
+        // If expired, redirect to payment page which will generate new token
+        $isTokenFresh = $latestPayment->created_at->diffInHours(now()) < 23;
+
+        if (!$isTokenFresh) {
+            // Token expired, redirect to payment page to get fresh token
+            return new PaymentLinkResult(
+                applicant: $applicant,
+                payment: $latestPayment,
+                snapToken: null,
+                redirectUrl: $this->applicantUrlGenerator->getPaymentUrl($applicant),
+                flash: ['warning' => 'Token pembayaran sudah kadaluarsa. Silakan lakukan pembayaran ulang.']
+            );
+        }
+
         return new PaymentLinkResult(
             applicant: $applicant,
             payment: $latestPayment,
