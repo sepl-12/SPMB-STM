@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Applicant;
+use App\Settings\GeneralSettings;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -47,8 +48,8 @@ class ExamCardReady extends Mailable implements ShouldQueue
                 'registrationNumber' => $this->applicant->registration_number,
                 'name' => $this->applicant->applicant_full_name,
                 'wave' => $this->applicant->wave,
-                'examDate' => $this->applicant->wave->end_datetime?->addDays(7)->format('d F Y'),
-                'examLocation' => setting('contact_address', 'SMK Muhammadiyah 1 Sangatta Utara'),
+                'examDate' => GeneralSettings::getExamDateRange() ?? 'Akan diinformasikan kemudian',
+                'examLocation' => GeneralSettings::examLocation() ?? setting('contact_address', 'SMK Muhammadiyah 1 Sangatta Utara'),
             ],
         );
     }

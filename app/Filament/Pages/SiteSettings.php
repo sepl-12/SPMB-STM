@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Settings\PaymentSettings;
 use App\Settings\SettingsRepositoryInterface;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Repeater;
@@ -215,6 +216,80 @@ class SiteSettings extends Page implements HasForms
                     ])
                     ->columns(2),
 
+                // Exam Settings Section
+                Section::make('Pengaturan Ujian')
+                    ->description('Atur jadwal dan lokasi ujian masuk')
+                    ->icon('heroicon-o-academic-cap')
+                    ->collapsible()
+                    ->collapsed()
+                    ->schema([
+                        DatePicker::make('exam_start_date')
+                            ->label('Tanggal Mulai Ujian')
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('d F Y')
+                            ->helperText('Tanggal pertama pelaksanaan ujian')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, $set, $get) {
+                                // Jika end date belum diisi atau lebih kecil dari start date
+                                $endDate = $get('exam_end_date');
+                                if (!$endDate || $endDate < $state) {
+                                    $set('exam_end_date', $state);
+                                }
+                            }),
+
+                        DatePicker::make('exam_end_date')
+                            ->label('Tanggal Akhir Ujian')
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('d F Y')
+                            ->helperText('Tanggal terakhir pelaksanaan ujian')
+                            ->minDate(fn($get) => $get('exam_start_date'))
+                            ->reactive(),
+
+                        TextInput::make('exam_location')
+                            ->label('Lokasi Ujian')
+                            ->required()
+                            ->maxLength(255)
+                            ->placeholder('SMK Muhammadiyah 1 Sangatta Utara - Ruang Auditorium')
+                            ->helperText('Lokasi lengkap pelaksanaan ujian')
+                            ->columnSpanFull(),
+
+                        // Preview
+                        \Filament\Forms\Components\Placeholder::make('exam_preview')
+                            ->label('Preview')
+                            ->content(function ($get) {
+                                $startDate = $get('exam_start_date');
+                                $endDate = $get('exam_end_date');
+                                $location = $get('exam_location');
+
+                                if (!$startDate || !$endDate) {
+                                    return '⏳ Pilih tanggal untuk melihat preview';
+                                }
+
+                                $start = \Carbon\Carbon::parse($startDate);
+                                $end = \Carbon\Carbon::parse($endDate);
+
+                                // Format range
+                                if ($start->format('m Y') === $end->format('m Y')) {
+                                    $dateRange = $start->format('d') . ' - ' . $end->format('d F Y');
+                                } elseif ($start->format('Y') === $end->format('Y')) {
+                                    $dateRange = $start->format('d F') . ' - ' . $end->format('d F Y');
+                                } else {
+                                    $dateRange = $start->format('d F Y') . ' - ' . $end->format('d F Y');
+                                }
+
+                                $preview = "📅 Tanggal Ujian: {$dateRange}";
+                                if ($location) {
+                                    $preview .= "\n📍 Lokasi: {$location}";
+                                }
+
+                                return new \Illuminate\Support\HtmlString('<div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 12px; border-radius: 4px; font-family: monospace; white-space: pre-line; color: #0c4a6e;">' . $preview . '</div>');
+                            })
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+
                 // Emergency Payment Section
                 Section::make('Pembayaran Darurat')
                     ->description('Mode pembayaran manual saat Midtrans bermasalah')
@@ -319,6 +394,11 @@ class SiteSettings extends Page implements HasForms
             'contact_whatsapp' => $repo->get('contact_whatsapp', ''),
             'contact_phone' => $repo->get('contact_phone', ''),
             'contact_address' => $repo->get('contact_address', ''),
+
+            // Exam Settings
+            'exam_start_date' => $repo->get('exam_start_date', ''),
+            'exam_end_date' => $repo->get('exam_end_date', ''),
+            'exam_location' => $repo->get('exam_location', ''),
 
             // Emergency Payment Settings
             'emergency_payment_enabled' => PaymentSettings::isEmergencyModeEnabled(),
