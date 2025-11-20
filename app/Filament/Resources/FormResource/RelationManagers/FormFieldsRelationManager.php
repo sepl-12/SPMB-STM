@@ -300,6 +300,7 @@ class FormFieldsRelationManager extends RelationManager
             ->modifyQueryUsing(fn(Builder $query) => $query->where('form_version_id', $this->getActiveVersion()->getKey()))
             ->defaultSort('field_order_number')
             ->defaultGroup('formStep.step_title')
+            ->deferLoading(true)
             ->columns([
                 TextColumn::make('field_order_number')
                     ->label('#')

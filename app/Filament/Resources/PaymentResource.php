@@ -53,6 +53,7 @@ class PaymentResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with('applicant'))
             ->defaultSort('status_updated_datetime', 'desc')
+            ->deferLoading(true)
             ->columns([
                 TextColumn::make('merchant_order_code')
                     ->label('Kode Order')

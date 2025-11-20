@@ -58,6 +58,7 @@ class ApplicantResource extends Resource
     {
         $table = $table
             ->modifyQueryUsing(fn(Builder $query) => $query->with(['wave', 'latestSubmission', 'latestPayment']))
+            ->deferLoading(true)
             ->defaultSort('registered_datetime', 'desc');
 
         $columns = [
