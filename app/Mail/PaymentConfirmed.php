@@ -44,7 +44,7 @@ class PaymentConfirmed extends Mailable implements ShouldQueue
                 'payment' => $this->payment,
                 'applicant' => $this->payment->applicant,
                 'registrationNumber' => $this->payment->applicant->registration_number,
-                'name' => $this->payment->applicant->getLatestSubmissionAnswers()['name'] ?? 'Calon Peserta',
+                'name' => $this->payment->applicant->applicant_full_name,
                 'amount' => number_format($this->payment->paid_amount_total, 0, ',', '.'),
                 'paymentDate' => $this->payment->status_updated_datetime?->format('d F Y, H:i'),
             ],

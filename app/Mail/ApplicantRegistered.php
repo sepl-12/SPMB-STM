@@ -43,7 +43,7 @@ class ApplicantRegistered extends Mailable implements ShouldQueue
             with: [
                 'applicant' => $this->applicant,
                 'registrationNumber' => $this->applicant->registration_number,
-                'name' => $this->applicant->getLatestSubmissionAnswers()['name'] ?? 'Calon Peserta',
+                'name' => $this->applicant->applicant_full_name,
                 'wave' => $this->applicant->wave,
             ],
         );

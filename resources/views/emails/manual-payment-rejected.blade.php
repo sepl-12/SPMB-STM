@@ -96,7 +96,7 @@
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
                                 <tr>
                                     <td align="center">
-                                        <a href="{{ $applicant->payment_url }}"
+                                        <a href="{{ $applicant->getPaymentUrl() }}"
                                            style="display: inline-block; padding: 14px 32px; background-color: #0284c7; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">
                                             💳 Lakukan Pembayaran Ulang
                                         </a>

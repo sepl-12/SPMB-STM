@@ -46,7 +46,7 @@
                                             </tr>
                                             <tr>
                                                 <td style="padding: 8px 0; font-size: 14px; color: #64748b; border-top: 1px solid #e2e8f0;">Gelombang</td>
-                                                <td style="padding: 8px 0; font-size: 14px; color: #1e293b; border-top: 1px solid #e2e8f0;">{{ $wave->name }}</td>
+                                                <td style="padding: 8px 0; font-size: 14px; color: #1e293b; border-top: 1px solid #e2e8f0;">{{ $wave->wave_name }}</td>
                                             </tr>
                                             <tr>
                                                 <td style="padding: 8px 0; font-size: 14px; color: #64748b; border-top: 1px solid #e2e8f0;">Tanggal Daftar</td>

@@ -51,7 +51,7 @@
                                             </tr>
                                             <tr>
                                                 <td style="padding: 8px 0; font-size: 14px; color: #6b21a8; border-top: 1px solid #e9d5ff;">Gelombang</td>
-                                                <td style="padding: 8px 0; font-size: 14px; color: #1e293b; border-top: 1px solid #e9d5ff;">{{ $wave->name }}</td>
+                                                <td style="padding: 8px 0; font-size: 14px; color: #1e293b; border-top: 1px solid #e9d5ff;">{{ $wave->wave_name }}</td>
                                             </tr>
                                             <tr>
                                                 <td style="padding: 8px 0; font-size: 14px; color: #6b21a8; border-top: 1px solid #e9d5ff;">Tanggal Ujian</td>
@@ -91,7 +91,7 @@
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
                                 <tr>
                                     <td align="center">
-                                        <a href="{{ config('app.url') }}/status/{{ $applicant->id }}" 
+                                        <a href="{{ $applicant->getStatusUrl() }}"
                                            style="display: inline-block; padding: 14px 32px; background-color: #9333ea; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">
                                             Lihat Detail Pendaftaran
                                         </a>
