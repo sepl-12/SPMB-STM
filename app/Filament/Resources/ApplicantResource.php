@@ -105,10 +105,12 @@ class ApplicantResource extends Resource
             ->filters(self::getFilters())
             ->actions([
                 ViewAction::make(),
+                Tables\Actions\DeleteAction::make(),
                 self::makeExportAction(),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
                     self::makeBulkExportAction(),
                     self::makeBulkSendEmailAction(),
                 ]),
@@ -469,7 +471,7 @@ class ApplicantResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return false;
+        return true;
     }
 
     public static function getNavigationBadge(): ?string

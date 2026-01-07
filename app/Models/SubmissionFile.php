@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+use Illuminate\Support\Facades\Storage;
+
 class SubmissionFile extends Model
 {
     use HasFactory;
@@ -29,6 +31,12 @@ class SubmissionFile extends Model
         static::creating(function ($model) {
             if (empty($model->uuid)) {
                 $model->uuid = (string) Str::uuid();
+            }
+        });
+
+        static::deleted(function ($model) {
+            if ($model->stored_file_path) {
+                Storage::disk('private')->delete($model->stored_file_path);
             }
         });
     }

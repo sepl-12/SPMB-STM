@@ -18,6 +18,7 @@ use App\Registration\Services\RegistrationNumberGenerator;
 use App\Registration\Services\WaveQuotaGuard;
 use App\Registration\Validators\RegistrationValidationContext;
 use App\Registration\Validators\RegistrationValidator;
+use App\Services\Applicant\ApplicantPaymentStatusResolver;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -32,7 +33,8 @@ class SubmitRegistrationAction
         private readonly RegistrationNumberGenerator $registrationNumberGenerator,
         private readonly RegistrationAnswerMapper $answerMapper,
         private readonly RegistrationEmailExtractor $emailExtractor,
-        private readonly Dispatcher $events
+        private readonly Dispatcher $events,
+        private readonly ApplicantPaymentStatusResolver $paymentStatusResolver
     ) {
     }
 
@@ -68,21 +70,55 @@ class SubmitRegistrationAction
         ) {
             $this->waveQuotaGuard->assertAvailability($activeWave);
 
-            $registrationNumber = $this->registrationNumberGenerator->generate();
-
             $emailValue = $this->emailExtractor->extract($validatedData, $allFields);
 
-            $applicant = Applicant::create([
-                'registration_number' => $registrationNumber,
-                'applicant_full_name' => $validatedData['nama_lengkap'] ?? $validatedData['full_name'] ?? 'Nama Belum Diisi',
-                'applicant_nisn' => $validatedData['nisn'] ?? '-',
-                'applicant_phone_number' => $validatedData['no_hp'] ?? $validatedData['phone'] ?? '-',
-                'applicant_email_address' => $emailValue,
-                'chosen_major_name' => $validatedData['jurusan'] ?? $validatedData['major'] ?? 'Belum Dipilih',
-                'wave_id' => $activeWave->id,
-                'registered_datetime' => now(),
-            ]);
+            // 1. Check existing applicant in this wave
+            $existingApplicant = Applicant::where('wave_id', $activeWave->id)
+                ->where('applicant_email_address', $emailValue)
+                ->first();
 
+            if ($existingApplicant) {
+                // 2. Check payment status
+                if (
+                    $this->paymentStatusResolver->hasSuccessfulPayment($existingApplicant) ||
+                    $this->paymentStatusResolver->hasPendingPayment($existingApplicant)
+                ) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Email ini sudah terdaftar dan sedang dalam proses pembayaran atau sudah lunas. Silakan cek status pendaftaran Anda.',
+                    ]);
+                }
+
+                // 3. Resume/Renew: Update existing applicant
+                $existingApplicant->update([
+                    'applicant_full_name' => $validatedData['nama_lengkap'] ?? $validatedData['full_name'] ?? 'Nama Belum Diisi',
+                    'applicant_nisn' => $validatedData['nisn'] ?? '-',
+                    'applicant_phone_number' => $validatedData['no_hp'] ?? $validatedData['phone'] ?? '-',
+                    'chosen_major_name' => $validatedData['jurusan'] ?? $validatedData['major'] ?? 'Belum Dipilih',
+                    // Update registration time to now so it looks fresh
+                    'registered_datetime' => now(),
+                ]);
+
+                $applicant = $existingApplicant;
+                $registrationNumber = $applicant->registration_number;
+            } else {
+                // 4. Create New Applicant
+                $registrationNumber = $this->registrationNumberGenerator->generate();
+
+                $applicant = Applicant::create([
+                    'registration_number' => $registrationNumber,
+                    'applicant_full_name' => $validatedData['nama_lengkap'] ?? $validatedData['full_name'] ?? 'Nama Belum Diisi',
+                    'applicant_nisn' => $validatedData['nisn'] ?? '-',
+                    'applicant_phone_number' => $validatedData['no_hp'] ?? $validatedData['phone'] ?? '-',
+                    'applicant_email_address' => $emailValue,
+                    'chosen_major_name' => $validatedData['jurusan'] ?? $validatedData['major'] ?? 'Belum Dipilih',
+                    'wave_id' => $activeWave->id,
+                    'registered_datetime' => now(),
+                ]);
+            }
+
+            // Always create a FRESH submission (answers)
+            // Ideally we might want to archive old submissions, but simply creating a new one 
+            // works because relationships usually fetch 'latestSubmission'.
             $submission = Submission::create([
                 'applicant_id' => $applicant->id,
                 'form_id' => $form->id,

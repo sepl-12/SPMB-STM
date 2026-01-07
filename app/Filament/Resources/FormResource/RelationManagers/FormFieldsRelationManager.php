@@ -30,6 +30,8 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -41,9 +43,12 @@ class FormFieldsRelationManager extends RelationManager
 
     protected static ?string $title = 'Pertanyaan';
 
+    protected ?FormVersion $cachedActiveVersion = null;
+
+
     public function form(Form $form): Form
     {
-        $activeVersionResolver = fn () => $this->getActiveVersion();
+        $activeVersionResolver = fn() => $this->getActiveVersion();
 
         return $form->schema([
             FieldBasicsSection::make($activeVersionResolver),
@@ -82,7 +87,6 @@ class FormFieldsRelationManager extends RelationManager
 
                             $existingGroups = FormField::query()
                                 ->where('form_version_id', $activeVersion->id)
-                                ->whereNotNull('linked_field_group')
                                 ->where('linked_field_group', '!=', '')
                                 ->where('linked_field_group', 'like', "%{$search}%")
                                 ->distinct()
@@ -99,7 +103,7 @@ class FormFieldsRelationManager extends RelationManager
                         ->getOptionLabelUsing(function ($value) {
                             return $value;
                         })
-                        ->visible(fn ($get) => in_array($get('field_type'), ['select', 'radio']))
+                        ->visible(fn($get) => in_array($get('field_type'), ['select', 'radio']))
                         ->reactive()
                         ->dehydrateStateUsing(function ($state) {
                             // Clean up the value (remove "Buat baru:" prefix if exists)
@@ -128,7 +132,7 @@ class FormFieldsRelationManager extends RelationManager
                                 '<div class="text-sm space-y-1">' . nl2br($fieldsList) . '</div>'
                             );
                         })
-                        ->visible(fn ($get, $record) => !empty($get('linked_field_group')) && $record),
+                        ->visible(fn($get, $record) => !empty($get('linked_field_group')) && $record),
 
                     Placeholder::make('linking_help')
                         ->label('Cara Kerja')
@@ -142,7 +146,7 @@ class FormFieldsRelationManager extends RelationManager
                                 </ul>
                             </div>
                         '))
-                        ->visible(fn ($get) => in_array($get('field_type'), ['select', 'radio'])),
+                        ->visible(fn($get) => in_array($get('field_type'), ['select', 'radio'])),
                 ])
                 ->collapsible()
                 ->collapsed(),
@@ -185,7 +189,7 @@ class FormFieldsRelationManager extends RelationManager
                         ->required()
                         ->live()
                         ->helperText('Pilih field yang akan mengontrol visibility field ini')
-                        ->visible(fn (Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
+                        ->visible(fn(Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
 
                     Select::make('conditional_rules.show_if.operator')
                         ->label('Operator Kondisi')
@@ -201,7 +205,7 @@ class FormFieldsRelationManager extends RelationManager
                         ->required()
                         ->live()
                         ->helperText('Pilih kondisi yang harus dipenuhi')
-                        ->visible(fn (Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
+                        ->visible(fn(Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
 
                     TextInput::make('conditional_rules.show_if.value')
                         ->label('Nilai yang Diharapkan')
@@ -218,15 +222,15 @@ class FormFieldsRelationManager extends RelationManager
                                 return '';
                             }
 
-                            return match($controllerField->field_type) {
+                            return match ($controllerField->field_type) {
                                 'checkbox', 'boolean' => '✓ Gunakan "1" untuk checked/true, "0" untuk unchecked/false',
                                 'select', 'radio' => '📋 Masukkan value dari option yang dipilih',
                                 default => '📝 Masukkan nilai yang diharapkan',
                             };
                         })
-                        ->visible(fn (Get $get) =>
-                            ($get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))) &&
-                            in_array($get('conditional_rules.show_if.operator'), ['equals', 'not_equals', 'contains', 'not_contains'])
+                        ->visible(
+                            fn(Get $get) => ($get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))) &&
+                                in_array($get('conditional_rules.show_if.operator'), ['equals', 'not_equals', 'contains', 'not_contains'])
                         ),
 
                     Placeholder::make('preview')
@@ -243,7 +247,7 @@ class FormFieldsRelationManager extends RelationManager
                             $controllerField = FormField::where('field_key', $fieldKey)->first();
                             $fieldLabel = $controllerField?->field_label ?? $fieldKey;
 
-                            $operatorLabel = match($operator) {
+                            $operatorLabel = match ($operator) {
                                 'equals' => 'sama dengan',
                                 'not_equals' => 'tidak sama dengan',
                                 'is_empty' => 'kosong',
@@ -253,7 +257,7 @@ class FormFieldsRelationManager extends RelationManager
                                 default => $operator,
                             };
 
-                            $valueLabel = match($value) {
+                            $valueLabel = match ($value) {
                                 '1', 'true' => '✓ checked/true',
                                 '0', 'false' => '☐ unchecked/false',
                                 default => "'{$value}'",
@@ -267,7 +271,7 @@ class FormFieldsRelationManager extends RelationManager
 
                             return new \Illuminate\Support\HtmlString('<div class="text-sm">' . $preview . '</div>');
                         })
-                        ->visible(fn (Get $get) => !empty($get('conditional_rules.show_if.field'))),
+                        ->visible(fn(Get $get) => !empty($get('conditional_rules.show_if.field'))),
 
                     Placeholder::make('example_hint')
                         ->label('💡 Contoh Use Case')
@@ -287,7 +291,7 @@ class FormFieldsRelationManager extends RelationManager
                                 </ul>
                             </div>
                         '))
-                        ->visible(fn (Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
+                        ->visible(fn(Get $get) => $get('enable_conditional') || !empty($get('conditional_rules.show_if.field'))),
                 ])
                 ->collapsible()
                 ->collapsed(),
@@ -297,7 +301,23 @@ class FormFieldsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn(Builder $query) => $query->where('form_version_id', $this->getActiveVersion()->getKey()))
+            ->modifyQueryUsing(fn(Builder $query) => $query
+                ->select([
+                    'id',
+                    'form_version_id',
+                    'form_step_id',
+                    'field_order_number',
+                    'field_label',
+                    'field_key',
+                    'field_type',
+                    'is_required',
+                    'is_filterable',
+                    'is_exportable',
+                    'is_archived',
+                    'is_system_field',
+                ])
+                ->where('form_version_id', $this->getActiveVersion()->getKey())
+                ->with(['formStep']))
             ->defaultSort('field_order_number')
             ->defaultGroup('formStep.step_title')
             ->deferLoading(true)
@@ -312,7 +332,7 @@ class FormFieldsRelationManager extends RelationManager
                     ->badge()
                     ->color('info')
                     ->sortable()
-                    ->searchable()
+                    ->searchable(isIndividual: true)
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('field_label')
                     ->label('Label Pertanyaan')
@@ -407,7 +427,7 @@ class FormFieldsRelationManager extends RelationManager
                         ->requiresConfirmation()
                         ->modalHeading('Duplikat Pertanyaan')
                         ->modalDescription('Pertanyaan akan diduplikat dengan urutan baru')
-                        ->action(fn (FormField $record) => $this->duplicateField($record))
+                        ->action(fn(FormField $record) => $this->duplicateField($record))
                         ->successNotificationTitle('Pertanyaan berhasil diduplikat'),
 
                     Action::make('toggleArchive')
@@ -421,7 +441,7 @@ class FormFieldsRelationManager extends RelationManager
                                 ? 'Pertanyaan akan dimunculkan kembali di formulir'
                                 : 'Pertanyaan tidak akan tampil di formulir tetapi tetap tersimpan'
                         )
-                        ->action(fn (FormField $record) => $this->toggleFieldArchive($record))
+                        ->action(fn(FormField $record) => $this->toggleFieldArchive($record))
                         ->successNotificationTitle('Status arsip diperbarui')
 
                         ->hidden(fn(FormField $record) => $record->is_system_field),
@@ -429,7 +449,7 @@ class FormFieldsRelationManager extends RelationManager
                         ->hidden(fn(FormField $record) => $record->is_system_field)
                         ->modalHeading('Hapus Pertanyaan')
                         ->modalDescription('Pertanyaan yang dihapus tidak dapat dipulihkan. Yakin ingin melanjutkan?')
-                        ->after(fn (FormField $record) => $this->notifyOnSystemFieldDeletionAttempt($record)),
+                        ->after(fn(FormField $record) => $this->notifyOnSystemFieldDeletionAttempt($record)),
                 ])
             ])
             ->bulkActions([
@@ -442,7 +462,7 @@ class FormFieldsRelationManager extends RelationManager
                             ->options(fn() => $this->getStepOptions())
                             ->required(),
                     ])
-                    ->action(fn (Collection $records, array $data) => $this->moveFieldsToStep($records, $data))
+                    ->action(fn(Collection $records, array $data) => $this->moveFieldsToStep($records, $data))
                     ->successNotificationTitle('Pertanyaan berhasil dipindahkan')
                     ->deselectRecordsAfterCompletion(),
                 BulkAction::make('archive')
@@ -450,7 +470,7 @@ class FormFieldsRelationManager extends RelationManager
                     ->icon('heroicon-o-archive-box')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $this->archiveSelectedFields($records))
+                    ->action(fn(Collection $records) => $this->archiveSelectedFields($records))
                     ->successNotificationTitle(
                         fn(Collection $records) =>
                         'Berhasil diarsipkan: ' . $records->reject(fn($record) => $record->is_system_field)->count() . ' pertanyaan'
@@ -469,14 +489,19 @@ class FormFieldsRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->modalHeading('Hapus Pertanyaan')
                     ->modalDescription('Pertanyaan yang dihapus tidak dapat dipulihkan. Yakin ingin melanjutkan?')
-                    ->before(fn (Collection $records) => $this->beforeBulkDelete($records))
-                    ->after(fn (Collection $records) => $this->afterBulkDelete($records)),
+                    ->before(fn(Collection $records) => $this->beforeBulkDelete($records))
+                    ->after(fn(Collection $records) => $this->afterBulkDelete($records)),
 
             ])
             ->defaultPaginationPageOption(50)
             ->emptyStateHeading('Belum Ada Pertanyaan')
             ->emptyStateDescription('Tambahkan pertanyaan pertama untuk formulir Anda.')
             ->emptyStateIcon('heroicon-o-question-mark-circle');
+    }
+
+    protected function paginateTableQuery(Builder $query): Paginator|CursorPaginator
+    {
+        return $query->simplePaginate($this->getTableRecordsPerPage() == 'all' ? $query->count() : $this->getTableRecordsPerPage());
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -501,12 +526,19 @@ class FormFieldsRelationManager extends RelationManager
 
     protected function getActiveVersion(): FormVersion
     {
+        if ($this->cachedActiveVersion) {
+            return $this->cachedActiveVersion;
+        }
+
         $form = $this->getOwnerRecord();
-
         $version = $form->ensureActiveVersion();
-        $version->loadMissing(['formSteps', 'formFields']);
 
-        return $version;
+        // Eager Loading agar tidak loadMissing berulang kali
+        if (! $version->relationLoaded('formSteps')) {
+            $version->load('formSteps');
+        }
+
+        return $this->cachedActiveVersion = $version;
     }
 
     public function getRelationship(): HasMany
