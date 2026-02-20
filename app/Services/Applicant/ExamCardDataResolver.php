@@ -5,6 +5,7 @@ namespace App\Services\Applicant;
 use App\Models\Applicant;
 use App\Models\ExamCardFieldConfig;
 use App\Models\SubmissionFile;
+use App\Settings\GeneralSettings;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -211,26 +212,14 @@ class ExamCardDataResolver
     }
 
     /**
-     * Build exam date from answers or wave schedule.
+     * Build exam date from general settings (configured by admin).
      *
-     * @param array<string, mixed> $answers
+     * Tanggal ujian selalu diambil dari Pengaturan Website (exam_start_date)
+     * agar konsisten dengan informasi yang dikirim via email.
      */
     protected function resolveExamDate(Applicant $applicant, array $answers): ?Carbon
     {
-        $date = $this->firstFilled($answers, ['tanggal_tes', 'tanggal_ujian', 'exam_date']);
-
-        if ($date) {
-            $normalized = $this->normalizeDate($date);
-            if ($normalized) {
-                return $normalized;
-            }
-        }
-
-        if ($applicant->wave?->end_datetime) {
-            return $applicant->wave->end_datetime->copy()->addDays(7);
-        }
-
-        return null;
+        return GeneralSettings::examStartDate();
     }
 
     protected function cleanPhone(?string $value): ?string
