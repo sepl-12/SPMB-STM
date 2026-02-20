@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enum\PaymentStatus;
 use App\Models\Applicant;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -64,8 +65,24 @@ class RecentApplicantsWidget extends BaseWidget
 
                 Tables\Columns\BadgeColumn::make('latestPayment.payment_status_name')
                     ->label('Status Bayar')
-                    ->formatStateUsing(fn($state) => $state?->label() ?? 'Belum Bayar')
-                    ->color(fn($state): string => $state?->color() ?? 'gray')
+                    ->formatStateUsing(function ($state): string {
+                        if ($state instanceof PaymentStatus) {
+                            return $state->label();
+                        }
+                        if (is_string($state) && $state !== '') {
+                            return PaymentStatus::tryFrom($state)?->label() ?? $state;
+                        }
+                        return 'Belum Bayar';
+                    })
+                    ->color(function ($state): string {
+                        if ($state instanceof PaymentStatus) {
+                            return $state->color();
+                        }
+                        if (is_string($state) && $state !== '') {
+                            return PaymentStatus::tryFrom($state)?->color() ?? 'gray';
+                        }
+                        return 'gray';
+                    })
                     ->sortable()
                     ->default('Belum Bayar'),
 
