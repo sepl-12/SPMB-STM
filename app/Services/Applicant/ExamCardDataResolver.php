@@ -116,7 +116,7 @@ class ExamCardDataResolver
                 return $this->firstFilled($answers, $config->getAllKeys());
 
             case 'exam_date':
-                return $this->resolveExamDate($applicant, $answers);
+                return GeneralSettings::getExamDateRange();
 
             case 'signature_date':
                 $examDate = $this->resolveExamDate($applicant, $answers);
@@ -143,12 +143,11 @@ class ExamCardDataResolver
      */
     protected function buildLegacyFormat(Applicant $applicant, array $fields): array
     {
-        $examDate = $fields['exam_date']['value'] ?? null;
+        $examDate = $fields['exam_date']['value'] ?? null; // string range, e.g. "1 - 3 Juli 2026"
         $birthDate = $fields['birth_date']['value'] ?? null;
         $birthPlace = $fields['birth_place']['value'] ?? null;
 
         $birthDateText = $birthDate?->translatedFormat('d F Y');
-        $examDateText = $examDate?->translatedFormat('d F Y');
 
         $whatsappParent = $fields['whatsapp_parent']['value'] ?? null;
         $whatsappStudent = $fields['whatsapp_student']['value'] ?? null;

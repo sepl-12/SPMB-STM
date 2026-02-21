@@ -90,7 +90,8 @@
                     return null;
 
                 case 'exam_date':
-                    return $value?->translatedFormat('d F Y') ?? ($config->fallback_value ?? '-');
+                    // $value is a pre-formatted range string, e.g. "1 - 3 Juli 2026"
+                    return $value ?? ($config->fallback_value ?? '-');
 
                 case 'signature_date':
                     return $value ?? $signature_day_month ?? ($config->fallback_value ?? '-');
@@ -143,7 +144,7 @@
                 {{-- Fallback ke format lama jika fields tidak tersedia --}}
                 @php
                     $birthDateText = $birth_date?->translatedFormat('d F Y');
-                    $examDateText = $exam_date?->translatedFormat('d F Y');
+                    $examDateText = is_string($exam_date) ? $exam_date : $exam_date?->translatedFormat('d F Y');
                     $waCombined = collect([$whatsapp_parent, $whatsapp_student])->filter()->implode(' / ');
                     $signatureDateText = $signature_day_month;
                     $birthLine = collect([$birth_place, $birthDateText])->filter()->implode(', ');

@@ -54,16 +54,16 @@ class GeneralSettings
 
         // Jika bulan dan tahun sama, format: "20 - 25 Februari 2026"
         if ($startDate->format('m Y') === $endDate->format('m Y')) {
-            return $startDate->format('d') . ' - ' . $endDate->format('d F Y');
+            return $startDate->translatedFormat('d') . ' - ' . $endDate->translatedFormat('d F Y');
         }
 
         // Jika bulan berbeda tapi tahun sama, format: "28 Februari - 5 Maret 2026"
         if ($startDate->format('Y') === $endDate->format('Y')) {
-            return $startDate->format('d F') . ' - ' . $endDate->format('d F Y');
+            return $startDate->translatedFormat('d F') . ' - ' . $endDate->translatedFormat('d F Y');
         }
 
         // Jika tahun berbeda, format lengkap: "28 Februari 2026 - 5 Maret 2027"
-        return $startDate->format('d F Y') . ' - ' . $endDate->format('d F Y');
+        return $startDate->translatedFormat('d F Y') . ' - ' . $endDate->translatedFormat('d F Y');
     }
 
     /**
