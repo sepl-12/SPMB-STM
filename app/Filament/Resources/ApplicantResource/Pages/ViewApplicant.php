@@ -203,18 +203,29 @@ class ViewApplicant extends ViewRecord
                                                 if ($field['field']?->field_type === 'image') {
                                                     $rawValue = $field['raw_value'];
 
+                                                    // Retrieve signed URL if possible from SubmissionFile
+                                                    $fileData = $this->getFileDataForField($record, $field['field']->id);
+                                                    $signedUrl = $fileData['preview_url'] ?? null;
+
                                                     // Handle different image value formats
                                                     if (is_string($rawValue) && !empty($rawValue)) {
                                                         // Single image path
-                                                        return ImageEntry::make($fieldKey)
+                                                        $imageUrl = $signedUrl ?: $rawValue;
+                                                        $entry = ImageEntry::make($fieldKey)
                                                             ->label($field['label'])
-                                                            ->state($rawValue)
-                                                            ->disk('public')
+                                                            ->state($imageUrl)
                                                             ->height(200)
                                                             ->width('auto')
                                                             ->extraAttributes([
                                                                 'class' => 'rounded-lg'
                                                             ]);
+
+                                                        // Use public disk only if it's not a full URL
+                                                        if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+                                                            $entry->disk('public');
+                                                        }
+
+                                                        return $entry;
                                                     } elseif (is_array($rawValue)) {
                                                         // Handle array of images (if format is [['url' => '...', 'name' => '...']])
                                                         $imageUrls = collect($rawValue)
@@ -222,16 +233,26 @@ class ViewApplicant extends ViewRecord
                                                             ->filter()
                                                             ->toArray();
 
+                                                        // If signedUrl is available and there's only one item in rawValue, prefer signedUrl
+                                                        if ($signedUrl && count($imageUrls) <= 1) {
+                                                            $imageUrls = [$signedUrl];
+                                                        }
+
                                                         if (!empty($imageUrls)) {
-                                                            return ImageEntry::make($fieldKey)
+                                                            $entry = ImageEntry::make($fieldKey)
                                                                 ->label($field['label'])
                                                                 ->state($imageUrls)
-                                                                ->disk('public')
                                                                 ->height(200)
                                                                 ->width('auto')
                                                                 ->extraAttributes([
                                                                     'class' => 'rounded-lg'
                                                                 ]);
+
+                                                            if (!filter_var($imageUrls[0] ?? '', FILTER_VALIDATE_URL)) {
+                                                                $entry->disk('public');
+                                                            }
+
+                                                            return $entry;
                                                         }
                                                     }
                                                 }

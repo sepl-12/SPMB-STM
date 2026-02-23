@@ -277,10 +277,19 @@ class ExamCardDataResolver
             return null;
         }
 
-        if (! Storage::disk($file->stored_disk_name)->exists($file->stored_file_path)) {
+        $disk = Storage::disk($file->stored_disk_name);
+        if (! $disk->exists($file->stored_file_path)) {
             return null;
         }
 
-        return Storage::disk($file->stored_disk_name)->path($file->stored_file_path);
+        try {
+            $content = $disk->get($file->stored_file_path);
+            $mime = $disk->mimeType($file->stored_file_path) ?: 'image/jpeg';
+            $base64 = base64_encode($content);
+            return 'data:' . $mime . ';base64,' . $base64;
+        } catch (\Exception $e) {
+            \Log::error('ExamCardDataResolver unable to read file for base64: ' . $e->getMessage());
+            return $disk->path($file->stored_file_path);
+        }
     }
 }

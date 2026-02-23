@@ -106,8 +106,8 @@
         };
 
         // Prepare photo and signature
-        $photoSrc = $photo_path ? 'file://' . $photo_path : null;
-        $signatureSrc = $signature_image_path ? 'file://' . $signature_image_path : null;
+        $photoSrc = $photo_path ? (str_starts_with($photo_path, 'data:') ? $photo_path : 'file://' . $photo_path) : null;
+        $signatureSrc = $signature_image_path ? (str_starts_with($signature_image_path, 'data:') ? $signature_image_path : 'file://' . $signature_image_path) : null;
     @endphp
 
     <div class="page">
