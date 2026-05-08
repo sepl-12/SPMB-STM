@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? 'PPDB SMK Muh 1 - Penerimaan Peserta Didik Baru Online 2025/2026' }}</title>
+    <title>{{ $title ?? 'PPDB SMK Muh 1 - Penerimaan Peserta Didik Baru Online' }}</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

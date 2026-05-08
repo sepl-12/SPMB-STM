@@ -7,7 +7,7 @@
                 Informasi Gelombang Pendaftaran
             </h2>
             <p class="text-lg text-gray-600">
-                Berikut adalah jadwal pendaftaran siswa baru untuk tahun ajaran 2025/2026.
+                Berikut adalah jadwal pendaftaran siswa baru.
             </p>
         </div>
         
