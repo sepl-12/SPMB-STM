@@ -82,6 +82,19 @@
                                 </p>
                             </div>
 
+                            @if($whatsappGroupUrl)
+                                <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 16px; margin: 20px 0; border-radius: 4px;">
+                                    <p style="margin: 0 0 14px; font-size: 14px; color: #166534; line-height: 1.6;">
+                                        <strong>💬 Grup WhatsApp Resmi:</strong><br>
+                                        Anda sudah bisa bergabung ke grup WhatsApp resmi panitia untuk menerima informasi lanjutan.
+                                    </p>
+                                    <a href="{{ $whatsappGroupUrl }}"
+                                       style="display: inline-block; padding: 12px 24px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 15px;">
+                                        Gabung Grup WhatsApp
+                                    </a>
+                                </div>
+                            @endif
+
                             <!-- CTA Buttons -->
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
                                 <tr>
@@ -101,12 +114,6 @@
                                     </td>
                                 </tr>
                             </table>
-
-                            <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin: 20px 0; border-radius: 4px;">
-                                <p style="margin: 0; font-size: 12px; color: #92400e; line-height: 1.5;">
-                                    <strong>🔒 Keamanan:</strong> Link di atas adalah link aman yang khusus dibuat untuk Anda dan akan kedaluarsa dalam waktu tertentu. Jangan bagikan link ini kepada orang lain.
-                                </p>
-                            </div>
 
                             <p style="margin: 30px 0 0; font-size: 14px; line-height: 1.6; color: #64748b;">
                                 Jika Anda memiliki pertanyaan, silakan hubungi kami di:<br>

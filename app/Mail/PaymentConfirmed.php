@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Payment;
+use App\Payment\Services\PostPaymentAccessService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -29,7 +30,7 @@ class PaymentConfirmed extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Pembayaran Berhasil - ' . config('app.name'),
+            subject: 'Pembayaran Berhasil - '.config('app.name'),
         );
     }
 
@@ -47,6 +48,7 @@ class PaymentConfirmed extends Mailable implements ShouldQueue
                 'name' => $this->payment->applicant->applicant_full_name,
                 'amount' => number_format($this->payment->paid_amount_total, 0, ',', '.'),
                 'paymentDate' => $this->payment->status_updated_datetime?->format('d F Y, H:i'),
+                'whatsappGroupUrl' => app(PostPaymentAccessService::class)->getWhatsappGroupUrl($this->payment),
             ],
         );
     }

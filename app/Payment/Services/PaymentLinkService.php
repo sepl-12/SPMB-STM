@@ -19,18 +19,18 @@ class PaymentLinkService
     public function __construct(
         private readonly CreatePaymentLinkAction $createPaymentLinkAction,
         private readonly ApplicantUrlGenerator $applicantUrlGenerator,
+        private readonly PostPaymentAccessService $postPaymentAccessService,
     ) {}
 
     public function showForm(string $registrationNumber): PaymentLinkResult
     {
         $applicant = $this->findApplicant($registrationNumber, ['wave', 'payments', 'latestPayment']);
+        $latestPayment = $applicant->latestPayment;
 
-        if ($applicant->hasSuccessfulPayment()) {
-            $latestSuccess = $applicant->payments()->successful()->latest()->first();
-
+        if ($this->postPaymentAccessService->canAccessWhatsappGroup($latestPayment)) {
             return new PaymentLinkResult(
                 applicant: $applicant,
-                payment: $latestSuccess,
+                payment: $latestPayment,
                 snapToken: null,
                 redirectUrl: $this->applicantUrlGenerator->getPaymentSuccessUrl($applicant),
                 flash: ['message' => 'Pembayaran Anda sudah berhasil.']
@@ -54,7 +54,7 @@ class PaymentLinkService
 
         $latestPayment = $applicant->payments()->latest()->first();
 
-        if (!$latestPayment) {
+        if (! $latestPayment) {
             return new PaymentLinkResult(
                 applicant: $applicant,
                 payment: null,
@@ -64,7 +64,7 @@ class PaymentLinkService
             );
         }
 
-        if ($latestPayment->payment_status_name === PaymentStatus::SETTLEMENT) {
+        if ($this->postPaymentAccessService->canAccessWhatsappGroup($latestPayment)) {
             return new PaymentLinkResult(
                 applicant: $applicant,
                 payment: $latestPayment,
@@ -78,7 +78,7 @@ class PaymentLinkService
         // If expired, redirect to payment page which will generate new token
         $isTokenFresh = $latestPayment->created_at->diffInHours(now()) < 23;
 
-        if (!$isTokenFresh) {
+        if (! $isTokenFresh) {
             // Token expired, redirect to payment page to get fresh token
             return new PaymentLinkResult(
                 applicant: $applicant,
@@ -156,7 +156,7 @@ class PaymentLinkService
             }
 
             // Token expired or not found, mark old payment as expired and create new one
-            if (!$isTokenFresh) {
+            if (! $isTokenFresh) {
                 $existingPayment->update([
                     'payment_status_name' => PaymentStatus::EXPIRE,
                     'status_updated_datetime' => now(),

@@ -82,6 +82,19 @@
                                 </p>
                             </div>
 
+                            @if($whatsappGroupUrl)
+                                <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 16px; margin: 20px 0; border-radius: 4px;">
+                                    <p style="margin: 0 0 14px; font-size: 14px; color: #166534; line-height: 1.6;">
+                                        <strong>💬 Grup WhatsApp Resmi:</strong><br>
+                                        Pembayaran Anda sudah disetujui. Silakan bergabung ke grup WhatsApp resmi panitia untuk menerima informasi lanjutan.
+                                    </p>
+                                    <a href="{{ $whatsappGroupUrl }}"
+                                       style="display: inline-block; padding: 12px 24px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 15px;">
+                                        Gabung Grup WhatsApp
+                                    </a>
+                                </div>
+                            @endif
+
                             <!-- CTA Buttons -->
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
                                 <tr>

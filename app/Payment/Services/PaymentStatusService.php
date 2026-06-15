@@ -13,9 +13,10 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PaymentStatusService
 {
-    public function __construct(private readonly MidtransService $midtransService)
-    {
-    }
+    public function __construct(
+        private readonly MidtransService $midtransService,
+        private readonly PostPaymentAccessService $postPaymentAccessService,
+    ) {}
 
     public function getStatusPage(string $registrationNumber): PaymentStatusResult
     {
@@ -28,7 +29,14 @@ class PaymentStatusService
     public function getSuccessPage(string $registrationNumber): PaymentStatusResult
     {
         $applicant = $this->findApplicant($registrationNumber, ['wave', 'payments']);
-        $latestSuccess = $applicant->payments()->successful()->latest()->first();
+
+        $latestSuccess = $applicant->payments
+            ->sortByDesc('status_updated_datetime')
+            ->first(fn (Payment $payment) => $this->postPaymentAccessService->canAccessWhatsappGroup($payment));
+
+        if (! $latestSuccess) {
+            throw new PaymentNotFoundException('Pembayaran berhasil tidak ditemukan.');
+        }
 
         return new PaymentStatusResult($applicant, $latestSuccess);
     }
@@ -41,7 +49,7 @@ class PaymentStatusService
         // Find payment by order ID
         $payment = Payment::where('merchant_order_code', $orderId)->first();
 
-        if (!$payment) {
+        if (! $payment) {
             return [
                 'success' => false,
                 'message' => 'Payment not found',

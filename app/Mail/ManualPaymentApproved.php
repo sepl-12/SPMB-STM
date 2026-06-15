@@ -3,13 +3,13 @@
 namespace App\Mail;
 
 use App\Models\ManualPayment;
+use App\Payment\Services\PostPaymentAccessService;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
 class ManualPaymentApproved extends Mailable
 {
-
     /**
      * Create a new message instance.
      */
@@ -25,7 +25,7 @@ class ManualPaymentApproved extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Pembayaran Manual Disetujui - ' . config('app.name'),
+            subject: 'Pembayaran Manual Disetujui - '.config('app.name'),
         );
     }
 
@@ -44,6 +44,7 @@ class ManualPaymentApproved extends Mailable
                 'amount' => number_format($this->manualPayment->paid_amount, 0, ',', '.'),
                 'approvalDate' => $this->manualPayment->approved_at?->format('d F Y, H:i'),
                 'approvedBy' => $this->manualPayment->approvedBy?->name ?? 'Admin',
+                'whatsappGroupUrl' => app(PostPaymentAccessService::class)->getWhatsappGroupUrl($this->manualPayment->payment),
             ],
         );
     }

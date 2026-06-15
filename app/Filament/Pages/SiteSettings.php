@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Payment\Services\PostPaymentAccessService;
 use App\Settings\PaymentSettings;
 use App\Settings\SettingsRepositoryInterface;
 use Filament\Forms\Components\DatePicker;
@@ -136,7 +137,7 @@ class SiteSettings extends Page implements HasForms
                                     ->required(),
                             ])
                             ->collapsed()
-                            ->itemLabel(fn(array $state): ?string => $state['question'] ?? null)
+                            ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
                             ->columnSpanFull()
                             ->defaultItems(0),
                     ]),
@@ -171,7 +172,7 @@ class SiteSettings extends Page implements HasForms
                                     ->maxLength(250),
                             ])
                             ->collapsed()
-                            ->itemLabel(fn(array $state): ?string => $state['title'] ?? null)
+                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                             ->columns(2)
                             ->columnSpanFull()
                             ->defaultItems(0),
@@ -233,7 +234,7 @@ class SiteSettings extends Page implements HasForms
                             ->afterStateUpdated(function ($state, $set, $get) {
                                 // Jika end date belum diisi atau lebih kecil dari start date
                                 $endDate = $get('exam_end_date');
-                                if (!$endDate || $endDate < $state) {
+                                if (! $endDate || $endDate < $state) {
                                     $set('exam_end_date', $state);
                                 }
                             }),
@@ -244,7 +245,7 @@ class SiteSettings extends Page implements HasForms
                             ->native(false)
                             ->displayFormat('d F Y')
                             ->helperText('Tanggal terakhir pelaksanaan ujian')
-                            ->minDate(fn($get) => $get('exam_start_date'))
+                            ->minDate(fn ($get) => $get('exam_start_date'))
                             ->reactive(),
 
                         TextInput::make('exam_location')
@@ -263,7 +264,7 @@ class SiteSettings extends Page implements HasForms
                                 $endDate = $get('exam_end_date');
                                 $location = $get('exam_location');
 
-                                if (!$startDate || !$endDate) {
+                                if (! $startDate || ! $endDate) {
                                     return '⏳ Pilih tanggal untuk melihat preview';
                                 }
 
@@ -272,11 +273,11 @@ class SiteSettings extends Page implements HasForms
 
                                 // Format range
                                 if ($start->format('m Y') === $end->format('m Y')) {
-                                    $dateRange = $start->format('d') . ' - ' . $end->format('d F Y');
+                                    $dateRange = $start->format('d').' - '.$end->format('d F Y');
                                 } elseif ($start->format('Y') === $end->format('Y')) {
-                                    $dateRange = $start->format('d F') . ' - ' . $end->format('d F Y');
+                                    $dateRange = $start->format('d F').' - '.$end->format('d F Y');
                                 } else {
-                                    $dateRange = $start->format('d F Y') . ' - ' . $end->format('d F Y');
+                                    $dateRange = $start->format('d F Y').' - '.$end->format('d F Y');
                                 }
 
                                 $preview = "📅 Tanggal Ujian: {$dateRange}";
@@ -284,7 +285,7 @@ class SiteSettings extends Page implements HasForms
                                     $preview .= "\n📍 Lokasi: {$location}";
                                 }
 
-                                return new \Illuminate\Support\HtmlString('<div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 12px; border-radius: 4px; font-family: monospace; white-space: pre-line; color: #0c4a6e;">' . $preview . '</div>');
+                                return new \Illuminate\Support\HtmlString('<div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 12px; border-radius: 4px; font-family: monospace; white-space: pre-line; color: #0c4a6e;">'.$preview.'</div>');
                             })
                             ->columnSpanFull(),
                     ])
@@ -295,7 +296,7 @@ class SiteSettings extends Page implements HasForms
                     ->description('Mode pembayaran manual saat Midtrans bermasalah')
                     ->icon('heroicon-o-exclamation-triangle')
                     ->collapsible()
-                    ->collapsed(fn() => !PaymentSettings::isEmergencyModeEnabled())
+                    ->collapsed(fn () => ! PaymentSettings::isEmergencyModeEnabled())
                     ->schema([
                         Toggle::make('emergency_payment_enabled')
                             ->label('Aktifkan Mode Pembayaran Darurat')
@@ -320,24 +321,50 @@ class SiteSettings extends Page implements HasForms
                             ->disk('public')
                             ->visibility('public')
                             ->helperText('Format: JPG/PNG, Max 2MB. Pastikan QRIS masih aktif dan valid.')
-                            ->visible(fn($get) => $get('emergency_payment_enabled'))
+                            ->visible(fn ($get) => $get('emergency_payment_enabled'))
                             ->columnSpanFull(),
 
                         TextInput::make('emergency_payment_account_name')
                             ->label('Nama Penerima QRIS')
                             ->placeholder('Yayasan Pendidikan XYZ')
                             ->helperText('Nama yang muncul saat user scan QRIS')
-                            ->visible(fn($get) => $get('emergency_payment_enabled')),
+                            ->visible(fn ($get) => $get('emergency_payment_enabled')),
 
                         Textarea::make('emergency_payment_instructions')
                             ->label('Instruksi Pembayaran')
                             ->rows(6)
                             ->helperText('Instruksi yang akan ditampilkan ke user')
                             ->placeholder("1. Scan QRIS di bawah\n2. Bayar sesuai jumlah\n3. Upload bukti")
-                            ->visible(fn($get) => $get('emergency_payment_enabled'))
+                            ->visible(fn ($get) => $get('emergency_payment_enabled'))
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
+
+                Section::make('Akses Setelah Pembayaran')
+                    ->description('Link yang diberikan ke user setelah pembayaran berhasil')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->collapsible()
+                    ->collapsed()
+                    ->schema([
+                        TextInput::make('post_payment_whatsapp_group_url')
+                            ->label('Link Grup WhatsApp')
+                            ->url()
+                            ->maxLength(255)
+                            ->placeholder('https://chat.whatsapp.com/xxxxxxxxxxxx')
+                            ->helperText('Link invite grup yang akan tampil di halaman sukses, status pembayaran, dan email konfirmasi.')
+                            ->rule(function () {
+                                return function (string $attribute, $value, \Closure $fail): void {
+                                    if (blank($value)) {
+                                        return;
+                                    }
+
+                                    if (! app(PostPaymentAccessService::class)->isValidWhatsappGroupUrl($value)) {
+                                        $fail('Gunakan link invite grup WhatsApp yang valid, misalnya https://chat.whatsapp.com/...');
+                                    }
+                                };
+                            })
+                            ->columnSpanFull(),
+                    ]),
 
                 // Social Media
                 Section::make('Sosial Media')
@@ -405,6 +432,7 @@ class SiteSettings extends Page implements HasForms
             'emergency_qris_image' => PaymentSettings::getQrisImagePath(),
             'emergency_payment_account_name' => PaymentSettings::getAccountName(),
             'emergency_payment_instructions' => PaymentSettings::getEmergencyInstructions(),
+            'post_payment_whatsapp_group_url' => $repo->get('post_payment_whatsapp_group_url', ''),
 
             'social_facebook_url' => $repo->get('social_facebook_url', ''),
             'social_instagram_handle' => $repo->get('social_instagram_handle', ''),
@@ -425,7 +453,7 @@ class SiteSettings extends Page implements HasForms
                 PaymentSettings::setEmergencyMode((bool) $data['emergency_payment_enabled']);
             }
 
-            if (isset($data['emergency_qris_image']) && !empty($data['emergency_qris_image'])) {
+            if (isset($data['emergency_qris_image']) && ! empty($data['emergency_qris_image'])) {
                 PaymentSettings::setQrisImagePath($data['emergency_qris_image']);
             }
 
@@ -444,7 +472,7 @@ class SiteSettings extends Page implements HasForms
                     'emergency_payment_enabled',
                     'emergency_qris_image',
                     'emergency_payment_account_name',
-                    'emergency_payment_instructions'
+                    'emergency_payment_instructions',
                 ])) {
                     continue;
                 }
@@ -465,7 +493,7 @@ class SiteSettings extends Page implements HasForms
             Notification::make()
                 ->danger()
                 ->title('Gagal Menyimpan')
-                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                ->body('Terjadi kesalahan: '.$e->getMessage())
                 ->send();
         }
     }

@@ -54,7 +54,6 @@
                             <ol class="list-decimal list-inside space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-700">
                                 <li>Simpan nomor pendaftaran Anda: <strong class="break-all">{{ $applicant->registration_number }}</strong></li>
                                 <li>Lakukan pembayaran biaya pendaftaran sebesar <strong>Rp {{ number_format($applicant->wave->registration_fee_amount, 0, ',', '.') }}</strong></li>
-                                <li>Upload bukti pembayaran melalui dashboard Anda</li>
                                 <li>Tunggu konfirmasi dari panitia PPDB</li>
                             </ol>
                         </div>

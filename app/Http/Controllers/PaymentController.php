@@ -11,6 +11,7 @@ use App\Payment\Exceptions\PaymentNotFoundException;
 use App\Payment\Services\PaymentLinkService;
 use App\Payment\Services\PaymentNotificationService;
 use App\Payment\Services\PaymentStatusService;
+use App\Payment\Services\PostPaymentAccessService;
 use App\Services\Applicant\ExamCardPdfGenerator;
 use App\Services\ManualPayment\ManualPaymentService;
 use App\Services\MidtransService;
@@ -24,6 +25,7 @@ class PaymentController extends Controller
         protected readonly PaymentLinkService $paymentLinkService,
         protected readonly PaymentStatusService $paymentStatusService,
         protected readonly PaymentNotificationService $paymentNotificationService,
+        protected readonly PostPaymentAccessService $postPaymentAccessService,
         protected readonly ExamCardPdfGenerator $examCardPdfGenerator,
         protected readonly ManualPaymentService $manualPaymentService
     ) {}
@@ -40,19 +42,20 @@ class PaymentController extends Controller
                 ->firstOrFail();
 
             // Check if emergency mode is enabled
-            if (!\App\Settings\PaymentSettings::isEmergencyModeEnabled()) {
+            if (! \App\Settings\PaymentSettings::isEmergencyModeEnabled()) {
                 return back()->with('error', 'Mode pembayaran darurat tidak aktif.');
             }
 
             // Check if can upload
-            if (!$this->manualPaymentService->canUploadManualPayment($applicant)) {
+            if (! $this->manualPaymentService->canUploadManualPayment($applicant)) {
                 return back()->with('error', 'Anda sudah mengupload bukti pembayaran atau pembayaran sudah berhasil.');
             }
 
             // Validate amount
             $paidAmount = (float) $request->input('paid_amount');
-            if (!$this->manualPaymentService->validateAmount($applicant, $paidAmount)) {
+            if (! $this->manualPaymentService->validateAmount($applicant, $paidAmount)) {
                 $expectedAmount = number_format($applicant->wave->registration_fee_amount, 0, ',', '.');
+
                 return back()
                     ->withInput()
                     ->with('error', "Jumlah pembayaran tidak sesuai. Harap bayar Rp {$expectedAmount}");
@@ -102,7 +105,7 @@ class PaymentController extends Controller
 
             return response()->json(['message' => 'Notification handled successfully']);
         } catch (\Exception $e) {
-            Log::error('Midtrans Notification Error: ' . $e->getMessage());
+            Log::error('Midtrans Notification Error: '.$e->getMessage());
 
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -115,14 +118,14 @@ class PaymentController extends Controller
     {
         $orderId = $request->input('order_id');
 
-        if (!$orderId) {
+        if (! $orderId) {
             return redirect()->route('home')->with('error', 'Order ID tidak ditemukan.');
         }
 
         // Find payment
         $payment = Payment::where('merchant_order_code', $orderId)->first();
 
-        if (!$payment) {
+        if (! $payment) {
             return redirect()->route('home')->with('error', 'Pembayaran tidak ditemukan.');
         }
 
@@ -165,6 +168,7 @@ class PaymentController extends Controller
         return view('payment.success', [
             'applicant' => $result->applicant,
             'latestPayment' => $result->latestPayment,
+            'whatsappGroupUrl' => $this->postPaymentAccessService->getWhatsappGroupUrl($result->latestPayment),
         ]);
     }
 
@@ -175,7 +179,7 @@ class PaymentController extends Controller
     {
         $orderId = $request->input('order_id');
 
-        if (!$orderId) {
+        if (! $orderId) {
             return response()->json(['error' => 'Order ID required'], 400);
         }
 
@@ -240,17 +244,17 @@ class PaymentController extends Controller
                 $request->registration_number,
                 $request->email
             );
-        } catch (PaymentNotFoundException | PaymentEmailMismatchException $e) {
+        } catch (PaymentNotFoundException|PaymentEmailMismatchException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 404);
         } catch (PaymentLinkCreationFailed $e) {
-            Log::error('Failed to send payment link: ' . $e->getMessage());
+            Log::error('Failed to send payment link: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal membuat transaksi pembayaran'
+                'message' => 'Gagal membuat transaksi pembayaran',
             ], 500);
         }
 
@@ -264,7 +268,7 @@ class PaymentController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Link pembayaran: ' . $paymentUrl . ' (Email akan dikirim saat mail dikonfigurasi)',
+            'message' => 'Link pembayaran: '.$paymentUrl.' (Email akan dikirim saat mail dikonfigurasi)',
             'payment_url' => $paymentUrl,
         ]);
     }
@@ -324,7 +328,7 @@ class PaymentController extends Controller
         $applicant->load(['wave', 'latestPayment', 'latestSubmission', 'latestSubmission.submissionFiles.formField']);
 
         // Validasi applicant sudah bayar
-        if (!$applicant->hasSuccessfulPayment()) {
+        if (! $applicant->hasSuccessfulPayment()) {
             return response()->view('errors.payment-required', [
                 'message' => 'Pembayaran belum dikonfirmasi. Silakan selesaikan pembayaran terlebih dahulu.',
                 'applicant' => $applicant,
@@ -334,7 +338,7 @@ class PaymentController extends Controller
         // Reuse cached PDF unless caller requests refresh or data changed after render.
         $forceRefresh = $request->boolean('refresh');
         $absolutePath = $this->examCardPdfGenerator->generateAndStore($applicant, $forceRefresh);
-        $fileName = 'kartu-ujian-' . $applicant->registration_number . '.pdf';
+        $fileName = 'kartu-ujian-'.$applicant->registration_number.'.pdf';
         $headers = ['Content-Type' => 'application/pdf'];
 
         if ($request->boolean('download')) {
@@ -342,7 +346,7 @@ class PaymentController extends Controller
         }
 
         return response()->file($absolutePath, array_merge($headers, [
-            'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+            'Content-Disposition' => 'inline; filename="'.$fileName.'"',
         ]));
     }
 
@@ -361,6 +365,7 @@ class PaymentController extends Controller
         return view('payment.status', [
             'applicant' => $result->applicant,
             'latestPayment' => $result->latestPayment,
+            'whatsappGroupUrl' => $this->postPaymentAccessService->getWhatsappGroupUrl($result->latestPayment),
         ]);
     }
 }
