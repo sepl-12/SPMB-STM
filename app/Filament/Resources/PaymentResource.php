@@ -107,14 +107,10 @@ class PaymentResource extends Resource
                     ->placeholder('-'),
             ])
             ->filters([
-                TrashedFilter::make()
-                    ->label('Status Penghapusan')
-                    ->placeholder('Hanya Aktif')
-                    ->trueLabel('Hanya Dihapus')
-                    ->falseLabel('Hanya Aktif')
-                    ->default(false),
                 SelectFilter::make('payment_status_name')
                     ->label('Status')
+                    ->multiple()
+                    ->default([PaymentStatus::PENDING->value, PaymentStatus::SETTLEMENT->value])
                     ->options(fn () => collect(PaymentStatus::cases())
                         ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
                         ->all()),
