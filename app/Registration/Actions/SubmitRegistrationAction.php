@@ -71,10 +71,22 @@ class SubmitRegistrationAction
             $this->waveQuotaGuard->assertAvailability($activeWave);
 
             $emailValue = $this->emailExtractor->extract($validatedData, $allFields);
+            $nisnValue = $validatedData['nisn'] ?? null;
+            $phoneValue = $validatedData['no_hp'] ?? $validatedData['phone'] ?? null;
 
-            // 1. Check existing applicant in this wave
+            // 1. Check existing applicant in this wave by Email, NISN, or Phone
             $existingApplicant = Applicant::where('wave_id', $activeWave->id)
-                ->where('applicant_email_address', $emailValue)
+                ->where(function ($query) use ($emailValue, $nisnValue, $phoneValue) {
+                    $query->where('applicant_email_address', $emailValue);
+                    
+                    if (!empty($nisnValue) && $nisnValue !== '-') {
+                        $query->orWhere('applicant_nisn', $nisnValue);
+                    }
+                    
+                    if (!empty($phoneValue) && $phoneValue !== '-') {
+                        $query->orWhere('applicant_phone_number', $phoneValue);
+                    }
+                })
                 ->first();
 
             if ($existingApplicant) {
@@ -84,7 +96,7 @@ class SubmitRegistrationAction
                     $this->paymentStatusResolver->hasPendingPayment($existingApplicant)
                 ) {
                     throw ValidationException::withMessages([
-                        'email' => 'Email ini sudah terdaftar dan sedang dalam proses pembayaran atau sudah lunas. Silakan cek status pendaftaran Anda.',
+                        'email' => 'Data pendaftaran (Email / NISN / No. HP) ini sudah terdaftar dan sedang dalam proses pembayaran atau sudah lunas. Silakan cek status pendaftaran Anda.',
                     ]);
                 }
 
@@ -93,6 +105,7 @@ class SubmitRegistrationAction
                     'applicant_full_name' => $validatedData['nama_lengkap'] ?? $validatedData['full_name'] ?? 'Nama Belum Diisi',
                     'applicant_nisn' => $validatedData['nisn'] ?? '-',
                     'applicant_phone_number' => $validatedData['no_hp'] ?? $validatedData['phone'] ?? '-',
+                    'applicant_email_address' => $emailValue,
                     'chosen_major_name' => $validatedData['jurusan'] ?? $validatedData['major'] ?? 'Belum Dipilih',
                     // Update registration time to now so it looks fresh
                     'registered_datetime' => now(),
