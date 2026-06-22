@@ -20,8 +20,8 @@ class PaymentDeletionService
             $errors[] = 'Payment yang sudah settlement tidak dapat dihapus';
         }
 
-        // Rule 2: Payment < 7 hari tidak boleh dihapus (untuk rekonsiliasi)
-        if ($payment->created_at->diffInDays(now()) < 7) {
+        // Rule 2: Payment < 7 hari tidak boleh dihapus (untuk rekonsiliasi), KECUALI status PENDING (menunggu pembayaran)
+        if ($payment->created_at->diffInDays(now()) < 7 && $payment->payment_status_name !== PaymentStatus::PENDING) {
             $errors[] = 'Payment belum melewati periode rekonsiliasi minimum (7 hari)';
         }
 
