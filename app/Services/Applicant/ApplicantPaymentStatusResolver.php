@@ -54,7 +54,7 @@ class ApplicantPaymentStatusResolver
     {
         $status = $this->getLatestStatus($applicant);
 
-        return $status?->isPending() ?? true;
+        return $status?->isPending() ?? false;
     }
 
     /**
