@@ -23,6 +23,26 @@ class ApplicantPaymentStatusResolver
      */
     public function getLatestStatus(Applicant $applicant): ?PaymentStatus
     {
+        // 1. Cek apakah applicant memiliki pembayaran yang sukses (SETTLEMENT)
+        // Prioritaskan status sukses meskipun ada attempt pembayaran yang lebih baru namun gagal/expired
+        if ($applicant->relationLoaded('payments')) {
+            $hasSuccessful = $applicant->payments->contains(function ($payment) {
+                return $payment->payment_status_name === PaymentStatus::SETTLEMENT;
+            });
+            if ($hasSuccessful) {
+                return PaymentStatus::SETTLEMENT;
+            }
+        } else {
+            $hasSuccessful = $applicant->payments()
+                ->where('payment_status_name', PaymentStatus::SETTLEMENT->value)
+                ->exists();
+                
+            if ($hasSuccessful) {
+                return PaymentStatus::SETTLEMENT;
+            }
+        }
+
+        // 2. Fallback ke status dari latest payment
         // Ensure relation is eager loaded untuk avoid N+1
         if (!$applicant->relationLoaded('latestPayment')) {
             $applicant->load('latestPayment');
@@ -119,12 +139,12 @@ class ApplicantPaymentStatusResolver
     {
         $applicantCollection = collect($applicants);
 
-        // Eager load all latest payments in one query (if Eloquent Collection)
+        // Eager load payments and latestPayment in one query (if Eloquent Collection)
         if (
             $applicantCollection->first() instanceof Applicant &&
             $applicantCollection instanceof \Illuminate\Database\Eloquent\Collection
         ) {
-            $applicantCollection->load('latestPayment');
+            $applicantCollection->load(['latestPayment', 'payments']);
         }
 
         return $applicantCollection->mapWithKeys(function (Applicant $applicant) {
